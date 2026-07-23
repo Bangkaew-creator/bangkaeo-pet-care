@@ -94,8 +94,8 @@ async function loadDashboardData() {
             const c = configDoc.data();
             maxNeuter = c.quota_neuter || 100; 
             maxVaccine = c.quota_vaccine || 300;
-            startDate = c.start_date || ""; // [เพิ่มใหม่] ดึงวันเริ่ม
-            endDate = c.end_date || ""; // [เพิ่มใหม่] ดึงวันสิ้นสุด
+            startDate = c.start_date || ""; 
+            endDate = c.end_date || ""; 
 
             const serviceInfo = [];
             if(c.service_date) serviceInfo.push(`${c.service_date}`);
@@ -117,7 +117,17 @@ async function loadDashboardData() {
                 if(data.owner_uid === userProfileData.userId) {
                     const badge = data.status === "checked_in" ? `<span style="color:#50E3C2; font-size:12px;">(✅ รับบริการแล้ว)</span>` : ``;
                     const cancelBtn = data.status === "booked" ? `<button type="button" class="btn-cancel-pet" onclick="cancelMyPet('${d.id}')">❌ ยกเลิกสิทธิ์คืนโควตา</button>` : ``;
-                    myPetsHtml += `<div class="pet-item"><strong>${data.pet_name}</strong> ${badge}<br><span style="color:#A0B0C0; font-size: 13px;">${data.pet_type} ${data.pet_gender} - ${data.service_type}</span><br>${cancelBtn}</div>`;
+                    
+                    // [เพิ่มใหม่] แยกบ้านเลขที่และหมู่ ออกมาจาก house_village_search เพื่อแสดงบนการ์ด
+                    let addressText = "";
+                    if (data.house_village_search) {
+                        const parts = data.house_village_search.split("-");
+                        if (parts.length === 2) {
+                            addressText = `<br><span style="color:#D4AF37; font-size: 14px;">🏠 บ้านเลขที่ ${parts[0]} หมู่ ${parts[1]}</span>`;
+                        }
+                    }
+
+                    myPetsHtml += `<div class="pet-item"><strong>${data.pet_name}</strong> ${badge}${addressText}<br><span style="color:#A0B0C0; font-size: 13px;">${data.pet_type} ${data.pet_gender} - ${data.service_type}</span><br>${cancelBtn}</div>`;
                 }
             }
         });
@@ -134,13 +144,13 @@ async function loadDashboardData() {
             document.getElementById("my-registered-pets").style.display = "none";
         }
 
-        // [เพิ่มใหม่] เช็กเปิด-ปิดระบบอัตโนมัติตามวันที่และโควตา
-        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); // format YYYY-MM-DD
+        // เช็กเปิด-ปิดระบบอัตโนมัติตามวันที่และโควตา
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); 
         let isOpen = true;
         
-        if (startDate && todayStr < startDate) isOpen = false; // ยังไม่ถึงวันเปิด
-        if (endDate && todayStr > endDate) isOpen = false; // เลยวันปิดแล้ว
-        if (curNeuter >= maxNeuter && curVaccine >= maxVaccine) isOpen = false; // โควตาเต็มหมดแล้ว
+        if (startDate && todayStr < startDate) isOpen = false; 
+        if (endDate && todayStr > endDate) isOpen = false; 
+        if (curNeuter >= maxNeuter && curVaccine >= maxVaccine) isOpen = false; 
 
         const btnStart = document.getElementById("btn-start-register");
         const msgClosed = document.getElementById("registration-closed-msg");
@@ -154,6 +164,7 @@ async function loadDashboardData() {
 
     } catch (error) { console.error(error); }
 }
+
 
 window.cancelMyPet = async function(docId) {
     if(confirm("คุณต้องการยกเลิกคิวนี้เพื่อคืนสิทธิ์ให้ผู้อื่น ใช่หรือไม่?")) {
