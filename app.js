@@ -109,8 +109,12 @@ function setupAdminLogin() {
 // 4. ระบบจัดการหน้างาน (Admin Check-in)
 // ==========================================
 function setupAdminSearch() {
-    document.getElementById("btn-admin-search").addEventListener("click", async () => {
-        const keyword = document.getElementById("admin-search-input").value.trim();
+    const searchInput = document.getElementById("admin-search-input");
+    const searchBtn = document.getElementById("btn-admin-search");
+
+    // 1. ฟังก์ชันเมื่อกดปุ่ม "ค้นหา" ด้วยเมาส์/นิ้ว
+    searchBtn.addEventListener("click", async () => {
+        const keyword = searchInput.value.trim();
         if(!keyword) return alert("กรุณาพิมพ์ บ้านเลขที่-หมู่");
 
         const resultContainer = document.getElementById("admin-result-container");
@@ -160,6 +164,15 @@ function setupAdminSearch() {
         } catch (error) {
             console.error("Search Error", error);
             resultContainer.innerHTML = "<p>เกิดข้อผิดพลาดในการดึงข้อมูล</p>";
+        }
+    });
+
+    // 2. ดักจับการกดปุ่ม Enter ในช่องค้นหา
+    searchInput.addEventListener("keypress", (event) => {
+        // หากปุ่มที่กดคือปุ่ม Enter (key === "Enter")
+        if (event.key === "Enter") {
+            event.preventDefault(); // ป้องกันไม่ให้หน้าเว็บรีเฟรช (หากอยู่ในฟอร์ม)
+            searchBtn.click(); // สั่งให้จำลองการคลิกปุ่มค้นหา
         }
     });
 }
