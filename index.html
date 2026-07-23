@@ -43,7 +43,6 @@
                     </div>
                 </div>
 
-                <!-- (ใหม่) ส่วนแสดงรายการที่ลงทะเบียนแล้วของฉัน -->
                 <div id="my-registered-pets" class="card neumorphic" style="display: none;">
                     <h3 class="section-title" style="color: #50E3C2;">📌 รายการลงทะเบียนของท่าน</h3>
                     <div id="my-pets-list"></div>
@@ -66,7 +65,7 @@
                         <div class="input-group half"><label>หมู่ที่</label><select id="village-no" class="neumorphic-input" required><option value="" disabled selected>เลือกหมู่</option><script>for(let i=1; i<=16; i++) document.write(`<option value="${i}">หมู่ที่ ${i}</option>`);</script></select></div>
                     </div>
                     <div class="input-group checkbox-group"><input type="checkbox" id="is-rental" class="neumorphic-checkbox"><label for="is-rental">อาศัยในบ้านเช่า/หอพัก</label></div>
-                    <div class="input-group" id="room-no-group" style="display: none;"><label>เลขห้องเช่า</label><input type="text" id="room-no" class="neumorphic-input"></div>
+                    <div class="input-group" id="room-no-group" style="display: none;"><label>เลขห้องเช่า (ถ้ามี)</label><input type="text" id="room-no" class="neumorphic-input"></div>
                 </div>
                 <div class="row">
                     <button type="button" class="neumorphic-btn half btn-back" data-back="0">⬅ กลับ</button>
@@ -194,7 +193,7 @@
         </div>
     </div>
 
-    <!-- ================= Modal แสดงลายเซ็น (สำหรับแอดมินดูแบบ Pop-up) ================= -->
+    <!-- ================= Modal แสดงลายเซ็นหน้าจอ ================= -->
     <div id="consent-modal" class="modal-overlay" style="display: none;">
         <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
             <h3 class="section-title">ลายมือชื่อผู้ยินยอม</h3>
@@ -206,7 +205,7 @@
         </div>
     </div>
 
-    <!-- ================= (ใหม่) แบบฟอร์ม A4 สำหรับพิมพ์ใบยินยอม ================= -->
+    <!-- ================= แบบฟอร์ม A4 สำหรับพิมพ์ใบยินยอม ================= -->
     <div id="print-consent-form" style="display: none;">
         <h2 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 5px;">ใบยินยอมผ่าตัดทำหมัน</h2>
         <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px;">กับเทศบาลเมืองบางแก้ว ร่วมกับปศุสัตว์จังหวัดสมุทรปราการ</h3>
@@ -231,6 +230,7 @@
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script type="module" src="app.js"></script>
 </body>
