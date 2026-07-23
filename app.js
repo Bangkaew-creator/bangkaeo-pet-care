@@ -200,7 +200,18 @@ async function loadDashboardData() {
         let maxNeuter = 100, maxVaccine = 300; 
         if(configDoc.exists()) {
             const c = configDoc.data();
-            maxNeuter = c.quota_neuter || 100; maxVaccine = c.quota_vaccine || 300;
+            maxNeuter = c.quota_neuter || 100; 
+            maxVaccine = c.quota_vaccine || 300;
+            
+            // นำข้อมูลวันที่และสถานที่ไปแสดงให้ประชาชนเห็น
+            const serviceInfo = [];
+            if(c.service_date) serviceInfo.push(`📅 วันที่: ${c.service_date}`);
+            if(c.service_location) serviceInfo.push(`📍 สถานที่: ${c.service_location}`);
+            if(serviceInfo.length > 0) {
+                document.getElementById("txt-service-info").innerHTML = serviceInfo.join("<br>");
+            } else {
+                document.getElementById("txt-service-info").style.display = "none";
+            }
         }
 
         const petsSnap = await getDocs(collection(db, "pets"));
