@@ -1,3 +1,87 @@
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
+body { background-color: #141E30; color: #E0E5EC; min-height: 100vh; padding: 20px 15px; }
+.loading-screen { display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 18px; color: #D4AF37; }
+.container { max-width: 500px; margin: 0 auto; padding-bottom: 50px; }
+.title { text-align: center; color: #D4AF37; margin-bottom: 20px; font-size: 22px; }
+
+.card { padding: 20px; border-radius: 15px; margin-bottom: 20px; }
+.neumorphic { background: #141E30; box-shadow: 6px 6px 12px #0d131f, -6px -6px 12px #1b2941; }
+.neumorphic-inner { background: #141E30; box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; border-radius: 10px; }
+.section-title { color: #D4AF37; margin-bottom: 15px; font-size: 18px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 5px; }
+.input-group { margin-bottom: 15px; }
+.input-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #A0B0C0; }
+.row { display: flex; gap: 15px; }
+.half { flex: 1; }
+
+.neumorphic-input { width: 100%; padding: 12px 15px; border: none; border-radius: 10px; background: #141E30; color: #FFF; font-size: 16px; outline: none; box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; }
+.neumorphic-input::placeholder { color: #6A7A8A; }
+.checkbox-group { display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; }
+.checkbox-group input { margin-top: 5px; transform: scale(1.2); }
+
+.neumorphic-btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; color: #A0B0C0; background: #141E30; box-shadow: 4px 4px 8px #0d131f, -4px -4px 8px #1b2941; transition: 0.2s; }
+.neumorphic-btn:active { box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; }
+.gold-btn { color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.2); }
+.gold-btn:disabled { color: #6A7A8A; border: none; opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+.outline-btn { color: #81A1C1; border: 1px dashed #81A1C1; box-shadow: none; background: transparent; }
+
+/* Dashboard Progress */
+.progress-container { margin-bottom: 10px; }
+.progress-label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: #B0C4DE; }
+.progress-track { width: 100%; height: 12px; background: #0d131f; border-radius: 10px; box-shadow: inset 2px 2px 5px #0a0e17, inset -2px -2px 5px #141e30; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #B8962E, #D4AF37); border-radius: 10px; transition: width 0.5s ease; }
+.progress-fill.vaccine { background: linear-gradient(90deg, #4A90E2, #50E3C2); }
+
+/* Lists & Items */
+.pet-item { padding: 15px; margin-bottom: 10px; border-radius: 10px; background: #1b2941; border-left: 4px solid #D4AF37; font-size: 14px; position: relative;}
+.pet-item .remove-btn { position: absolute; right: 10px; top: 10px; color: #ff6b6b; background: none; border: none; cursor: pointer; font-weight: bold;}
+
+/* Step UI */
+.step-content { display: none; }
+.step-content.active { display: block; animation: fadeIn 0.4s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.terms-box { padding: 15px; max-height: 180px; overflow-y: auto; font-size: 14px; line-height: 1.6; color: #E0E5EC; }
+.disabled-section { opacity: 0.3; pointer-events: none; transition: 0.3s; }
+.disabled-section.active { opacity: 1; pointer-events: auto; }
+canvas.signature-pad { width: 100%; height: 150px; border-radius: 10px; background: #FFF; margin-top: 10px; border: 2px solid #D4AF37; touch-action: none; cursor: crosshair; }
+.clear-btn { background: none; border: none; color: #ff6b6b; font-size: 14px; text-decoration: underline; margin-top: 5px; cursor: pointer; display: block; text-align: right; width: 100%; }
+
+/* Modal & Admin UI */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; display: flex; justify-content: center; align-items: center; }
+.admin-card { padding: 15px; border-radius: 10px; background: #1b2941; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #81A1C1; }
+.admin-card.checked { border-left-color: #50E3C2; background: #12222b; }
+.status-badge { display: inline-block; padding: 4px 8px; border-radius: 5px; font-size: 12px; margin-top: 5px; font-weight: bold; }
+.badge-green { background: rgba(80, 227, 194, 0.2); color: #50E3C2; border: 1px solid #50E3C2; }
+.badge-red { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
+/* ตารางสรุปรายงาน */
+.table-responsive { width: 100%; overflow-x: auto; }
+.neumorphic-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; margin-top: 10px; }
+.neumorphic-table th, .neumorphic-table td { padding: 12px; border: 1px solid rgba(160, 176, 192, 0.2); }
+.neumorphic-table th { background: #0d131f; color: #A0B0C0; font-weight: 600; }
+.neumorphic-table td { color: #E0E5EC; }
+
+.print-only { display: none; }
+
+/* ==========================================
+   CSS สำหรับการ Print หรือ Save as PDF
+   ========================================== */
+@media print {
+    body { background: #FFF !important; color: #000 !important; padding: 0; }
+    .no-print, #btn-staff-login, .title, .loading-screen { display: none !important; }
+    
+    #report-container { display: block !important; max-width: 100% !important; margin: 0 !important; }
+    
+    /* ลบมิติ Neumorphism ออกเพื่อให้พิมพ์ลงกระดาษขาวได้สวยงาม */
+    .card.neumorphic { box-shadow: none !important; background: transparent !important; padding: 0 !important; margin-bottom: 30px !important; }
+    
+    .section-title { color: #000 !important; border-bottom: 2px solid #000 !important; font-size: 16px !important; }
+    .neumorphic-table th, .neumorphic-table td { border: 1px solid #000 !important; color: #000 !important; padding: 8px !important; }
+    .neumorphic-table th { background: #f0f0f0 !important; font-weight: bold !important; }
+
+    /* แสดงส่วนหัวและช่องเซ็นชื่อ */
+    .print-only { display: block !important; }
+    #print-signatures { display: flex !important; justify-content: space-between !important; margin-top: 60px !important; page-break-inside: avoid; }
+    .sig-box { text-align: center; font-size: 14px; line-height: 1.8; width: 30%; }
+}
 /* ==========================================
    Header & Sidebar (New additions)
    ========================================== */
