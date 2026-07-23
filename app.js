@@ -239,34 +239,97 @@ function setupPetSystem() {
         const service = document.getElementById("service-type").value;
 
         if(!name || !type || !gender || !service) return alert("กรุณากรอกข้อมูลสัตว์เลี้ยงให้ครบ");
-        
-        if (service === "ทำหมันและวัคซีน") {
-            const hNo = document.getElementById("house-no").value;
-            const vNo = document.getElementById("village-no").value;
-            if(!hNo || !vNo) return alert("กรุณาย้อนกลับไปกรอกบ้านเลขที่และหมู่ในหน้าแรกก่อนครับ");
 
-            const searchKey = `${hNo}-${vNo}`;
-            const q = query(collection(db, "pets"), where("house_village_search", "==", searchKey));
-            const snap = await getDocs(q);
-            
-            let dbNeuterCount = 0;
-            snap.forEach(d => {
-                const p = d.data();
-                if(p.status !== "cancelled" && p.service_type === "ทำหมันและวัคซีน") dbNeuterCount++;
+        // ป้องกันคนกดรัวๆ ระหว่างที่ระบบกำลังดึงข้อมูลเช็กโควตา
+        const btnAdd = document.getElementById("btn-add-pet");
+        btnAdd.textContent = "กำลังตรวจสอบโควตา...";
+        btnAdd.disabled = true;
+
+        try {
+            // 1. ดึงข้อมูลโควตาสูงสุดที่แอดมินตั้งค่าไว้
+            const configDoc = await getDoc(doc(db, "system_config", "main_config"));
+            let maxN = 100, maxV = 300;
+            if (configDoc.exists()) {
+                maxN = configDoc.data().quota_neuter || 100;
+                maxV = configDoc.data().quota_vaccine || 300;
+            }
+
+            // 2. ดึงข้อมูลว่าตอนนี้มีคนจองคิวไปแล้วกี่ตัว (ไม่นับตัวที่ยกเลิก)
+            const allPetsSnap = await getDocs(collection(db, "pets"));
+            let currentN = 0, currentV = 0;
+            allPetsSnap.forEach(d => {
+                if (d.data().status !== "cancelled") {
+                    if (d.data().service_type === "ทำหมันและวัคซีน") currentN++;
+                    if (d.data().service_type === "วัคซีนอย่างเดียว") currentV++;
+                }
             });
 
-            const cartNeuterCount = pets.filter(p => p.service === "ทำหมันและวัคซีน").length;
-            if ((dbNeuterCount + cartNeuterCount) >= 2) return alert("ขออภัยครับ บ้านเลขที่นี้ใช้สิทธิ์ทำหมันครบ 2 ตัวตามโควตาแล้ว");
-        }
+            // 3. นับจำนวนที่อยู่ในตะกร้าของคนที่กำลังกดอยู่
+            const cartN = pets.filter(p => p.service === "ทำหมันและวัคซีน").length;
+            const cartV = pets.filter(p => p.service === "วัคซีนอย่างเดียว").length;
 
-        pets.push({ name, type, gender, service, signed: false });
-        document.getElementById("pet-name").value = "";
-        document.getElementById("pet-type").value = "";
-        document.getElementById("pet-gender").value = "";
-        document.getElementById("service-type").value = "";
-        updatePetListUI();
+            // 4. เริ่มตรวจสอบเงื่อนไขทั้งหมดก่อนยอมให้บันทึก
+            if (service === "ทำหมันและวัคซีน") {
+                // เช็ก 4.1: โควตารวมของโครงการเต็มหรือยัง?
+                if ((currentN + cartN) >= maxN) {
+                    alert(`ขออภัยครับ โควตา "ทำหมัน" เต็มแล้ว (${maxN} คิว)`);
+                    return resetAddBtn(btnAdd);
+                }
+
+                // เช็ก 4.2: บ้านเลขที่นี้ใช้สิทธิ์เกิน 2 ตัวหรือยัง? (ของเดิม)
+                const hNo = document.getElementById("house-no").value;
+                const vNo = document.getElementById("village-no").value;
+                if(!hNo || !vNo) {
+                    alert("กรุณาย้อนกลับไปกรอกบ้านเลขที่และหมู่ในหน้าแรกก่อนครับ");
+                    return resetAddBtn(btnAdd);
+                }
+
+                const searchKey = `${hNo}-${vNo}`;
+                const q = query(collection(db, "pets"), where("house_village_search", "==", searchKey));
+                const snap = await getDocs(q);
+                
+                let dbNeuterCount = 0;
+                snap.forEach(d => {
+                    const p = d.data();
+                    if(p.status !== "cancelled" && p.service_type === "ทำหมันและวัคซีน") dbNeuterCount++;
+                });
+
+                if ((dbNeuterCount + cartN) >= 2) {
+                    alert("ขออภัยครับ บ้านเลขที่นี้ใช้สิทธิ์ทำหมันครบ 2 ตัวตามโควตาแล้ว");
+                    return resetAddBtn(btnAdd);
+                }
+
+            } else if (service === "วัคซีนอย่างเดียว") {
+                // เช็ก 4.3: โควตาฉีดวัคซีนเต็มหรือยัง?
+                if ((currentV + cartV) >= maxV) {
+                    alert(`ขออภัยครับ โควตา "ฉีดวัคซีน" เต็มแล้ว (${maxV} คิว)`);
+                    return resetAddBtn(btnAdd);
+                }
+            }
+
+            // หากผ่านเงื่อนไขทุกอย่าง ให้นำเข้าตะกร้าได้
+            pets.push({ name, type, gender, service, signed: false });
+            document.getElementById("pet-name").value = "";
+            document.getElementById("pet-type").value = "";
+            document.getElementById("pet-gender").value = "";
+            document.getElementById("service-type").value = "";
+            updatePetListUI();
+
+        } catch(e) {
+            console.error(e);
+            alert("เกิดข้อผิดพลาดในการตรวจสอบโควตา");
+        } finally {
+            resetAddBtn(btnAdd);
+        }
     });
+    
     document.getElementById("btn-go-consent").addEventListener("click", () => changeStep("3"));
+}
+
+// ฟังก์ชันเสริมสำหรับคืนค่าปุ่มกด
+function resetAddBtn(btnElement) {
+    btnElement.textContent = "+ บันทึกข้อมูลสัตว์ตัวนี้";
+    btnElement.disabled = false;
 }
 
 function updatePetListUI() {
