@@ -213,38 +213,68 @@ async function loadDashboardData() {
         let maxNeuter = 100, maxVaccine = 300; 
         if(configDoc.exists()) {
             const c = configDoc.data();
-            maxNeuter = c.quota_neuter || 100; 
-            maxVaccine = c.quota_vaccine || 300;
-            
-            // นำข้อมูลวันที่และสถานที่ไปแสดงให้ประชาชนเห็น
+            maxNeuter = c.quota_neuter || 100; maxVaccine = c.quota_vaccine || 300;
             const serviceInfo = [];
             if(c.service_date) serviceInfo.push(`📅 วันที่: ${c.service_date}`);
             if(c.service_location) serviceInfo.push(`📍 สถานที่: ${c.service_location}`);
-            if(serviceInfo.length > 0) {
-                document.getElementById("txt-service-info").innerHTML = serviceInfo.join("<br>");
-            } else {
-                document.getElementById("txt-service-info").style.display = "none";
-            }
+            if(serviceInfo.length > 0) document.getElementById("txt-service-info").innerHTML = serviceInfo.join("<br>");
+            else document.getElementById("txt-service-info").style.display = "none";
         }
 
         const petsSnap = await getDocs(collection(db, "pets"));
         let curNeuter = 0, curVaccine = 0;
+        let myPetsHtml = "";
+        
         petsSnap.forEach(d => {
             const data = d.data();
             if(data.status !== "cancelled") {
                 if(data.service_type === "ทำหมันและวัคซีน") curNeuter++;
                 if(data.service_type === "วัคซีนอย่างเดียว") curVaccine++;
+                
+                // ตรวจสอบว่าเป็นสัตว์เลี้ยงของฉันหรือไม่
+                if(data.owner_uid === userProfileData.userId) {
+                    const badge = data.status === "checked_in" ? `<span style="color:#50E3C2; font-size:12px;">(✅ รับบริการแล้ว)</span>` : ``;
+                    const cancelBtn = data.status === "booked" ? `<button class="btn-cancel-pet" onclick="cancelMyPet('${d.id}')">❌ ยกเลิกสิทธิ์คืนโควตา</button>` : ``;
+                    
+                    myPetsHtml += `
+                        <div class="pet-item">
+                            <strong>${data.pet_name}</strong> ${badge}
+                            <br><span style="color:#A0B0C0; font-size: 13px;">${data.pet_type} ${data.pet_gender} - ${data.service_type}</span>
+                            <br>${cancelBtn}
+                        </div>
+                    `;
+                }
             }
         });
 
         document.getElementById("txt-neuter-quota").textContent = `${curNeuter} / ${maxNeuter} คิว`;
         document.getElementById("bar-neuter").style.width = `${Math.min((curNeuter/maxNeuter)*100, 100)}%`;
-        
         document.getElementById("txt-vaccine-quota").textContent = `${curVaccine} / ${maxVaccine} คิว`;
         document.getElementById("bar-vaccine").style.width = `${Math.min((curVaccine/maxVaccine)*100, 100)}%`;
+
+        // แสดงรายการสัตว์เลี้ยงของฉัน
+        if(myPetsHtml !== "") {
+            document.getElementById("my-registered-pets").style.display = "block";
+            document.getElementById("my-pets-list").innerHTML = myPetsHtml;
+        } else {
+            document.getElementById("my-registered-pets").style.display = "none";
+        }
+
     } catch (error) { console.error(error); }
 }
 
+// ฟังก์ชันยกเลิกสิทธิ์
+window.cancelMyPet = async function(docId) {
+    if(confirm("คุณต้องการยกเลิกคิวนี้เพื่อคืนสิทธิ์ให้ผู้อื่น ใช่หรือไม่?")) {
+        try {
+            await updateDoc(doc(db, "pets", docId), { status: "cancelled" });
+            alert("ยกเลิกสิทธิ์เรียบร้อยแล้ว โควตาได้ถูกส่งคืนสู่ระบบครับ");
+            loadDashboardData(); // รีเฟรชหน้าจอใหม่
+        } catch (e) {
+            alert("เกิดข้อผิดพลาด กรุณาลองใหม่");
+        }
+    }
+}
 function setupNavigation() {
     document.querySelectorAll('.btn-next').forEach(btn => {
         btn.addEventListener('click', (e) => {
