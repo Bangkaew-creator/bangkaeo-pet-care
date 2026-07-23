@@ -11,12 +11,36 @@
     <div id="loading" class="loading-screen">กำลังโหลดข้อมูล...</div>
 
     <div id="app-container" class="container" style="display: none;">
-        <h2 class="title">🐾 ลงทะเบียนเข้ารับบริการ</h2>
+        <h2 class="title">🐾 ระบบลงทะเบียนออนไลน์</h2>
         
         <form id="registration-form">
             
+            <!-- ================= แดชบอร์ดสถานะคิว (Step 0) ================= -->
+            <div id="step-0" class="step-content active">
+                <div class="card neumorphic">
+                    <h3 class="section-title">📊 สถานะคิวปัจจุบัน</h3>
+                    
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>ทำหมัน (สุนัขและแมว)</span>
+                            <span>45 / 100 คิว</span> <!-- ตัวเลขสมมติ รอต่อ Firebase -->
+                        </div>
+                        <div class="progress-track"><div class="progress-fill" style="width: 45%;"></div></div>
+                    </div>
+
+                    <div class="progress-container" style="margin-top: 20px;">
+                        <div class="progress-label">
+                            <span>ฉีดวัคซีนอย่างเดียว</span>
+                            <span>120 / 300 คิว</span>
+                        </div>
+                        <div class="progress-track"><div class="progress-fill vaccine" style="width: 40%;"></div></div>
+                    </div>
+                </div>
+                <button type="button" class="neumorphic-btn gold-btn btn-next" data-next="1">เริ่มลงทะเบียน ➔</button>
+            </div>
+
             <!-- ================= สเตป 1: ข้อมูลเจ้าของ ================= -->
-            <div id="step-1" class="step-content active">
+            <div id="step-1" class="step-content">
                 <div class="card neumorphic">
                     <h3 class="section-title">1. ข้อมูลเจ้าของสัตว์เลี้ยง</h3>
                     <div class="input-group">
@@ -49,78 +73,71 @@
                         <input type="text" id="room-no" class="neumorphic-input" placeholder="เช่น ห้อง A12">
                     </div>
                 </div>
-                <button type="button" class="neumorphic-btn gold-btn btn-next" data-next="2">ถัดไป ➔</button>
+                <div class="row">
+                    <button type="button" class="neumorphic-btn half btn-back" data-back="0">⬅ กลับ</button>
+                    <button type="button" class="neumorphic-btn gold-btn half btn-next" data-next="2">ถัดไป ➔</button>
+                </div>
             </div>
 
-            <!-- ================= สเตป 2: ข้อมูลสัตว์เลี้ยง ================= -->
+            <!-- ================= สเตป 2: ข้อมูลสัตว์เลี้ยง (เพิ่มได้หลายตัว) ================= -->
             <div id="step-2" class="step-content">
                 <div class="card neumorphic">
-                    <h3 class="section-title">2. ข้อมูลสัตว์เลี้ยง (ตัวที่ 1)</h3>
-                    <div class="input-group">
-                        <label>ชื่อสัตว์เลี้ยง</label>
-                        <input type="text" id="pet-name" class="neumorphic-input" placeholder="เช่น ด่าง, โคล่า" required>
-                    </div>
-                    <div class="row">
-                        <div class="input-group half">
-                            <label>ประเภทสัตว์</label>
-                            <select id="pet-type" class="neumorphic-input" required>
-                                <option value="" disabled selected>เลือกประเภท</option>
-                                <option value="dog">สุนัข</option>
-                                <option value="cat">แมว</option>
+                    <h3 class="section-title">2. ข้อมูลสัตว์เลี้ยง</h3>
+                    
+                    <!-- ฟอร์มกรอกสัตว์เลี้ยง -->
+                    <div id="pet-form-box">
+                        <div class="input-group">
+                            <label>ชื่อสัตว์เลี้ยง</label>
+                            <input type="text" id="pet-name" class="neumorphic-input" placeholder="เช่น ด่าง, โคล่า">
+                        </div>
+                        <div class="row">
+                            <div class="input-group half">
+                                <label>ประเภทสัตว์</label>
+                                <select id="pet-type" class="neumorphic-input">
+                                    <option value="" disabled selected>เลือกประเภท</option>
+                                    <option value="สุนัข">สุนัข</option>
+                                    <option value="แมว">แมว</option>
+                                </select>
+                            </div>
+                            <div class="input-group half">
+                                <label>เพศ</label>
+                                <select id="pet-gender" class="neumorphic-input">
+                                    <option value="" disabled selected>เลือกเพศ</option>
+                                    <option value="ตัวผู้">ตัวผู้</option>
+                                    <option value="ตัวเมีย">ตัวเมีย</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>ประเภทบริการที่ต้องการ</label>
+                            <select id="service-type" class="neumorphic-input">
+                                <option value="" disabled selected>เลือกบริการ</option>
+                                <option value="ทำหมันและวัคซีน">ทำหมัน + ฉีดวัคซีน</option>
+                                <option value="วัคซีนอย่างเดียว">ฉีดวัคซีนอย่างเดียว</option>
                             </select>
                         </div>
-                        <div class="input-group half">
-                            <label>เพศ</label>
-                            <select id="pet-gender" class="neumorphic-input" required>
-                                <option value="" disabled selected>เลือกเพศ</option>
-                                <option value="male">ตัวผู้</option>
-                                <option value="female">ตัวเมีย</option>
-                            </select>
-                        </div>
+                        <button type="button" id="btn-add-pet" class="neumorphic-btn outline-btn" style="margin-top: 10px;">+ บันทึกข้อมูลสัตว์เลี้ยงตัวนี้</button>
                     </div>
-                    <div class="input-group">
-                        <label>ประเภทบริการที่ต้องการ</label>
-                        <select id="service-type" class="neumorphic-input" required>
-                            <option value="" disabled selected>เลือกบริการ</option>
-                            <option value="neuter_vaccine">ทำหมัน + ฉีดวัคซีน</option>
-                            <option value="vaccine_only">ฉีดวัคซีนอย่างเดียว</option>
-                        </select>
-                    </div>
+
+                    <!-- รายการสัตว์เลี้ยงที่เพิ่มแล้ว -->
+                    <div id="pet-list-container" style="margin-top: 20px;"></div>
+
                 </div>
                 <div class="row">
-                    <button type="button" class="neumorphic-btn half btn-back" data-back="1">⬅ ย้อนกลับ</button>
-                    <button type="button" class="neumorphic-btn gold-btn half btn-next" data-next="3">ถัดไป ➔</button>
+                    <button type="button" class="neumorphic-btn half btn-back" data-back="1">⬅ กลับ</button>
+                    <!-- ปุ่มนี้จะทำงานได้ก็ต่อเมื่อมีสัตว์เลี้ยงในตะกร้าอย่างน้อย 1 ตัว -->
+                    <button type="button" id="btn-go-consent" class="neumorphic-btn gold-btn half" style="opacity: 0.5; pointer-events: none;">ไปหน้าใบยินยอม ➔</button>
                 </div>
             </div>
 
-            <!-- ================= สเตป 3: ใบยินยอมและเซ็นชื่อ ================= -->
+            <!-- ================= สเตป 3: ใบยินยอมและเซ็นชื่อ (แยกรายตัว) ================= -->
             <div id="step-3" class="step-content">
-                <div class="card neumorphic">
-                    <h3 class="section-title">3. ข้อตกลงและใบยินยอม</h3>
-                    
-                    <div class="terms-box neumorphic-inner">
-                        <p><strong>ข้อตกลงการรับบริการ:</strong></p>
-                        <p>การผ่าตัดทำหมันมีความเสี่ยงที่อาจเกิดภาวะแทรกซ้อนจากการวางยาสลบ หรือปัจจัยทางสุขภาพของสัตว์เลี้ยงที่มองไม่เห็นภายนอก</p>
-                        <p>ข้าพเจ้ายินยอมให้สัตวแพทย์ดำเนินการผ่าตัดทำหมัน และ/หรือ ฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าให้แก่สัตว์เลี้ยงของข้าพเจ้า</p>
-                    </div>
-
-                    <div class="input-group checkbox-group" style="align-items: flex-start; margin-top: 15px;">
-                        <input type="checkbox" id="accept-risk" class="neumorphic-checkbox" style="margin-top: 4px;">
-                        <label for="accept-risk" style="color: #D4AF37; font-weight: bold; line-height: 1.4;">
-                            ข้าพเจ้ารับทราบความเสี่ยงในการทำหมันโดยหน่วยทำหมันเคลื่อนที่ และจะไม่ขอเรียกร้องค่าชดใช้หรือค่าเสียหายใดๆ ทั้งสิ้นจากเทศบาลเมืองบางแก้ว และปศุสัตว์จังหวัดสมุทรปราการ
-                        </label>
-                    </div>
-
-                    <div id="signature-section" class="disabled-section">
-                        <label style="margin-top: 15px; display: block; color: #A0B0C0;">ลงลายมือชื่อเจ้าของ (เซ็นบนกรอบด้านล่าง)</label>
-                        <canvas id="signature-pad"></canvas>
-                        <button type="button" id="btn-clear-sig" class="clear-btn">ลบลายเซ็น</button>
-                    </div>
-
+                <div id="dynamic-consent-container">
+                    <!-- ใบยินยอมจะถูกสร้างอัตโนมัติด้วย JavaScript ตรงนี้ -->
                 </div>
-                <div class="row">
-                    <button type="button" class="neumorphic-btn half btn-back" data-back="2">⬅ ย้อนกลับ</button>
-                    <button type="button" id="btn-submit" class="neumorphic-btn gold-btn half" disabled>ยืนยันลงทะเบียน</button>
+                <div class="row" style="margin-top: 20px;">
+                    <button type="button" class="neumorphic-btn half btn-back" data-back="2">⬅ กลับ</button>
+                    <button type="button" id="btn-submit" class="neumorphic-btn gold-btn half" disabled>ยืนยันการลงทะเบียน</button>
                 </div>
             </div>
 
