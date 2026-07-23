@@ -113,6 +113,12 @@
         </div>
         
         <h2 class="title" style="color: #50E3C2; text-align: left;">🛡️ ระบบจัดการหน้างาน</h2>
+        
+        <!-- (ใหม่) ปุ่มพิมพ์ใบยินยอมทั้งหมดรวดเดียว -->
+        <button type="button" id="btn-print-all-consents" class="neumorphic-btn outline-btn" style="color: #50E3C2; border-color: #50E3C2; margin-bottom: 20px;">
+            🖨️ พิมพ์ใบยินยอมทั้งหมด (เรียงตามคิว)
+        </button>
+
         <div class="card neumorphic">
             <h3 class="section-title">ค้นหาด่วน (Check-in)</h3>
             <div class="input-group row" style="align-items: center;">
@@ -205,8 +211,9 @@
         </div>
     </div>
 
-    <!-- ================= แบบฟอร์ม A4 สำหรับพิมพ์ใบยินยอม ================= -->
-    <div id="print-consent-form" style="display: none;">
+    <!-- ================= แบบฟอร์ม A4 สำหรับพิมพ์ใบยินยอม (แบบใบเดียว) ================= -->
+    <div id="print-consent-form" style="display: none; position: relative;">
+        <div class="queue-badge" id="p-queue-no"></div>
         <h2 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 5px;">ใบยินยอมผ่าตัดทำหมัน</h2>
         <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px;">กับเทศบาลเมืองบางแก้ว ร่วมกับปศุสัตว์จังหวัดสมุทรปราการ</h3>
         
@@ -214,7 +221,6 @@
             <p><strong>ข้าพเจ้า (ชื่อเจ้าของ):</strong> <span id="p-owner-name"></span></p>
             <p><strong>เบอร์โทรศัพท์:</strong> <span id="p-phone"></span></p>
             <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ <span id="p-house"></span> หมู่ที่ <span id="p-village"></span> ตำบลบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ</p>
-            
             <p style="margin-top: 15px;"><strong>มีความประสงค์ขอรับบริการทำหมัน/ฉีดวัคซีน ให้แก่สัตว์เลี้ยงดังนี้:</strong></p>
             <p><strong>ชื่อสัตว์เลี้ยง:</strong> <span id="p-pet-name"></span> &nbsp;&nbsp;&nbsp; <strong>ประเภท:</strong> <span id="p-pet-type"></span> &nbsp;&nbsp;&nbsp; <strong>เพศ:</strong> <span id="p-pet-gender"></span></p>
 
@@ -222,7 +228,6 @@
                 ข้าพเจ้ายินยอมให้สัตวแพทย์ดำเนินการผ่าตัดทำหมัน โดยรับทราบความเสี่ยงที่อาจเกิดภาวะแทรกซ้อนจากการวางยาสลบ หรือปัจจัยทางสุขภาพของสัตว์เลี้ยงที่มองไม่เห็นภายนอก ซึ่งสัตวแพทย์ผู้ปฏิบัติทำการผ่าตัดทำหมันได้ปฏิบัติถูกต้องตามหลักวิชาการ หากสัตว์ของข้าพเจ้าตาย หรือเกิดความผิดปกติใดๆ ในระหว่างการดำเนินการหลังการผ่าตัด การผ่าตัดทำหมัน และ/หรือ ฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าให้แก่สัตว์เลี้ยง ข้าพเจ้าจะไม่ถือว่าเป็นความผิดของเจ้าหน้าที่และจะไม่เอาผิด หรือเรียกร้องค่าเสียหายใดๆกับเจ้าหน้าที่ ข้าพเจ้าขอลงลายมือชื่อไว้เป็นหลักฐาน
             </p>
         </div>
-
         <div style="margin-top: 50px; text-align: center;">
             <img id="p-signature" src="" style="max-height: 100px; display: block; margin: 0 auto; border-bottom: 1px dotted #000;">
             <p style="margin-top: 10px;">(ลงชื่อ) .............................................................. ผู้ยินยอม</p>
@@ -230,7 +235,9 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- ================= (ใหม่) กล่องเก็บฟอร์ม A4 สำหรับพิมพ์ทั้งหมด ================= -->
+    <div id="print-all-consents-container" style="display: none;"></div>
+
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script type="module" src="app.js"></script>
 </body>
