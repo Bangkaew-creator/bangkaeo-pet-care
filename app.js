@@ -474,3 +474,84 @@ function renderTable(tableId, dataObject) {
         </tr>
     `;
 }
+// ==========================================
+// 8. ระบบเมนู Sidebar และ ตั้งค่าระบบ (Settings)
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+    
+    const sidebar = document.getElementById("admin-sidebar");
+    
+    // เปิด/ปิด Sidebar
+    const btnOpenSidebar = document.getElementById("btn-open-sidebar");
+    if(btnOpenSidebar) btnOpenSidebar.addEventListener("click", () => sidebar.style.right = "0");
+    document.getElementById("btn-close-sidebar").addEventListener("click", () => sidebar.style.right = "-250px");
+
+    // ผูก Event ให้เมนูต่างๆ
+    document.getElementById("menu-checkin").addEventListener("click", () => switchAdminView("admin-container"));
+    document.getElementById("menu-report").addEventListener("click", () => {
+        switchAdminView("report-container");
+        generateReport(); // ดึงข้อมูลทำรายงานใหม่
+    });
+    document.getElementById("menu-settings").addEventListener("click", () => {
+        switchAdminView("settings-container");
+        loadAdminSettings(); // ดึงค่าปัจจุบันมาแสดงในช่องกรอก
+    });
+
+    // ปุ่มบันทึกการตั้งค่า
+    document.getElementById("btn-save-settings").addEventListener("click", saveAdminSettings);
+});
+
+// ฟังก์ชันสลับหน้าต่างในโหมดแอดมิน
+window.switchAdminView = function(viewId) {
+    // ปิดทุกหน้า
+    document.querySelectorAll(".admin-view").forEach(el => el.style.display = "none");
+    // เปิดหน้าที่ต้องการ
+    document.getElementById(viewId).style.display = "block";
+    // ปิด Sidebar อัตโนมัติ
+    document.getElementById("admin-sidebar").style.right = "-250px";
+}
+
+// โหลดการตั้งค่ามาแสดงในช่องกรอก
+async function loadAdminSettings() {
+    try {
+        const configDoc = await getDoc(doc(db, "system_config", "main_config"));
+        if(configDoc.exists()) {
+            const c = configDoc.data();
+            document.getElementById("setting-date").value = c.service_date || "";
+            document.getElementById("setting-location").value = c.service_location || "";
+            document.getElementById("setting-quota-neuter").value = c.quota_neuter || 100;
+            document.getElementById("setting-quota-vaccine").value = c.quota_vaccine || 300;
+        }
+    } catch (error) {
+        console.error("Load settings error", error);
+    }
+}
+
+// บันทึกการตั้งค่าลง Firebase
+async function saveAdminSettings() {
+    const btn = document.getElementById("btn-save-settings");
+    btn.disabled = true; btn.textContent = "กำลังบันทึก...";
+
+    try {
+        const sDate = document.getElementById("setting-date").value;
+        const sLoc = document.getElementById("setting-location").value;
+        const qNeuter = parseInt(document.getElementById("setting-quota-neuter").value) || 0;
+        const qVaccine = parseInt(document.getElementById("setting-quota-vaccine").value) || 0;
+
+        // อัปเดตข้อมูล (merge: true เพื่อไม่ให้รหัสลับที่เคยตั้งไว้หายไป)
+        await setDoc(doc(db, "system_config", "main_config"), {
+            service_date: sDate,
+            service_location: sLoc,
+            quota_neuter: qNeuter,
+            quota_vaccine: qVaccine
+        }, { merge: true });
+
+        alert("บันทึกการตั้งค่าเรียบร้อยแล้ว");
+        switchAdminView("admin-container"); // กลับไปหน้าหลัก
+    } catch (error) {
+        console.error("Save settings error", error);
+        alert("เกิดข้อผิดพลาดในการบันทึก");
+    } finally {
+        btn.disabled = false; btn.textContent = "💾 บันทึกการตั้งค่า";
+    }
+}
