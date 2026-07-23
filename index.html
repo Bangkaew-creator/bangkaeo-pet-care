@@ -31,7 +31,12 @@
             <div id="step-0" class="step-content active">
                 <div class="card neumorphic">
                     <h3 class="section-title">📊 สถานะคิวปัจจุบัน</h3>
-                    <p id="txt-service-info" style="color: #50E3C2; font-size: 14px; margin-bottom: 15px; text-align: center;">กำลังโหลดข้อมูล...</p>
+                    
+                    <!-- (อัปเดต) กำหนดการทำหมัน ให้เด่นชัดขึ้น -->
+                    <div style="background: #1b2941; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; border-left: 4px solid #50E3C2;">
+                        <h4 style="color: #50E3C2; font-size: 18px; margin-bottom: 10px;">📅 กำหนดการทำหมัน</h4>
+                        <p id="txt-service-info" style="color: #FFF; font-size: 16px; margin: 0;">กำลังโหลดข้อมูล...</p>
+                    </div>
                     
                     <div class="progress-container">
                         <div class="progress-label"><span>ทำหมัน (สุนัขและแมว)</span><span id="txt-neuter-quota">กำลังโหลด...</span></div>
@@ -48,7 +53,13 @@
                     <div id="my-pets-list"></div>
                 </div>
 
-                <button type="button" class="neumorphic-btn gold-btn btn-next" data-next="1">ลงทะเบียนเพิ่ม ➔</button>
+                <!-- (อัปเดต) กล่องแจ้งเตือนปิดรับลงทะเบียน (ซ่อนไว้เป็นค่าเริ่มต้น) -->
+                <div id="registration-closed-msg" style="display: none; background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                    <p style="color: #ff6b6b; font-size: 16px; font-weight: bold;">⚠️ สิ้นสุดการรับลงทะเบียน หรือ โควตาเต็มแล้ว</p>
+                    <p style="color: #E0E5EC; font-size: 14px; margin-top: 5px;">กรุณารอการรับลงทะเบียนในครั้งถัดไป</p>
+                </div>
+
+                <button type="button" id="btn-start-register" class="neumorphic-btn gold-btn btn-next" data-next="1">ลงทะเบียนเพิ่ม ➔</button>
                 <div style="text-align: center; margin-top: 30px;">
                     <span id="btn-staff-login" style="color: #6A7A8A; font-size: 12px; text-decoration: underline; cursor: pointer;">สำหรับเจ้าหน้าที่เทศบาล</span>
                 </div>
@@ -66,10 +77,17 @@
                     </div>
                     <div class="input-group checkbox-group"><input type="checkbox" id="is-rental" class="neumorphic-checkbox"><label for="is-rental">อาศัยในบ้านเช่า/หอพัก</label></div>
                     <div class="input-group" id="room-no-group" style="display: none;"><label>เลขห้องเช่า (ถ้ามี)</label><input type="text" id="room-no" class="neumorphic-input"></div>
+                    
+                    <!-- (อัปเดต) Checkbox บังคับติ๊ก ทะเบียนบ้านบางแก้ว -->
+                    <div class="input-group checkbox-group" style="margin-top: 20px; background: rgba(80, 227, 194, 0.1); padding: 10px; border-radius: 8px;">
+                        <input type="checkbox" id="is-resident" class="neumorphic-checkbox">
+                        <label for="is-resident" style="color: #50E3C2; font-weight: bold; line-height: 1.4;">ข้าพเจ้าเป็นผู้มีทะเบียนบ้านอยู่ในตำบลบางแก้วจริง</label>
+                    </div>
                 </div>
                 <div class="row">
                     <button type="button" class="neumorphic-btn half btn-back" data-back="0">⬅ กลับ</button>
-                    <button type="button" class="neumorphic-btn gold-btn half btn-next" data-next="2">ถัดไป ➔</button>
+                    <!-- เปลี่ยน ID เพื่อให้ JS ดักจับและโชว์ Pop-up ได้ง่ายขึ้น -->
+                    <button type="button" id="btn-next-step1" class="neumorphic-btn gold-btn half">ถัดไป ➔</button>
                 </div>
             </div>
 
@@ -114,7 +132,6 @@
         
         <h2 class="title" style="color: #50E3C2; text-align: left;">🛡️ ระบบจัดการหน้างาน</h2>
         
-        <!-- (ใหม่) ปุ่มพิมพ์ใบยินยอมทั้งหมดรวดเดียว -->
         <button type="button" id="btn-print-all-consents" class="neumorphic-btn outline-btn" style="color: #50E3C2; border-color: #50E3C2; margin-bottom: 20px;">
             🖨️ พิมพ์ใบยินยอมทั้งหมด (เรียงตามคิว)
         </button>
@@ -172,7 +189,12 @@
 
         <h2 class="title" style="text-align: left;">⚙️ ตั้งค่าระบบ</h2>
         <div class="card neumorphic">
-            <h3 class="section-title">ข้อมูลโครงการรอบปัจจุบัน</h3>
+            <!-- (อัปเดต) เพิ่มวันที่เริ่มและสิ้นสุดรับลงทะเบียน -->
+            <h3 class="section-title">กำหนดวันเปิด-ปิดรับลงทะเบียน</h3>
+            <div class="input-group"><label>วันที่เริ่มเปิดรับลงทะเบียน</label><input type="date" id="setting-start-date" class="neumorphic-input"></div>
+            <div class="input-group"><label>วันที่สิ้นสุดรับลงทะเบียน</label><input type="date" id="setting-end-date" class="neumorphic-input"></div>
+            
+            <h3 class="section-title" style="margin-top: 20px;">ข้อมูลโครงการรอบปัจจุบัน</h3>
             <div class="input-group"><label>วันที่ให้บริการ</label><input type="text" id="setting-date" class="neumorphic-input" placeholder="เช่น 25 สิงหาคม 2569"></div>
             <div class="input-group"><label>สถานที่ให้บริการ</label><input type="text" id="setting-location" class="neumorphic-input" placeholder="เช่น วัดบางแก้ว"></div>
             
@@ -208,6 +230,18 @@
                 <img id="consent-signature-img" src="" alt="ไม่มีลายเซ็น" style="width: 100%; max-height: 150px; object-fit: contain;">
             </div>
             <button type="button" class="neumorphic-btn outline-btn" onclick="document.getElementById('consent-modal').style.display='none'">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <!-- ================= (ใหม่) Modal แจ้งเตือนสายพันธุ์งดรับทำหมัน ================= -->
+    <div id="breed-warning-modal" class="modal-overlay" style="display: none;">
+        <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
+            <h3 class="section-title" style="color: #ff6b6b; border-bottom-color: rgba(255, 107, 107, 0.3);">⚠️ แจ้งเตือนเงื่อนไข</h3>
+            <p style="font-size: 15px; margin-bottom: 15px; color: #E0E5EC; line-height: 1.6; text-align: left;">
+                สงวนสิทธิ์ <strong style="color:#ff6b6b;">ไม่ทำหมัน</strong> ให้แก่สุนัขและแมว หน้าสั้น พันธุ์เล็ก เช่น ปอม ชิสุห์ ชิวาว่า เปอร์เซีย บริติสช็อตแฮร์ เป็นต้น <br><br>
+                <span style="color:#A0B0C0; font-size:13px;">* เนื่องจากมีความเสี่ยงสูงในการวางยาสลบ</span>
+            </p>
+            <button type="button" id="btn-accept-breed-warning" class="neumorphic-btn gold-btn">รับทราบและดำเนินการต่อ</button>
         </div>
     </div>
 
