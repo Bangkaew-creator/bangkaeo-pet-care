@@ -57,8 +57,28 @@ async function checkUserRole() {
         } else {
             document.getElementById("app-container").style.display = "block";
             loadDashboardData(); 
+            loadUserData(); // [เพิ่มใหม่] โหลดข้อมูลเจ้าของเดิม (Auto-fill)
         }
     } catch (error) { console.error("Role Check Error", error); }
+}
+
+// [เพิ่มใหม่] ฟังก์ชันดึงข้อมูลเจ้าของที่เคยลงทะเบียนไว้มากรอกอัตโนมัติ
+async function loadUserData() {
+    try {
+        const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
+        if(userSnap.exists()) {
+            const u = userSnap.data();
+            document.getElementById("owner-name").value = u.owner_name || "";
+            document.getElementById("phone-number").value = u.phone_number || "";
+            document.getElementById("house-no").value = u.house_no || "";
+            document.getElementById("village-no").value = u.village_no || "";
+            if(u.is_rental) {
+                document.getElementById("is-rental").checked = true;
+                document.getElementById("room-no-group").style.display = "block";
+                document.getElementById("room-no").value = u.room_no || "";
+            }
+        }
+    } catch (e) { console.error("Load user error", e); }
 }
 
 // ==========================================
@@ -68,13 +88,18 @@ async function loadDashboardData() {
     try {
         const configDoc = await getDoc(doc(db, "system_config", "main_config"));
         let maxNeuter = 100, maxVaccine = 300; 
+        let startDate = "", endDate = "";
+
         if(configDoc.exists()) {
             const c = configDoc.data();
             maxNeuter = c.quota_neuter || 100; 
             maxVaccine = c.quota_vaccine || 300;
+            startDate = c.start_date || ""; // [เพิ่มใหม่] ดึงวันเริ่ม
+            endDate = c.end_date || ""; // [เพิ่มใหม่] ดึงวันสิ้นสุด
+
             const serviceInfo = [];
-            if(c.service_date) serviceInfo.push(`📅 วันที่: ${c.service_date}`);
-            if(c.service_location) serviceInfo.push(`📍 สถานที่: ${c.service_location}`);
+            if(c.service_date) serviceInfo.push(`${c.service_date}`);
+            if(c.service_location) serviceInfo.push(`📍 ${c.service_location}`);
             if(serviceInfo.length > 0) document.getElementById("txt-service-info").innerHTML = serviceInfo.join("<br>");
             else document.getElementById("txt-service-info").style.display = "none";
         }
@@ -108,6 +133,25 @@ async function loadDashboardData() {
         } else {
             document.getElementById("my-registered-pets").style.display = "none";
         }
+
+        // [เพิ่มใหม่] เช็กเปิด-ปิดระบบอัตโนมัติตามวันที่และโควตา
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); // format YYYY-MM-DD
+        let isOpen = true;
+        
+        if (startDate && todayStr < startDate) isOpen = false; // ยังไม่ถึงวันเปิด
+        if (endDate && todayStr > endDate) isOpen = false; // เลยวันปิดแล้ว
+        if (curNeuter >= maxNeuter && curVaccine >= maxVaccine) isOpen = false; // โควตาเต็มหมดแล้ว
+
+        const btnStart = document.getElementById("btn-start-register");
+        const msgClosed = document.getElementById("registration-closed-msg");
+        if(isOpen) {
+            btnStart.style.display = "block";
+            msgClosed.style.display = "none";
+        } else {
+            btnStart.style.display = "none";
+            msgClosed.style.display = "block";
+        }
+
     } catch (error) { console.error(error); }
 }
 
@@ -125,6 +169,7 @@ window.cancelMyPet = async function(docId) {
 // 4. ระบบประชาชน: แบบฟอร์ม & ตะกร้า
 // ==========================================
 function setupNavigation() {
+    // โค้ดเดิมสำหรับปุ่มที่มี class="btn-next" ทั่วไป (เช่นจากหน้า Dashboard ไป Step 1)
     document.querySelectorAll('.btn-next').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const currentStep = e.target.closest('.step-content');
@@ -135,9 +180,40 @@ function setupNavigation() {
             else alert("กรุณากรอกข้อมูลให้ครบถ้วน");
         });
     });
+
+    // โค้ดเดิมสำหรับปุ่มย้อนกลับ
     document.querySelectorAll('.btn-back').forEach(btn => {
         btn.addEventListener('click', (e) => changeStep(e.target.getAttribute('data-back')));
     });
+
+    // [เพิ่มใหม่] ดักจับปุ่ม "ถัดไป" ใน Step 1 โดยเฉพาะ (เรื่อง Checkbox และ Pop-up แจ้งเตือน)
+    const btnNextStep1 = document.getElementById("btn-next-step1");
+    if(btnNextStep1) {
+        btnNextStep1.addEventListener("click", () => {
+            const step1 = document.getElementById("step-1");
+            const inputs = step1.querySelectorAll('input[required], select[required]');
+            let isValid = true;
+            inputs.forEach(i => { if (!i.value) isValid = false; });
+            if (!isValid) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+
+            // ตรวจสอบว่าติ๊กทะเบียนบ้านบางแก้วหรือยัง
+            if (!document.getElementById("is-resident").checked) {
+                return alert("กรุณายืนยันว่าท่านเป็นผู้มีทะเบียนบ้านในตำบลบางแก้ว");
+            }
+
+            // แสดง Pop-up แจ้งเตือนสายพันธุ์
+            document.getElementById("breed-warning-modal").style.display = "flex";
+        });
+    }
+
+    // [เพิ่มใหม่] เมื่อกดยอมรับ Pop-up ค่อยเปลี่ยนไป Step 2
+    const btnAcceptBreed = document.getElementById("btn-accept-breed-warning");
+    if(btnAcceptBreed) {
+        btnAcceptBreed.addEventListener("click", () => {
+            document.getElementById("breed-warning-modal").style.display = "none";
+            changeStep("2");
+        });
+    }
 }
 
 function changeStep(stepId) {
@@ -256,7 +332,13 @@ function setupFinalSubmit() {
     document.getElementById("btn-submit").addEventListener("click", async () => {
         document.getElementById("btn-submit").disabled = true;
         document.getElementById("btn-submit").textContent = "กำลังบันทึกข้อมูล...";
+        
         try {
+            // [เพิ่มใหม่] คำนวณคิวก่อนบันทึก เพื่อใช้ส่งข้อความ LINE
+            const allPetsSnap = await getDocs(collection(db, "pets"));
+            let currentQ = 0;
+            allPetsSnap.forEach(d => { if(d.data().status !== "cancelled") currentQ++; });
+
             const hn = document.getElementById("house-no").value, vn = document.getElementById("village-no").value;
             const rental = document.getElementById("is-rental").checked;
             
@@ -275,8 +357,28 @@ function setupFinalSubmit() {
                     status: "booked", consent_agreed: true, signature_base64: canvasInstances[i].canvas.toDataURL("image/png"), signed_timestamp: serverTimestamp()
                 });
             }
+
+            // [เพิ่มใหม่] ส่งข้อความ LINE เข้าแชทอัตโนมัติ ฟรี 100%
+            let queueText = "";
+            if (pets.length === 1) queueText = `${currentQ + 1}`;
+            else queueText = `${currentQ + 1} ถึง ${currentQ + pets.length}`;
+
+            if (liff.isInClient()) {
+                await liff.sendMessages([
+                    {
+                        type: "text",
+                        text: `✅ ยืนยันการลงทะเบียน\nลำดับคิวที่: ${queueText}\n\n📌 การเตรียมสัตว์เลี้ยงก่อนทำหมัน\n1. กรุณางดน้ำและอาหารก่อนทำหมันอย่างน้อย 8 ชั่วโมง\n2. ไม่ทำหมันให้แก่สุนัขและแมว หน้าสั้น พันธุ์เล็ก เช่น ปอม ชิสุห์ ชิวาว่า เปอร์เซีย บริติชช็อตแฮร์ เป็นต้น\n3. กรุณารับบัตรคิวในวันทำหมันก่อน 10.00 น. เพื่อยืนยันสิทธิ์การทำหมัน`
+                    }
+                ]);
+            }
+
             alert("ลงทะเบียนสำเร็จ!"); liff.closeWindow();
-        } catch (e) { alert("เกิดข้อผิดพลาด"); document.getElementById("btn-submit").disabled = false; }
+        } catch (e) { 
+            console.error(e);
+            alert("เกิดข้อผิดพลาด"); 
+            document.getElementById("btn-submit").disabled = false; 
+            document.getElementById("btn-submit").textContent = "ยืนยันการลงทะเบียน";
+        }
     });
 }
 
@@ -325,6 +427,8 @@ function setupSidebarAndSettings() {
         btn.disabled = true; btn.textContent = "กำลังบันทึก...";
         try {
             await setDoc(doc(db, "system_config", "main_config"), {
+                start_date: document.getElementById("setting-start-date").value, // [เพิ่มใหม่]
+                end_date: document.getElementById("setting-end-date").value, // [เพิ่มใหม่]
                 service_date: document.getElementById("setting-date").value,
                 service_location: document.getElementById("setting-location").value,
                 quota_neuter: parseInt(document.getElementById("setting-quota-neuter").value) || 0,
@@ -346,6 +450,9 @@ async function loadAdminSettings() {
         const configDoc = await getDoc(doc(db, "system_config", "main_config"));
         if(configDoc.exists()) {
             const c = configDoc.data();
+            // [เพิ่มใหม่] นำค่าวันที่เปิดปิดมากรอกโชว์แอดมิน
+            document.getElementById("setting-start-date").value = c.start_date || "";
+            document.getElementById("setting-end-date").value = c.end_date || "";
             document.getElementById("setting-date").value = c.service_date || "";
             document.getElementById("setting-location").value = c.service_location || "";
             document.getElementById("setting-quota-neuter").value = c.quota_neuter || 100;
