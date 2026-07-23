@@ -108,11 +108,13 @@ function setupAdminLogin() {
 // ==========================================
 // 4. ระบบจัดการหน้างาน (Admin Check-in)
 // ==========================================
+// ตัวแปรเก็บข้อมูลชั่วคราวเพื่อให้กดดูใบยินยอมได้
+window.currentSearchPets = {}; 
+
 function setupAdminSearch() {
     const searchInput = document.getElementById("admin-search-input");
     const searchBtn = document.getElementById("btn-admin-search");
 
-    // 1. ฟังก์ชันเมื่อกดปุ่ม "ค้นหา" ด้วยเมาส์/นิ้ว
     searchBtn.addEventListener("click", async () => {
         const keyword = searchInput.value.trim();
         if(!keyword) return alert("กรุณาพิมพ์ บ้านเลขที่-หมู่");
@@ -121,7 +123,6 @@ function setupAdminSearch() {
         resultContainer.innerHTML = "<p style='text-align:center; color:#D4AF37;'>กำลังค้นหา...</p>";
 
         try {
-            // ค้นหาจากฟิลด์ house_village_search (เช่น "123/4-16")
             const q = query(collection(db, "pets"), where("house_village_search", "==", keyword));
             const querySnapshot = await getDocs(q);
 
@@ -131,13 +132,18 @@ function setupAdminSearch() {
             }
 
             resultContainer.innerHTML = "";
+            window.currentSearchPets = {}; // ล้างข้อมูลเก่าก่อนแสดงของใหม่
+
             querySnapshot.forEach((docSnap) => {
                 const pet = docSnap.data();
                 const docId = docSnap.id;
                 
-                // เช็คสัญลักษณ์ใบยินยอม
+                // เก็บข้อมูลสัตว์เลี้ยงตัวนี้ลงตัวแปร Global เพื่อให้ดึงรูปลายเซ็นได้
+                window.currentSearchPets[docId] = pet;
+                
+                // เช็คสัญลักษณ์ใบยินยอม และใส่ onclick ให้กดได้
                 const consentBadge = pet.consent_agreed 
-                    ? `<span class="status-badge badge-green">📄 เซ็นใบยินยอมแล้ว</span>` 
+                    ? `<span class="status-badge badge-green" style="cursor:pointer;" onclick="viewConsent('${docId}')">📄 เซ็นใบยินยอมแล้ว (กดดู)</span>` 
                     : `<span class="status-badge badge-red">📄 ยังไม่เซ็น</span>`;
 
                 const isCheckedIn = pet.status === "checked_in";
@@ -167,23 +173,30 @@ function setupAdminSearch() {
         }
     });
 
-    // 2. ดักจับการกดปุ่ม Enter ในช่องค้นหา
     searchInput.addEventListener("keypress", (event) => {
-        // หากปุ่มที่กดคือปุ่ม Enter (key === "Enter")
         if (event.key === "Enter") {
-            event.preventDefault(); // ป้องกันไม่ให้หน้าเว็บรีเฟรช (หากอยู่ในฟอร์ม)
-            searchBtn.click(); // สั่งให้จำลองการคลิกปุ่มค้นหา
+            event.preventDefault();
+            searchBtn.click();
         }
     });
 }
 
-// ฟังก์ชันสำหรับกด "ติ๊กถูก" เช็คอินหน้างาน (Global function)
+// ฟังก์ชันเปิดดูใบยินยอมและลายเซ็น (Global function)
+window.viewConsent = function(docId) {
+    const pet = window.currentSearchPets[docId];
+    if (pet && pet.signature_base64) {
+        document.getElementById("consent-pet-name").textContent = `ข้อมูล: น้อง${pet.pet_name}`;
+        document.getElementById("consent-signature-img").src = pet.signature_base64;
+        document.getElementById("consent-modal").style.display = "flex";
+    } else {
+        alert("ไม่พบข้อมูลลายเซ็นของสัตว์เลี้ยงตัวนี้");
+    }
+}
+
 window.toggleCheckIn = async function(docId, toCheckIn) {
     try {
         const newStatus = toCheckIn ? "checked_in" : "booked";
         await updateDoc(doc(db, "pets", docId), { status: newStatus });
-        
-        // ค้นหาใหม่เพื่ออัปเดตหน้าจอทันที
         document.getElementById("btn-admin-search").click();
     } catch (error) {
         console.error("Check-in Error", error);
