@@ -1,10 +1,10 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
 body { background-color: #141E30; color: #E0E5EC; min-height: 100vh; padding: 20px 15px; }
 .loading-screen { display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 18px; color: #D4AF37; }
-.container { max-width: 500px; margin: 0 auto; }
+.container { max-width: 500px; margin: 0 auto; padding-bottom: 50px; }
 .title { text-align: center; color: #D4AF37; margin-bottom: 20px; font-size: 22px; }
 
-.card { padding: 20px; border-radius: 15px; margin-bottom: 25px; }
+.card { padding: 20px; border-radius: 15px; margin-bottom: 20px; }
 .neumorphic { background: #141E30; box-shadow: 6px 6px 12px #0d131f, -6px -6px 12px #1b2941; }
 .neumorphic-inner { background: #141E30; box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; border-radius: 10px; }
 
@@ -16,24 +16,35 @@ body { background-color: #141E30; color: #E0E5EC; min-height: 100vh; padding: 20
 
 .neumorphic-input { width: 100%; padding: 12px 15px; border: none; border-radius: 10px; background: #141E30; color: #FFF; font-size: 16px; outline: none; box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; }
 .neumorphic-input::placeholder { color: #6A7A8A; }
-.checkbox-group { display: flex; align-items: center; gap: 10px; }
+.checkbox-group { display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; }
+.checkbox-group input { margin-top: 5px; transform: scale(1.2); }
 
 .neumorphic-btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; color: #A0B0C0; background: #141E30; box-shadow: 4px 4px 8px #0d131f, -4px -4px 8px #1b2941; transition: 0.2s; }
 .neumorphic-btn:active { box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; }
-
 .gold-btn { color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.2); }
-.gold-btn:disabled { color: #6A7A8A; border: none; opacity: 0.5; cursor: not-allowed; }
+.gold-btn:disabled { color: #6A7A8A; border: none; opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+.outline-btn { color: #81A1C1; border: 1px dashed #81A1C1; box-shadow: none; background: transparent; }
 
-/* CSS สำหรับสเตปและการเซ็นชื่อ */
+/* CSS Dashboard Progress Bar */
+.progress-container { margin-bottom: 10px; }
+.progress-label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: #B0C4DE; }
+.progress-track { width: 100%; height: 12px; background: #0d131f; border-radius: 10px; box-shadow: inset 2px 2px 5px #0a0e17, inset -2px -2px 5px #141e30; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #B8962E, #D4AF37); border-radius: 10px; transition: width 0.5s ease; }
+.progress-fill.vaccine { background: linear-gradient(90deg, #4A90E2, #50E3C2); }
+
+/* Pet List Item */
+.pet-item { padding: 15px; margin-bottom: 10px; border-radius: 10px; background: #1b2941; border-left: 4px solid #D4AF37; font-size: 14px; position: relative;}
+.pet-item .remove-btn { position: absolute; right: 10px; top: 10px; color: #ff6b6b; background: none; border: none; cursor: pointer; font-weight: bold;}
+
+/* Step & Consent CSS */
 .step-content { display: none; }
 .step-content.active { display: block; animation: fadeIn 0.4s; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-.terms-box { padding: 15px; max-height: 150px; overflow-y: auto; font-size: 14px; line-height: 1.5; color: #B0C4DE; }
-.terms-box p { margin-bottom: 10px; }
-
+.terms-box { padding: 15px; max-height: 180px; overflow-y: auto; font-size: 14px; line-height: 1.6; color: #E0E5EC; }
 .disabled-section { opacity: 0.3; pointer-events: none; transition: 0.3s; }
 .disabled-section.active { opacity: 1; pointer-events: auto; }
 
-#signature-pad { width: 100%; height: 150px; border-radius: 10px; background: #FFF; margin-top: 10px; border: 2px solid #D4AF37; cursor: crosshair; }
+/* ป้องกันหน้าจอเลื่อนเวลาเอานิ้ววาดลายเซ็น */
+canvas.signature-pad { width: 100%; height: 150px; border-radius: 10px; background: #FFF; margin-top: 10px; border: 2px solid #D4AF37; touch-action: none; cursor: crosshair; }
 .clear-btn { background: none; border: none; color: #ff6b6b; font-size: 14px; text-decoration: underline; margin-top: 5px; cursor: pointer; display: block; text-align: right; width: 100%; }
