@@ -52,3 +52,33 @@ canvas.signature-pad { width: 100%; height: 150px; border-radius: 10px; backgrou
 .status-badge { display: inline-block; padding: 4px 8px; border-radius: 5px; font-size: 12px; margin-top: 5px; font-weight: bold; }
 .badge-green { background: rgba(80, 227, 194, 0.2); color: #50E3C2; border: 1px solid #50E3C2; }
 .badge-red { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
+/* ตารางสรุปรายงาน */
+.table-responsive { width: 100%; overflow-x: auto; }
+.neumorphic-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; margin-top: 10px; }
+.neumorphic-table th, .neumorphic-table td { padding: 12px; border: 1px solid rgba(160, 176, 192, 0.2); }
+.neumorphic-table th { background: #0d131f; color: #A0B0C0; font-weight: 600; }
+.neumorphic-table td { color: #E0E5EC; }
+
+.print-only { display: none; }
+
+/* ==========================================
+   CSS สำหรับการ Print หรือ Save as PDF
+   ========================================== */
+@media print {
+    body { background: #FFF !important; color: #000 !important; padding: 0; }
+    .no-print, #btn-staff-login, .title, .loading-screen { display: none !important; }
+    
+    #report-container { display: block !important; max-width: 100% !important; margin: 0 !important; }
+    
+    /* ลบมิติ Neumorphism ออกเพื่อให้พิมพ์ลงกระดาษขาวได้สวยงาม */
+    .card.neumorphic { box-shadow: none !important; background: transparent !important; padding: 0 !important; margin-bottom: 30px !important; }
+    
+    .section-title { color: #000 !important; border-bottom: 2px solid #000 !important; font-size: 16px !important; }
+    .neumorphic-table th, .neumorphic-table td { border: 1px solid #000 !important; color: #000 !important; padding: 8px !important; }
+    .neumorphic-table th { background: #f0f0f0 !important; font-weight: bold !important; }
+
+    /* แสดงส่วนหัวและช่องเซ็นชื่อ */
+    .print-only { display: block !important; }
+    #print-signatures { display: flex !important; justify-content: space-between !important; margin-top: 60px !important; page-break-inside: avoid; }
+    .sig-box { text-align: center; font-size: 14px; line-height: 1.8; width: 30%; }
+}
