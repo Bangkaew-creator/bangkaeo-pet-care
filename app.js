@@ -68,7 +68,7 @@ function setupRentalLogic() {
     });
 }
 
-// 4. ระบบเพิ่มสัตว์เลี้ยงเข้าตะกร้า (Array)
+// 4. ระบบเพิ่มสัตว์เลี้ยงเข้าตะกร้า (Array) พร้อมจำกัดโควตาบ้านละ 2 ตัว
 function setupPetSystem() {
     const btnAddPet = document.getElementById("btn-add-pet");
     const btnGoConsent = document.getElementById("btn-go-consent");
@@ -79,12 +79,25 @@ function setupPetSystem() {
         const gender = document.getElementById("pet-gender").value;
         const service = document.getElementById("service-type").value;
 
+        // เช็กว่ากรอกข้อมูลครบไหม
         if(!name || !type || !gender || !service) {
             alert("กรุณากรอกข้อมูลสัตว์เลี้ยงให้ครบก่อนกดบันทึก");
             return;
         }
 
-        // เพิ่มเข้า Array
+        // --- เพิ่มเงื่อนไขจำกัดโควตา ทำหมันไม่เกิน 2 ตัว/บ้าน ---
+        if (service === "ทำหมันและวัคซีน") {
+            // นับจำนวนสัตว์เลี้ยงในตะกร้า (pets array) ที่เลือกทำหมันไปแล้ว
+            const neuterCount = pets.filter(p => p.service === "ทำหมันและวัคซีน").length;
+            
+            if (neuterCount >= 2) {
+                alert("ขออภัยครับ โควตาทำหมันจำกัดสิทธิ์ไม่เกิน 2 ตัวต่อ 1 ครอบครัว\n(หากต้องการลงทะเบียนฉีดวัคซีนอย่างเดียว สามารถเพิ่มต่อได้ครับ)");
+                return; // หยุดการทำงาน ไม่ให้เพิ่มข้อมูลลงตะกร้า
+            }
+        }
+        // --------------------------------------------------
+
+        // ผ่านเงื่อนไขทั้งหมด -> เพิ่มเข้า Array
         pets.push({ name, type, gender, service, signed: false });
         
         // เคลียร์ฟอร์ม
