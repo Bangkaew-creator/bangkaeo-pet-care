@@ -5,12 +5,12 @@ import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateD
 // 1. ตั้งค่า Firebase และ ตัวแปรระบบ
 // ==========================================
 const firebaseConfig = {
-    apiKey: "AIzaSyXXXXXXXXXXXXX", // <--- แก้ไข API KEY ของคุณตรงนี้
-    authDomain: "bangkaeo-pet-care.firebaseapp.com",
-    projectId: "bangkaeo-pet-care",
-    storageBucket: "bangkaeo-pet-care.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef"
+  apiKey: "AIzaSyCNsfEd11Yv2kNCO_T3s07WJ1eAXUyhssE",
+  authDomain: "bangkaew-pet-db.firebaseapp.com",
+  projectId: "bangkaew-pet-db",
+  storageBucket: "bangkaew-pet-db.firebasestorage.app",
+  messagingSenderId: "79581962937",
+  appId: "1:79581962937:web:aed2a3297cf269afcc7168"
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
