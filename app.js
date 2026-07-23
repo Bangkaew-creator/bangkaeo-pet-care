@@ -391,13 +391,16 @@ function checkAllSigned() {
     document.getElementById("btn-submit").disabled = !valid;
 }
 
+// ==========================================
+// ฟังก์ชันบันทึกข้อมูลและส่งข้อความ LINE
+// ==========================================
 function setupFinalSubmit() {
     document.getElementById("btn-submit").addEventListener("click", async () => {
         document.getElementById("btn-submit").disabled = true;
         document.getElementById("btn-submit").textContent = "กำลังบันทึกข้อมูล...";
         
         try {
-            // [เพิ่มใหม่] คำนวณคิวก่อนบันทึก เพื่อใช้ส่งข้อความ LINE
+            // คำนวณคิวก่อนบันทึก เพื่อใช้ส่งข้อความ LINE
             const allPetsSnap = await getDocs(collection(db, "pets"));
             let currentQ = 0;
             allPetsSnap.forEach(d => { if(d.data().status !== "cancelled") currentQ++; });
@@ -405,6 +408,7 @@ function setupFinalSubmit() {
             const hn = document.getElementById("house-no").value, vn = document.getElementById("village-no").value;
             const rental = document.getElementById("is-rental").checked;
             
+            // บันทึกข้อมูลเจ้าของ
             await setDoc(doc(db, "users", userProfileData.userId), {
                 owner_name: document.getElementById("owner-name").value,
                 phone_number: document.getElementById("phone-number").value,
@@ -412,6 +416,7 @@ function setupFinalSubmit() {
                 line_displayName: userProfileData.displayName, updated_at: serverTimestamp()
             });
 
+            // บันทึกข้อมูลสัตว์เลี้ยงและลายเซ็น
             for (let i=0; i<pets.length; i++) {
                 await addDoc(collection(db, "pets"), {
                     owner_uid: userProfileData.userId,
@@ -421,16 +426,19 @@ function setupFinalSubmit() {
                 });
             }
 
-            // [เพิ่มใหม่] ส่งข้อความ LINE เข้าแชทอัตโนมัติ ฟรี 100%
+            // เตรียมข้อความเรื่องคิว และชื่อสัตว์เลี้ยง
             let queueText = "";
             if (pets.length === 1) queueText = `${currentQ + 1}`;
             else queueText = `${currentQ + 1} ถึง ${currentQ + pets.length}`;
+            
+            let petNames = pets.map(p => p.name).join(", ");
 
+            // ส่งข้อความ LINE เข้าแชทอัตโนมัติ พร้อมแจ้งเตือน 4 ข้อ (ปรับปรุงข้อความให้ชัดเจนและน่าเชื่อถือ)
             if (liff.isInClient()) {
                 await liff.sendMessages([
                     {
                         type: "text",
-                        text: `✅ ยืนยันการลงทะเบียน\nลำดับคิวที่: ${queueText}\n\n📌 การเตรียมสัตว์เลี้ยงก่อนทำหมัน\n1. กรุณางดน้ำและอาหารก่อนทำหมันอย่างน้อย 8 ชั่วโมง\n2. ไม่ทำหมันให้แก่สุนัขและแมว หน้าสั้น พันธุ์เล็ก เช่น ปอม ชิสุห์ ชิวาว่า เปอร์เซีย บริติชช็อตแฮร์ เป็นต้น\n3. กรุณารับบัตรคิวในวันทำหมันก่อน 10.00 น. เพื่อยืนยันสิทธิ์การทำหมัน`
+                        text: `✅ ยืนยันการลงทะเบียน (จองสิทธิ์สำเร็จ)\nลำดับคิวจองสิทธิ์ที่: ${queueText}\nชื่อสัตว์เลี้ยง: น้อง${petNames}\n(ระบบได้บันทึกใบยินยอมและลายเซ็นของท่านเรียบร้อยแล้ว)\n\n📌 ข้อปฏิบัติและการเตรียมตัวก่อนทำหมัน\n1. กรุณางดน้ำและอาหารสัตว์เลี้ยงอย่างน้อย 8 ชั่วโมงก่อนเข้ารับบริการ\n2. ขอสงวนสิทธิ์งดให้บริการทำหมันสุนัขและแมวหน้าสั้น/พันธุ์เล็ก (เช่น ปอม, ชิสุห์, ชิวาว่า, เปอร์เซีย, บริติชชอร์ตแฮร์ เป็นต้น) เนื่องจากมีความเสี่ยงสูง\n3. ⚠️ ลำดับคิวที่ท่านได้รับนี้ เป็นเพียง "คิวการจองสิทธิ์" เท่านั้น ท่านจะต้องมาติดต่อรับ "บัตรคิวผ่าตัดทำหมัน" ที่หน้างานก่อนเวลา 10.00 น. ของวันเข้ารับบริการ\n4. กรุณาแสดงข้อความนี้แก่เจ้าหน้าที่ในวันรับบริการ (เจ้าหน้าที่จะตรวจสอบข้อมูลและลายเซ็นจากระบบ)`
                     }
                 ]);
             }
@@ -444,6 +452,7 @@ function setupFinalSubmit() {
         }
     });
 }
+
 
 // ==========================================
 // 6. ระบบเจ้าหน้าที่: Login & Sidebar
