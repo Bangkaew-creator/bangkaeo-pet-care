@@ -1,133 +1,39 @@
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Sarabun', sans-serif;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
+body { background-color: #141E30; color: #E0E5EC; min-height: 100vh; padding: 20px 15px; }
+.loading-screen { display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 18px; color: #D4AF37; }
+.container { max-width: 500px; margin: 0 auto; }
+.title { text-align: center; color: #D4AF37; margin-bottom: 20px; font-size: 22px; }
 
-body {
-    background-color: #141E30; /* สีกรมท่าเข้ม */
-    color: #E0E5EC;
-    min-height: 100vh;
-    padding: 20px 15px;
-}
+.card { padding: 20px; border-radius: 15px; margin-bottom: 25px; }
+.neumorphic { background: #141E30; box-shadow: 6px 6px 12px #0d131f, -6px -6px 12px #1b2941; }
+.neumorphic-inner { background: #141E30; box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; border-radius: 10px; }
 
-.loading-screen {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    font-size: 18px;
-    color: #D4AF37; /* สีทอง */
-}
-
-.container {
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-.title {
-    text-align: center;
-    color: #D4AF37;
-    margin-bottom: 20px;
-    font-size: 22px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-}
-
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 25px;
-    padding: 10px;
-}
-
-#profile-img {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    border: 2px solid #D4AF37;
-}
-
-.card {
-    padding: 20px;
-    border-radius: 15px;
-    margin-bottom: 25px;
-}
-
-/* สไตล์ Neumorphism แบบนูน */
-.neumorphic {
-    background: #141E30;
-    box-shadow: 6px 6px 12px #0d131f, -6px -6px 12px #1b2941;
-}
-
-.section-title {
-    color: #D4AF37;
-    margin-bottom: 15px;
-    font-size: 18px;
-    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
-    padding-bottom: 5px;
-}
-
-.input-group {
-    margin-bottom: 15px;
-}
-
-.input-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 14px;
-    color: #A0B0C0;
-}
-
-.row {
-    display: flex;
-    gap: 15px;
-}
+.section-title { color: #D4AF37; margin-bottom: 15px; font-size: 18px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 5px; }
+.input-group { margin-bottom: 15px; }
+.input-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #A0B0C0; }
+.row { display: flex; gap: 15px; }
 .half { flex: 1; }
 
-/* สไตล์ Neumorphism แบบบุ๋ม (สำหรับช่องกรอกข้อมูล) */
-.neumorphic-input {
-    width: 100%;
-    padding: 12px 15px;
-    border: none;
-    border-radius: 10px;
-    background: #141E30;
-    color: #FFF;
-    font-size: 16px;
-    outline: none;
-    box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941;
-}
-
+.neumorphic-input { width: 100%; padding: 12px 15px; border: none; border-radius: 10px; background: #141E30; color: #FFF; font-size: 16px; outline: none; box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; }
 .neumorphic-input::placeholder { color: #6A7A8A; }
+.checkbox-group { display: flex; align-items: center; gap: 10px; }
 
-.checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-}
+.neumorphic-btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; color: #A0B0C0; background: #141E30; box-shadow: 4px 4px 8px #0d131f, -4px -4px 8px #1b2941; transition: 0.2s; }
+.neumorphic-btn:active { box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; }
 
-/* สไตล์ปุ่มกดสีทองแบบ Neumorphism */
-.neumorphic-btn {
-    width: 100%;
-    padding: 15px;
-    border: none;
-    border-radius: 10px;
-    font-size: 18px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
+.gold-btn { color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.2); }
+.gold-btn:disabled { color: #6A7A8A; border: none; opacity: 0.5; cursor: not-allowed; }
 
-.gold-btn {
-    background: #141E30;
-    color: #D4AF37;
-    box-shadow: 6px 6px 12px #0d131f, -6px -6px 12px #1b2941;
-    border: 1px solid rgba(212, 175, 55, 0.2);
-}
+/* CSS สำหรับสเตปและการเซ็นชื่อ */
+.step-content { display: none; }
+.step-content.active { display: block; animation: fadeIn 0.4s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-.gold-btn:active {
-    box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941;
-    color: #B8962E;
-}
+.terms-box { padding: 15px; max-height: 150px; overflow-y: auto; font-size: 14px; line-height: 1.5; color: #B0C4DE; }
+.terms-box p { margin-bottom: 10px; }
+
+.disabled-section { opacity: 0.3; pointer-events: none; transition: 0.3s; }
+.disabled-section.active { opacity: 1; pointer-events: auto; }
+
+#signature-pad { width: 100%; height: 150px; border-radius: 10px; background: #FFF; margin-top: 10px; border: 2px solid #D4AF37; cursor: crosshair; }
+.clear-btn { background: none; border: none; color: #ff6b6b; font-size: 14px; text-decoration: underline; margin-top: 5px; cursor: pointer; display: block; text-align: right; width: 100%; }
