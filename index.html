@@ -211,5 +211,24 @@
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script type="module" src="app.js"></script>
+    
+    <!-- ================= Modal แสดงใบยินยอมและลายเซ็น ================= -->
+    <div id="consent-modal" class="modal-overlay" style="display: none;">
+        <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
+            <h3 class="section-title">ใบยินยอมรับการทำหมัน/วัคซีน</h3>
+            <p id="consent-pet-name" style="color: #D4AF37; font-weight: bold; margin-bottom: 10px; font-size: 18px;"></p>
+            
+            <p style="font-size: 13px; color: #A0B0C0; text-align: left; margin-bottom: 15px; line-height: 1.5; background: #0a0f18; padding: 10px; border-radius: 8px;">
+                ข้าพเจ้ายินยอมให้สัตวแพทย์ดำเนินการผ่าตัดทำหมัน โดยรับทราบความเสี่ยง... ข้าพเจ้าจะไม่เรียกร้องค่าเสียหายใดๆ กับเจ้าหน้าที่
+            </p>
+
+            <div style="background: #FFF; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
+                <p style="color: #000; font-size: 12px; text-align: left; margin-bottom: 5px;">ลายมือชื่อผู้ยินยอม:</p>
+                <img id="consent-signature-img" src="" alt="ไม่มีลายเซ็น" style="width: 100%; max-height: 150px; object-fit: contain;">
+            </div>
+
+            <button type="button" class="neumorphic-btn outline-btn" onclick="document.getElementById('consent-modal').style.display='none'">ปิดหน้าต่าง</button>
+        </div>
+    </div>
 </body>
 </html>
