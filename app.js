@@ -358,3 +358,119 @@ function setupFinalSubmit() {
         } catch (e) { alert("เกิดข้อผิดพลาด"); document.getElementById("btn-submit").disabled = false; }
     });
 }
+
+// ==========================================
+// 6. ระบบรายงานสรุปผล (Report & Export)
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+    // ผูก Event ให้ปุ่มเปิดหน้ารายงาน (ถ้ามีปุ่ม)
+    const btnOpenReport = document.getElementById("btn-open-report");
+    if(btnOpenReport) {
+        btnOpenReport.addEventListener("click", () => {
+            document.getElementById("admin-container").style.display = "none";
+            document.getElementById("report-container").style.display = "block";
+            generateReport(); // สั่งดึงข้อมูลมาคำนวณ
+        });
+    }
+
+    // ผูก Event ให้ปุ่มกลับหน้าเช็คอิน
+    const btnBackAdmin = document.getElementById("btn-back-to-admin");
+    if(btnBackAdmin) {
+        btnBackAdmin.addEventListener("click", () => {
+            document.getElementById("report-container").style.display = "none";
+            document.getElementById("admin-container").style.display = "block";
+        });
+    }
+
+    // ผูก Event ให้ปุ่ม Print/PDF
+    const btnPrint = document.getElementById("btn-print-report");
+    if(btnPrint) {
+        btnPrint.addEventListener("click", () => {
+            window.print(); // ใช้ฟังก์ชันพิมพ์ของบราวเซอร์เพื่อออกเป็น PDF
+        });
+    }
+});
+
+async function generateReport() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "pets"));
+        
+        // โครงสร้างสำหรับเก็บตัวเลขสถิติ
+        const stats = {
+            registered: {
+                neuter:  { dog: { m: 0, f: 0 }, cat: { m: 0, f: 0 } },
+                vaccine: { dog: { m: 0, f: 0 }, cat: { m: 0, f: 0 } }
+            },
+            checkedIn: {
+                neuter:  { dog: { m: 0, f: 0 }, cat: { m: 0, f: 0 } },
+                vaccine: { dog: { m: 0, f: 0 }, cat: { m: 0, f: 0 } }
+            }
+        };
+
+        // นับข้อมูลทีละแถว
+        querySnapshot.forEach((docSnap) => {
+            const pet = docSnap.data();
+            if (pet.status === "cancelled") return; // ข้ามข้อมูลที่ถูกยกเลิกสิทธิ์
+
+            // แปลงค่าให้เข้ากับคีย์ของ Object
+            const sType = pet.service_type === "ทำหมันและวัคซีน" ? "neuter" : "vaccine";
+            const pType = pet.pet_type === "สุนัข" ? "dog" : "cat";
+            const pGen = pet.pet_gender === "ตัวผู้" ? "m" : "f";
+
+            // 1. นับยอดลงทะเบียนทั้งหมด (สถานะ booked และ checked_in ก็นับรวม)
+            stats.registered[sType][pType][pGen]++;
+
+            // 2. นับยอดมารับบริการจริง (เฉพาะสถานะ checked_in)
+            if (pet.status === "checked_in") {
+                stats.checkedIn[sType][pType][pGen]++;
+            }
+        });
+
+        // นำข้อมูลไปสร้างเป็นแถวในตาราง HTML
+        renderTable("table-registered", stats.registered);
+        renderTable("table-checked-in", stats.checkedIn);
+
+    } catch (error) {
+        console.error("Report Generation Error", error);
+        alert("ดึงข้อมูลรายงานไม่สำเร็จ");
+    }
+}
+
+function renderTable(tableId, dataObject) {
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    
+    // ฟังก์ชันช่วยคำนวณผลรวมรายบรรทัด
+    const rowTotal = (obj) => obj.dog.m + obj.dog.f + obj.cat.m + obj.cat.f;
+    
+    // ดึงค่าสถิติ
+    const n = dataObject.neuter;
+    const v = dataObject.vaccine;
+    
+    // คำนวณผลรวมทั้งหมด
+    const totalNeuter = rowTotal(n);
+    const totalVaccine = rowTotal(v);
+    const grandTotal = totalNeuter + totalVaccine;
+
+    tbody.innerHTML = `
+        <tr>
+            <td style="text-align: left;">ทำหมัน + ฉีดวัคซีน</td>
+            <td>${n.dog.m}</td><td>${n.dog.f}</td>
+            <td>${n.cat.m}</td><td>${n.cat.f}</td>
+            <td style="font-weight: bold;">${totalNeuter}</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">ฉีดวัคซีนอย่างเดียว</td>
+            <td>${v.dog.m}</td><td>${v.dog.f}</td>
+            <td>${v.cat.m}</td><td>${v.cat.f}</td>
+            <td style="font-weight: bold;">${totalVaccine}</td>
+        </tr>
+        <tr style="background: rgba(212, 175, 55, 0.1); font-weight: bold;">
+            <td>รวมสุทธิ</td>
+            <td>${n.dog.m + v.dog.m}</td>
+            <td>${n.dog.f + v.dog.f}</td>
+            <td>${n.cat.m + v.cat.m}</td>
+            <td>${n.cat.f + v.cat.f}</td>
+            <td style="color: #D4AF37; font-size: 16px;">${grandTotal}</td>
+        </tr>
+    `;
+}
