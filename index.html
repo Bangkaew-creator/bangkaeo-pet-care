@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ลงทะเบียนทำหมันและฉีดวัคซีน - เทศบาลเมืองบางแก้ว</title>
+    <!-- โหลดฟอนต์ Sarabun เพื่อความเป็นทางการและอ่านง่าย -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading" class="loading-screen">กำลังโหลดข้อมูล...</div>
+
+    <div id="app-container" class="container" style="display: none;">
+        <h2 class="title">🐾 ลงทะเบียนเข้ารับบริการ<br>ทำหมันและวัคซีนสัตว์เลี้ยง</h2>
+        <div class="user-profile">
+            <img id="profile-img" src="" alt="Profile Image">
+            <p id="profile-name">ชื่อผู้ใช้ LINE</p>
+        </div>
+
+        <form id="registration-form">
+            <!-- ข้อมูลเจ้าของ -->
+            <div class="card neumorphic">
+                <h3 class="section-title">ข้อมูลเจ้าของสัตว์เลี้ยง</h3>
+                
+                <div class="input-group">
+                    <label>ชื่อ-นามสกุล</label>
+                    <input type="text" id="owner-name" class="neumorphic-input" placeholder="ระบุชื่อ-นามสกุล" required>
+                </div>
+
+                <div class="input-group">
+                    <label>เบอร์โทรศัพท์</label>
+                    <input type="tel" id="phone-number" class="neumorphic-input" placeholder="08X-XXX-XXXX" required>
+                </div>
+
+                <div class="row">
+                    <div class="input-group half">
+                        <label>บ้านเลขที่</label>
+                        <input type="text" id="house-no" class="neumorphic-input" placeholder="เช่น 123/45" required>
+                    </div>
+                    <div class="input-group half">
+                        <label>หมู่ที่</label>
+                        <select id="village-no" class="neumorphic-input" required>
+                            <option value="" disabled selected>เลือกหมู่</option>
+                            <!-- สร้างตัวเลือกหมู่ 1-16 -->
+                            <script>
+                                for(let i=1; i<=16; i++) {
+                                    document.write(`<option value="${i}">หมู่ที่ ${i}</option>`);
+                                }
+                            </script>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group checkbox-group">
+                    <input type="checkbox" id="is-rental" class="neumorphic-checkbox">
+                    <label for="is-rental">ข้าพเจ้าอาศัยในบ้านเช่า/หอพัก</label>
+                </div>
+
+                <div class="input-group" id="room-no-group" style="display: none;">
+                    <label>เลขห้องเช่า (ถ้ามี)</label>
+                    <input type="text" id="room-no" class="neumorphic-input" placeholder="เช่น ห้อง A12">
+                </div>
+            </div>
+
+            <!-- ส่วนของข้อมูลสัตว์เลี้ยงจะถูกเพิ่มในสเตปถัดไป -->
+
+            <button type="button" id="btn-next" class="neumorphic-btn gold-btn">ถัดไป ➔</button>
+        </form>
+    </div>
+
+    <!-- โหลด LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
