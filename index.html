@@ -21,7 +21,6 @@
 
     <!-- ================= โหมดประชาชน (Citizen Flow) ================= -->
     <div id="app-container" class="container" style="display: none;">
-        <!-- Header โครงการ -->
         <div class="project-header">
             <h3>โครงการทำหมันสุนัขและแมวในพื้นที่ตำบลบางแก้ว</h3>
             <p>เทศบาลเมืองบางแก้ว สมุทรปราการ</p>
@@ -32,25 +31,25 @@
             <div id="step-0" class="step-content active">
                 <div class="card neumorphic">
                     <h3 class="section-title">📊 สถานะคิวปัจจุบัน</h3>
-                    <!-- แจ้งสถานที่และวันที่ -->
                     <p id="txt-service-info" style="color: #50E3C2; font-size: 14px; margin-bottom: 15px; text-align: center;">กำลังโหลดข้อมูล...</p>
                     
                     <div class="progress-container">
-                        <div class="progress-label">
-                            <span>ทำหมัน (สุนัขและแมว)</span>
-                            <span id="txt-neuter-quota">กำลังโหลด...</span>
-                        </div>
+                        <div class="progress-label"><span>ทำหมัน (สุนัขและแมว)</span><span id="txt-neuter-quota">กำลังโหลด...</span></div>
                         <div class="progress-track"><div id="bar-neuter" class="progress-fill" style="width: 0%;"></div></div>
                     </div>
                     <div class="progress-container" style="margin-top: 20px;">
-                        <div class="progress-label">
-                            <span>ฉีดวัคซีนอย่างเดียว</span>
-                            <span id="txt-vaccine-quota">กำลังโหลด...</span>
-                        </div>
+                        <div class="progress-label"><span>ฉีดวัคซีนอย่างเดียว</span><span id="txt-vaccine-quota">กำลังโหลด...</span></div>
                         <div class="progress-track"><div id="bar-vaccine" class="progress-fill vaccine" style="width: 0%;"></div></div>
                     </div>
                 </div>
-                <button type="button" class="neumorphic-btn gold-btn btn-next" data-next="1">เริ่มลงทะเบียน ➔</button>
+
+                <!-- (ใหม่) ส่วนแสดงรายการที่ลงทะเบียนแล้วของฉัน -->
+                <div id="my-registered-pets" class="card neumorphic" style="display: none;">
+                    <h3 class="section-title" style="color: #50E3C2;">📌 รายการลงทะเบียนของท่าน</h3>
+                    <div id="my-pets-list"></div>
+                </div>
+
+                <button type="button" class="neumorphic-btn gold-btn btn-next" data-next="1">ลงทะเบียนเพิ่ม ➔</button>
                 <div style="text-align: center; margin-top: 30px;">
                     <span id="btn-staff-login" style="color: #6A7A8A; font-size: 12px; text-decoration: underline; cursor: pointer;">สำหรับเจ้าหน้าที่เทศบาล</span>
                 </div>
@@ -110,12 +109,8 @@
     <!-- ================= โหมดเจ้าหน้าที่ (1): จัดการหน้างาน ================= -->
     <div id="admin-container" class="container admin-view" style="display: none;">
         <div class="project-header" style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
-            <div>
-                <h3 style="font-size: 16px;">โครงการทำหมันสุนัขและแมวฯ</h3>
-                <p style="font-size: 12px;">เทศบาลเมืองบางแก้ว สมุทรปราการ</p>
-            </div>
-            <!-- ปุ่ม Hamburger Menu มุมขวาบน -->
-            <button id="btn-open-sidebar" class="hamburger-btn">☰</button>
+            <div><h3 style="font-size: 16px;">โครงการทำหมันสุนัขและแมวฯ</h3><p style="font-size: 12px;">เทศบาลเมืองบางแก้ว สมุทรปราการ</p></div>
+            <button class="hamburger-btn" onclick="document.getElementById('admin-sidebar').style.right = '0'">☰</button>
         </div>
         
         <h2 class="title" style="color: #50E3C2; text-align: left;">🛡️ ระบบจัดการหน้างาน</h2>
@@ -148,22 +143,12 @@
 
         <div class="card neumorphic">
             <h3 class="section-title">📊 1. ใบรายงานยอดการลงทะเบียน (จองคิว)</h3>
-            <div class="table-responsive">
-                <table class="neumorphic-table" id="table-registered">
-                    <thead><tr><th rowspan="2">ประเภทบริการ</th><th colspan="2">สุนัข (ตัว)</th><th colspan="2">แมว (ตัว)</th><th rowspan="2" style="color: #D4AF37;">รวมทั้งหมด</th></tr><tr><th>ตัวผู้</th><th>ตัวเมีย</th><th>ตัวผู้</th><th>ตัวเมีย</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+            <div class="table-responsive"><table class="neumorphic-table" id="table-registered"><thead><tr><th rowspan="2">ประเภทบริการ</th><th colspan="2">สุนัข (ตัว)</th><th colspan="2">แมว (ตัว)</th><th rowspan="2" style="color: #D4AF37;">รวมทั้งหมด</th></tr><tr><th>ตัวผู้</th><th>ตัวเมีย</th><th>ตัวผู้</th><th>ตัวเมีย</th></tr></thead><tbody></tbody></table></div>
         </div>
 
         <div class="card neumorphic" style="margin-top: 20px;">
             <h3 class="section-title">✅ 2. ใบรายงานยอดการเข้ารับบริการจริง</h3>
-            <div class="table-responsive">
-                <table class="neumorphic-table" id="table-checked-in">
-                    <thead><tr><th rowspan="2">ประเภทบริการ</th><th colspan="2">สุนัข (ตัว)</th><th colspan="2">แมว (ตัว)</th><th rowspan="2" style="color: #50E3C2;">รวมทั้งหมด</th></tr><tr><th>ตัวผู้</th><th>ตัวเมีย</th><th>ตัวผู้</th><th>ตัวเมีย</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+            <div class="table-responsive"><table class="neumorphic-table" id="table-checked-in"><thead><tr><th rowspan="2">ประเภทบริการ</th><th colspan="2">สุนัข (ตัว)</th><th colspan="2">แมว (ตัว)</th><th rowspan="2" style="color: #50E3C2;">รวมทั้งหมด</th></tr><tr><th>ตัวผู้</th><th>ตัวเมีย</th><th>ตัวผู้</th><th>ตัวเมีย</th></tr></thead><tbody></tbody></table></div>
         </div>
 
         <div id="print-signatures" class="print-only">
@@ -200,7 +185,7 @@
     <div id="secret-modal" class="modal-overlay" style="display: none;">
         <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
             <h3 class="section-title">เข้าสู่ระบบเจ้าหน้าที่</h3>
-            <p style="font-size: 14px; margin-bottom: 15px; color: #A0B0C0;">กรุณากรอกรหัสลับ (Secret Code)</p>
+            <p style="font-size: 14px; margin-bottom: 15px; color: #A0B0C0;">กรุณากรอกรหัสลับ</p>
             <input type="password" id="secret-input" class="neumorphic-input" style="text-align: center; letter-spacing: 2px;" placeholder="********">
             <div class="row" style="margin-top: 20px;">
                 <button type="button" id="btn-close-secret" class="neumorphic-btn half outline-btn">ยกเลิก</button>
@@ -209,26 +194,44 @@
         </div>
     </div>
 
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script type="module" src="app.js"></script>
-    
-    <!-- ================= Modal แสดงใบยินยอมและลายเซ็น ================= -->
+    <!-- ================= Modal แสดงลายเซ็น (สำหรับแอดมินดูแบบ Pop-up) ================= -->
     <div id="consent-modal" class="modal-overlay" style="display: none;">
         <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
-            <h3 class="section-title">ใบยินยอมรับการทำหมัน/วัคซีน</h3>
-            <p id="consent-pet-name" style="color: #D4AF37; font-weight: bold; margin-bottom: 10px; font-size: 18px;"></p>
-            
-            <p style="font-size: 13px; color: #A0B0C0; text-align: left; margin-bottom: 15px; line-height: 1.5; background: #0a0f18; padding: 10px; border-radius: 8px;">
-                ข้าพเจ้ายินยอมให้สัตวแพทย์ดำเนินการผ่าตัดทำหมัน โดยรับทราบความเสี่ยง... ข้าพเจ้าจะไม่เรียกร้องค่าเสียหายใดๆ กับเจ้าหน้าที่
-            </p>
-
+            <h3 class="section-title">ลายมือชื่อผู้ยินยอม</h3>
+            <p id="consent-pet-name" style="color: #D4AF37; font-weight: bold; margin-bottom: 15px; font-size: 18px;"></p>
             <div style="background: #FFF; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
-                <p style="color: #000; font-size: 12px; text-align: left; margin-bottom: 5px;">ลายมือชื่อผู้ยินยอม:</p>
                 <img id="consent-signature-img" src="" alt="ไม่มีลายเซ็น" style="width: 100%; max-height: 150px; object-fit: contain;">
             </div>
-
             <button type="button" class="neumorphic-btn outline-btn" onclick="document.getElementById('consent-modal').style.display='none'">ปิดหน้าต่าง</button>
         </div>
     </div>
+
+    <!-- ================= (ใหม่) แบบฟอร์ม A4 สำหรับพิมพ์ใบยินยอม ================= -->
+    <div id="print-consent-form" style="display: none;">
+        <h2 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 5px;">ใบยินยอมผ่าตัดทำหมัน</h2>
+        <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px;">กับเทศบาลเมืองบางแก้ว ร่วมกับปศุสัตว์จังหวัดสมุทรปราการ</h3>
+        
+        <div style="font-size: 16px; line-height: 2;">
+            <p><strong>ข้าพเจ้า (ชื่อเจ้าของ):</strong> <span id="p-owner-name"></span></p>
+            <p><strong>เบอร์โทรศัพท์:</strong> <span id="p-phone"></span></p>
+            <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ <span id="p-house"></span> หมู่ที่ <span id="p-village"></span> ตำบลบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ</p>
+            
+            <p style="margin-top: 15px;"><strong>มีความประสงค์ขอรับบริการทำหมัน/ฉีดวัคซีน ให้แก่สัตว์เลี้ยงดังนี้:</strong></p>
+            <p><strong>ชื่อสัตว์เลี้ยง:</strong> <span id="p-pet-name"></span> &nbsp;&nbsp;&nbsp; <strong>ประเภท:</strong> <span id="p-pet-type"></span> &nbsp;&nbsp;&nbsp; <strong>เพศ:</strong> <span id="p-pet-gender"></span></p>
+
+            <p style="margin-top: 30px; text-indent: 40px; text-align: justify;">
+                ข้าพเจ้ายินยอมให้สัตวแพทย์ดำเนินการผ่าตัดทำหมัน โดยรับทราบความเสี่ยงที่อาจเกิดภาวะแทรกซ้อนจากการวางยาสลบ หรือปัจจัยทางสุขภาพของสัตว์เลี้ยงที่มองไม่เห็นภายนอก ซึ่งสัตวแพทย์ผู้ปฏิบัติทำการผ่าตัดทำหมันได้ปฏิบัติถูกต้องตามหลักวิชาการ หากสัตว์ของข้าพเจ้าตาย หรือเกิดความผิดปกติใดๆ ในระหว่างการดำเนินการหลังการผ่าตัด การผ่าตัดทำหมัน และ/หรือ ฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าให้แก่สัตว์เลี้ยง ข้าพเจ้าจะไม่ถือว่าเป็นความผิดของเจ้าหน้าที่และจะไม่เอาผิด หรือเรียกร้องค่าเสียหายใดๆกับเจ้าหน้าที่ ข้าพเจ้าขอลงลายมือชื่อไว้เป็นหลักฐาน
+            </p>
+        </div>
+
+        <div style="margin-top: 50px; text-align: center;">
+            <img id="p-signature" src="" style="max-height: 100px; display: block; margin: 0 auto; border-bottom: 1px dotted #000;">
+            <p style="margin-top: 10px;">(ลงชื่อ) .............................................................. ผู้ยินยอม</p>
+            <p style="margin-top: 5px;">(<span id="p-owner-name-sig"></span>)</p>
+        </div>
+    </div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
