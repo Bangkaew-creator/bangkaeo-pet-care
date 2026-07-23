@@ -106,37 +106,73 @@ async function loadDashboardData() {
 
         const petsSnap = await getDocs(collection(db, "pets"));
         let curNeuter = 0, curVaccine = 0;
-        let myPetsHtml = "";
+        
+        // 1. สร้างตัวแปร Object เพื่อใช้จัดกลุ่มตามที่อยู่
+        const groupedPets = {};
         
         petsSnap.forEach(d => {
             const data = d.data();
             if(data.status !== "cancelled") {
+                // นับโควตา
                 if(data.service_type === "ทำหมันและวัคซีน") curNeuter++;
                 if(data.service_type === "วัคซีนอย่างเดียว") curVaccine++;
                 
+                // ดึงเฉพาะข้อมูลของคนๆ นี้มาจัดกลุ่ม
                 if(data.owner_uid === userProfileData.userId) {
-                    const badge = data.status === "checked_in" ? `<span style="color:#50E3C2; font-size:12px;">(✅ รับบริการแล้ว)</span>` : ``;
-                    const cancelBtn = data.status === "booked" ? `<button type="button" class="btn-cancel-pet" onclick="cancelMyPet('${d.id}')">❌ ยกเลิกสิทธิ์คืนโควตา</button>` : ``;
+                    const searchKey = data.house_village_search || "ไม่ระบุที่อยู่";
                     
-                    // [เพิ่มใหม่] แยกบ้านเลขที่และหมู่ ออกมาจาก house_village_search เพื่อแสดงบนการ์ด
-                    let addressText = "";
-                    if (data.house_village_search) {
-                        const parts = data.house_village_search.split("-");
-                        if (parts.length === 2) {
-                            addressText = `<br><span style="color:#D4AF37; font-size: 14px;">🏠 บ้านเลขที่ ${parts[0]} หมู่ ${parts[1]}</span>`;
-                        }
+                    // ถ้ายังไม่มีกลุ่มของบ้านเลขที่นี้ ให้สร้าง Array ว่างขึ้นมาก่อน
+                    if (!groupedPets[searchKey]) {
+                        groupedPets[searchKey] = [];
                     }
-
-                    myPetsHtml += `<div class="pet-item"><strong>${data.pet_name}</strong> ${badge}${addressText}<br><span style="color:#A0B0C0; font-size: 13px;">${data.pet_type} ${data.pet_gender} - ${data.service_type}</span><br>${cancelBtn}</div>`;
+                    // ดันข้อมูลสัตว์เลี้ยงเข้าไปในกลุ่มบ้านเลขที่นั้นๆ
+                    groupedPets[searchKey].push({ id: d.id, ...data });
                 }
             }
         });
 
+        // 2. นำข้อมูลที่จัดกลุ่มแล้วมาสร้างเป็น HTML
+        let myPetsHtml = "";
+        for (const addressKey in groupedPets) {
+            // สร้างหัวข้อบ้านเลขที่
+            let addressHeader = "ไม่ระบุที่อยู่";
+            if (addressKey && addressKey.includes("-")) {
+                const parts = addressKey.split("-");
+                addressHeader = `🏠 บ้านเลขที่ ${parts[0]} หมู่ที่ ${parts[1]}`;
+            }
+
+            // เปิดกรอบสำหรับแต่ละบ้าน (เพิ่มพื้นหลังให้ดูแยกเป็นสัดส่วนชัดเจน)
+            myPetsHtml += `
+            <div style="margin-bottom: 20px; background: rgba(0, 0, 0, 0.15); padding: 12px; border-radius: 10px; border: 1px solid rgba(212, 175, 55, 0.2);">
+                <div style="color: #D4AF37; font-size: 15px; font-weight: bold; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed rgba(212, 175, 55, 0.4);">
+                    ${addressHeader}
+                </div>
+            `;
+
+            // วนลูปนำสัตว์เลี้ยงในบ้านนั้นมาแสดง
+            groupedPets[addressKey].forEach(pet => {
+                const badge = pet.status === "checked_in" ? `<span style="color:#50E3C2; font-size:12px; margin-left: 5px;">(✅ รับบริการแล้ว)</span>` : ``;
+                const cancelBtn = pet.status === "booked" ? `<button type="button" class="btn-cancel-pet" onclick="cancelMyPet('${pet.id}')">❌ ยกเลิกสิทธิ์คืนโควตา</button>` : ``;
+
+                myPetsHtml += `
+                <div class="pet-item" style="margin-bottom: 8px; border-left: 3px solid #D4AF37;">
+                    <strong>${pet.pet_name}</strong> ${badge}<br>
+                    <span style="color:#A0B0C0; font-size: 13px;">${pet.pet_type} ${pet.pet_gender} - ${pet.service_type}</span>
+                    <br>${cancelBtn}
+                </div>`;
+            });
+
+            // ปิดกรอบบ้าน
+            myPetsHtml += `</div>`;
+        }
+
+        // อัปเดตตัวเลขโควตาบนหน้าจอ
         document.getElementById("txt-neuter-quota").textContent = `${curNeuter} / ${maxNeuter} คิว`;
         document.getElementById("bar-neuter").style.width = `${Math.min((curNeuter/maxNeuter)*100, 100)}%`;
         document.getElementById("txt-vaccine-quota").textContent = `${curVaccine} / ${maxVaccine} คิว`;
         document.getElementById("bar-vaccine").style.width = `${Math.min((curVaccine/maxVaccine)*100, 100)}%`;
 
+        // แสดงผลรายการ
         if(myPetsHtml !== "") {
             document.getElementById("my-registered-pets").style.display = "block";
             document.getElementById("my-pets-list").innerHTML = myPetsHtml;
@@ -164,8 +200,6 @@ async function loadDashboardData() {
 
     } catch (error) { console.error(error); }
 }
-
-
 window.cancelMyPet = async function(docId) {
     if(confirm("คุณต้องการยกเลิกคิวนี้เพื่อคืนสิทธิ์ให้ผู้อื่น ใช่หรือไม่?")) {
         try {
