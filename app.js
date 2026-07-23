@@ -19,7 +19,7 @@ const LIFF_ID = "2010813512-Wln3PzpL";
 let userProfileData = null;
 let pets = []; 
 let canvasInstances = []; 
-window.currentSearchPets = {}; // สำหรับดึงข้อมูลตอนพิมพ์ใบยินยอม
+window.currentSearchPets = {}; // สำหรับดึงข้อมูลตอนพิมพ์ใบเดี่ยว
 
 document.addEventListener("DOMContentLoaded", () => {
     initializeLiff();
@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupAdminSearch();
     setupSidebarAndSettings();
     setupReportPrint();
+    setupPrintAllConsents(); // ฟังก์ชันพิมพ์ใบยินยอมทั้งหมด
 });
 
 // ==========================================
@@ -39,9 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
 async function initializeLiff() {
     try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) {
-            liff.login();
-        } else {
+        if (!liff.isLoggedIn()) liff.login();
+        else {
             userProfileData = await liff.getProfile();
             checkUserRole();
         }
@@ -52,12 +52,11 @@ async function checkUserRole() {
     try {
         const adminDoc = await getDoc(doc(db, "admins", userProfileData.userId));
         document.getElementById("loading").style.display = "none";
-
         if(adminDoc.exists()) {
             document.getElementById("admin-container").style.display = "block";
         } else {
             document.getElementById("app-container").style.display = "block";
-            loadDashboardData(); // โหลดหน้า ปชช.
+            loadDashboardData(); 
         }
     } catch (error) { console.error("Role Check Error", error); }
 }
@@ -73,7 +72,6 @@ async function loadDashboardData() {
             const c = configDoc.data();
             maxNeuter = c.quota_neuter || 100; 
             maxVaccine = c.quota_vaccine || 300;
-            
             const serviceInfo = [];
             if(c.service_date) serviceInfo.push(`📅 วันที่: ${c.service_date}`);
             if(c.service_location) serviceInfo.push(`📍 สถานที่: ${c.service_location}`);
@@ -166,7 +164,6 @@ function setupPetSystem() {
 
         if(!name || !type || !gender || !service) return alert("กรุณากรอกข้อมูลสัตว์เลี้ยงให้ครบ");
         
-        // เช็กโควตาบ้านเลขที่ ทำหมัน 2 ตัว
         if (service === "ทำหมันและวัคซีน") {
             const hNo = document.getElementById("house-no").value;
             const vNo = document.getElementById("village-no").value;
@@ -183,10 +180,7 @@ function setupPetSystem() {
             });
 
             const cartNeuterCount = pets.filter(p => p.service === "ทำหมันและวัคซีน").length;
-
-            if ((dbNeuterCount + cartNeuterCount) >= 2) {
-                return alert("ขออภัยครับ บ้านเลขที่นี้ใช้สิทธิ์ทำหมันครบ 2 ตัวตามโควตาแล้ว");
-            }
+            if ((dbNeuterCount + cartNeuterCount) >= 2) return alert("ขออภัยครับ บ้านเลขที่นี้ใช้สิทธิ์ทำหมันครบ 2 ตัวตามโควตาแล้ว");
         }
 
         pets.push({ name, type, gender, service, signed: false });
@@ -361,7 +355,7 @@ async function loadAdminSettings() {
 }
 
 // ==========================================
-// 7. ระบบเจ้าหน้าที่: Check-in & พิมพ์ A4
+// 7. ระบบเจ้าหน้าที่: Check-in & พิมพ์ A4 แบบใบเดียว
 // ==========================================
 function setupAdminSearch() {
     const searchInput = document.getElementById("admin-search-input");
@@ -427,10 +421,24 @@ window.printConsentA4 = async function(docId) {
     const pet = window.currentSearchPets[docId];
     if(!pet || !pet.signature_base64) return alert("ไม่สามารถพิมพ์ได้ เนื่องจากยังไม่มีลายเซ็น");
     try {
+        // หาอันดับคิว (จัดเรียงตามเวลาที่เซ็น)
+        const snapAll = await getDocs(collection(db, "pets"));
+        let allPets = [];
+        snapAll.forEach(d => {
+            const p = d.data();
+            if(p.status !== "cancelled" && p.signature_base64 && p.consent_agreed) {
+                allPets.push({ id: d.id, time: p.signed_timestamp ? p.signed_timestamp.toMillis() : 0 });
+            }
+        });
+        allPets.sort((a,b) => a.time - b.time);
+        const qIndex = allPets.findIndex(p => p.id === docId);
+        const queueNo = qIndex !== -1 ? qIndex + 1 : "-";
+
         const userSnap = await getDoc(doc(db, "users", pet.owner_uid));
         if(!userSnap.exists()) return alert("ไม่พบข้อมูลเจ้าของ");
         const user = userSnap.data();
 
+        document.getElementById("p-queue-no").textContent = `คิวที่: ${queueNo}`;
         document.getElementById("p-owner-name").textContent = user.owner_name;
         document.getElementById("p-owner-name-sig").textContent = user.owner_name;
         document.getElementById("p-phone").textContent = user.phone_number;
@@ -448,7 +456,97 @@ window.printConsentA4 = async function(docId) {
 }
 
 // ==========================================
-// 8. ระบบเจ้าหน้าที่: รายงานสรุป PDF
+// 8. ระบบเจ้าหน้าที่: พิมพ์ A4 ทั้งหมดรวดเดียว (Batch Print)
+// ==========================================
+function setupPrintAllConsents() {
+    const btnPrintAll = document.getElementById("btn-print-all-consents");
+    if(btnPrintAll) {
+        btnPrintAll.addEventListener("click", async () => {
+            btnPrintAll.textContent = "กำลังโหลดข้อมูล...";
+            btnPrintAll.disabled = true;
+
+            try {
+                const snap = await getDocs(collection(db, "pets"));
+                let validPets = [];
+                snap.forEach(d => {
+                    const pet = d.data();
+                    if(pet.status !== "cancelled" && pet.signature_base64 && pet.consent_agreed) {
+                        validPets.push({ id: d.id, ...pet });
+                    }
+                });
+
+                // เรียงตามเวลาที่เซ็น เพื่อรันคิว
+                validPets.sort((a, b) => {
+                    const tA = a.signed_timestamp ? a.signed_timestamp.toMillis() : 0;
+                    const tB = b.signed_timestamp ? b.signed_timestamp.toMillis() : 0;
+                    return tA - tB;
+                });
+
+                if(validPets.length === 0) {
+                    alert("ยังไม่มีข้อมูลผู้ที่เซ็นใบยินยอม");
+                    btnPrintAll.textContent = "🖨️ พิมพ์ใบยินยอมทั้งหมด (เรียงตามคิว)";
+                    btnPrintAll.disabled = false;
+                    return;
+                }
+
+                // โหลดข้อมูล User ทั้งหมดมาเก็บไว้ (จะได้ไม่ต้องดึงทีละคน)
+                const usersCache = {};
+                const usersSnap = await getDocs(collection(db, "users"));
+                usersSnap.forEach(u => { usersCache[u.id] = u.data(); });
+
+                const container = document.getElementById("print-all-consents-container");
+                container.innerHTML = ""; // เคลียร์กล่อง
+
+                // สร้าง HTML ใส่กระดาษทีละหน้า
+                validPets.forEach((pet, index) => {
+                    const user = usersCache[pet.owner_uid] || {};
+                    const queueNo = index + 1;
+                    
+                    const html = `
+                    <div class="consent-page">
+                        <div class="queue-badge">คิวที่: ${queueNo}</div>
+                        <h2 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 5px;">ใบยินยอมผ่าตัดทำหมัน</h2>
+                        <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px;">กับเทศบาลเมืองบางแก้ว ร่วมกับปศุสัตว์จังหวัดสมุทรปราการ</h3>
+                        
+                        <div style="font-size: 16px; line-height: 2;">
+                            <p><strong>ข้าพเจ้า (ชื่อเจ้าของ):</strong> <span>${user.owner_name || "-"}</span></p>
+                            <p><strong>เบอร์โทรศัพท์:</strong> <span>${user.phone_number || "-"}</span></p>
+                            <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ <span>${user.house_no || "-"}</span> หมู่ที่ <span>${user.village_no || "-"}</span> ตำบลบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ</p>
+                            
+                            <p style="margin-top: 15px;"><strong>มีความประสงค์ขอรับบริการทำหมัน/ฉีดวัคซีน ให้แก่สัตว์เลี้ยงดังนี้:</strong></p>
+                            <p><strong>ชื่อสัตว์เลี้ยง:</strong> <span>${pet.pet_name}</span> &nbsp;&nbsp;&nbsp; <strong>ประเภท:</strong> <span>${pet.pet_type}</span> &nbsp;&nbsp;&nbsp; <strong>เพศ:</strong> <span>${pet.pet_gender}</span></p>
+
+                            <p style="margin-top: 30px; text-indent: 40px; text-align: justify;">
+                                ข้าพเจ้ายินยอมให้สัตวแพทย์ดำเนินการผ่าตัดทำหมัน โดยรับทราบความเสี่ยงที่อาจเกิดภาวะแทรกซ้อนจากการวางยาสลบ หรือปัจจัยทางสุขภาพของสัตว์เลี้ยงที่มองไม่เห็นภายนอก ซึ่งสัตวแพทย์ผู้ปฏิบัติทำการผ่าตัดทำหมันได้ปฏิบัติถูกต้องตามหลักวิชาการ หากสัตว์ของข้าพเจ้าตาย หรือเกิดความผิดปกติใดๆ ในระหว่างการดำเนินการหลังการผ่าตัด การผ่าตัดทำหมัน และ/หรือ ฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าให้แก่สัตว์เลี้ยง ข้าพเจ้าจะไม่ถือว่าเป็นความผิดของเจ้าหน้าที่และจะไม่เอาผิด หรือเรียกร้องค่าเสียหายใดๆกับเจ้าหน้าที่ ข้าพเจ้าขอลงลายมือชื่อไว้เป็นหลักฐาน
+                            </p>
+                        </div>
+
+                        <div style="margin-top: 50px; text-align: center;">
+                            <img src="${pet.signature_base64}" style="max-height: 100px; display: block; margin: 0 auto; border-bottom: 1px dotted #000;">
+                            <p style="margin-top: 10px;">(ลงชื่อ) .............................................................. ผู้ยินยอม</p>
+                            <p style="margin-top: 5px;">(<span>${user.owner_name || "-"}</span>)</p>
+                        </div>
+                    </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', html);
+                });
+
+                document.body.classList.add('print-all-consents-mode');
+                window.print();
+                document.body.classList.remove('print-all-consents-mode');
+
+            } catch(e) {
+                console.error(e); alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+            } finally {
+                btnPrintAll.textContent = "🖨️ พิมพ์ใบยินยอมทั้งหมด (เรียงตามคิว)";
+                btnPrintAll.disabled = false;
+            }
+        });
+    }
+}
+
+// ==========================================
+// 9. ระบบเจ้าหน้าที่: รายงานสรุป PDF
 // ==========================================
 function setupReportPrint() {
     const btnPrint = document.getElementById("btn-print-report");
