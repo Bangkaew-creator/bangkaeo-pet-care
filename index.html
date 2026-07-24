@@ -14,16 +14,21 @@
     <div id="admin-sidebar" class="sidebar no-print">
         <a href="javascript:void(0)" class="close-btn" id="btn-close-sidebar">&times;</a>
         <div style="padding: 20px; color: #A0B0C0; border-bottom: 1px solid #1b2941; margin-bottom: 10px;">เมนูเจ้าหน้าที่</div>
-                <a href="#" id="menu-checkin">🏠 หน้าเช็คอิน (Check-in)</a>
+        <a href="#" id="menu-checkin">🏠 หน้าเช็คอิน (Check-in)</a>
         <a href="#" id="menu-report">📊 ดูรายงานสรุปโครงการ</a>
-        <!-- เพิ่มบรรทัดนี้ลงไป -->
-        <a href="#" id="menu-user-list">📋 รายชื่อผู้ลงทะเบียน (ติดตามคิว)</a> 
+        <a href="#" id="menu-user-list">📋 รายชื่อผู้ลงทะเบียน (ติดตามคิว)</a>
+        
+        <!-- แทรกบรรทัดนี้ลงไปครับ -->
+        <a href="#" id="menu-register-proxy">📝 ลงทะเบียนแทนประชาชน</a> 
+        
         <a href="#" id="menu-settings">⚙️ ตั้งค่าระบบ</a>
     </div>
 
     <!-- ================= โหมดประชาชน (Citizen Flow) ================= -->
     <div id="app-container" class="container" style="display: none;">
         <div class="project-header">
+            <!-- แทรกปุ่มนี้ลงไปครับ (จะโชว์เฉพาะตอนแอดมินเข้าใช้งานหน้านี้) -->
+        <button type="button" id="btn-back-to-admin" class="neumorphic-btn outline-btn" style="display: none; margin-bottom: 20px; color: #ff6b6b; border-color: #ff6b6b;">⬅ กลับหน้าการจัดการของเจ้าหน้าที่</button>
             <h3>โครงการทำหมันสุนัขและแมวในพื้นที่ตำบลบางแก้ว</h3>
             <p>เทศบาลเมืองบางแก้ว สมุทรปราการ</p>
         </div>
