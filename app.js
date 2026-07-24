@@ -447,20 +447,29 @@ function setupFinalSubmit() {
             const hn = document.getElementById("house-no").value, vn = document.getElementById("village-no").value;
             const rental = document.getElementById("is-rental").checked;
             
-            // 1. บันทึก/อัปเดตข้อมูลผู้ใช้หลัก (ถ้าเป็นแอดมิน ข้อมูลตรงนี้จะเปลี่ยนชั่วคราวแต่ไม่ส่งผลเสียเพราะเราฝังไว้ที่สัตว์)
-            await setDoc(doc(db, "users", userProfileData.userId), {
-                owner_name: document.getElementById("owner-name").value,
-                phone_number: document.getElementById("phone-number").value,
-                house_no: hn, village_no: vn, is_rental: rental, room_no: rental ? document.getElementById("room-no").value : "",
-                line_displayName: userProfileData.displayName, updated_at: serverTimestamp()
-            });
+            const ownerNameInput = document.getElementById("owner-name").value;
+            const phoneInput = document.getElementById("phone-number").value;
+            
+            // เช็กว่าแอดมินกำลังใช้งานโหมดลงทะเบียนแทนอยู่หรือไม่
+            const btnBackAdmin = document.getElementById("btn-back-to-admin");
+            const isProxyMode = (btnBackAdmin && btnBackAdmin.style.display === "block");
 
-            // 2. [อัปเดตสำคัญ] ฝังข้อมูลเจ้าของลงไปใน Document ของสัตว์เลี้ยงแต่ละตัวเลย (Snapshot Data)
+            // 1. [อัปเดตใหม่] อัปเดตข้อมูล Users หลัก "เฉพาะเมื่อประชาชนลงทะเบียนเองเท่านั้น"
+            if (!isProxyMode) {
+                await setDoc(doc(db, "users", userProfileData.userId), {
+                    owner_name: ownerNameInput,
+                    phone_number: phoneInput,
+                    house_no: hn, village_no: vn, is_rental: rental, room_no: rental ? document.getElementById("room-no").value : "",
+                    line_displayName: userProfileData.displayName, updated_at: serverTimestamp()
+                });
+            }
+
+            // 2. ฝังข้อมูลชื่อและเบอร์โทร ลงไปที่ตัวสัตว์เลี้ยงแต่ละตัว (แยกครั้งต่อครั้ง 100%)
             for (let i=0; i<pets.length; i++) {
                 await addDoc(collection(db, "pets"), {
-                    owner_uid: userProfileData.userId, // ใช้ UID ของผู้กรอก (อาจจะเป็นแอดมินหรือชาวบ้าน)
-                    owner_name: document.getElementById("owner-name").value, // ล็อกชื่อเจ้าของไว้ที่ตัวสัตว์เลย
-                    phone_number: document.getElementById("phone-number").value, // ล็อกเบอร์โทรไว้
+                    owner_uid: userProfileData.userId,
+                    owner_name: ownerNameInput, // ล็อกชื่อเจ้าของไว้ที่ตัวสัตว์
+                    phone_number: phoneInput,   // ล็อกเบอร์โทรไว้
                     house_no: hn,
                     village_no: vn,
                     house_village_search: `${hn}-${vn}`,
@@ -492,17 +501,21 @@ function setupFinalSubmit() {
 
             alert("ลงทะเบียนสำเร็จ!");
             
-            // เช็กว่าแอดมินกำลังใช้งานอยู่หรือไม่
-            const btnBackAdmin = document.getElementById("btn-back-to-admin");
-            if (btnBackAdmin && btnBackAdmin.style.display === "block") {
+            if (isProxyMode) {
+                // หากแอดมินกรอกให้ -> รีเซ็ตฟอร์ม เคลียร์ค่าทั้งหมด กลับหน้าแรก
                 document.getElementById("btn-submit").disabled = false; 
                 document.getElementById("btn-submit").textContent = "ยืนยันการลงทะเบียน";
                 document.getElementById("registration-form").reset();
+                document.getElementById("owner-name").value = "";
+                document.getElementById("phone-number").value = "";
+                document.getElementById("house-no").value = "";
+                document.getElementById("village-no").value = "";
                 pets = [];
                 updatePetListUI();
                 changeStep("0");
                 loadDashboardData();
             } else {
+                // หากประชาชนกรอกเอง -> ปิดหน้าต่าง LINE อัตโนมัติ
                 liff.closeWindow();
             }
 
@@ -567,7 +580,13 @@ function setupSidebarAndSettings() {
             document.getElementById("app-container").style.display = "block"; 
             document.getElementById("btn-back-to-admin").style.display = "block"; 
             
+            // [อัปเดตใหม่] ล้างข้อมูลในช่องกรอกให้เกลี้ยง เพื่อป้องกันการติดชื่อแอดมินไปใช้กับคนอื่น
             document.getElementById("registration-form").reset();
+            document.getElementById("owner-name").value = "";
+            document.getElementById("phone-number").value = "";
+            document.getElementById("house-no").value = "";
+            document.getElementById("village-no").value = "";
+
             pets = []; 
             updatePetListUI();
             changeStep("0"); 
