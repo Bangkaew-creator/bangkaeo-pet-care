@@ -214,7 +214,6 @@ window.cancelMyPet = async function(docId) {
 // 4. ระบบประชาชน: แบบฟอร์ม & ตะกร้า
 // ==========================================
 function setupNavigation() {
-    // โค้ดเดิมสำหรับปุ่มที่มี class="btn-next" ทั่วไป (เช่นจากหน้า Dashboard ไป Step 1)
     document.querySelectorAll('.btn-next').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const currentStep = e.target.closest('.step-content');
@@ -226,12 +225,10 @@ function setupNavigation() {
         });
     });
 
-    // โค้ดเดิมสำหรับปุ่มย้อนกลับ
     document.querySelectorAll('.btn-back').forEach(btn => {
         btn.addEventListener('click', (e) => changeStep(e.target.getAttribute('data-back')));
     });
 
-    // [เพิ่มใหม่] ดักจับปุ่ม "ถัดไป" ใน Step 1 โดยเฉพาะ (เรื่อง Checkbox และ Pop-up แจ้งเตือน)
     const btnNextStep1 = document.getElementById("btn-next-step1");
     if(btnNextStep1) {
         btnNextStep1.addEventListener("click", () => {
@@ -241,17 +238,20 @@ function setupNavigation() {
             inputs.forEach(i => { if (!i.value) isValid = false; });
             if (!isValid) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
 
-            // ตรวจสอบว่าติ๊กทะเบียนบ้านบางแก้วหรือยัง
+            // [อัปเดตใหม่] ตรวจสอบเบอร์โทรศัพท์ว่าครบ 10 หลักหรือไม่
+            const phoneVal = document.getElementById("phone-number").value.replace(/\D/g, ''); 
+            if (phoneVal.length !== 10) {
+                return alert("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (10 หลัก)");
+            }
+
             if (!document.getElementById("is-resident").checked) {
                 return alert("กรุณายืนยันว่าท่านเป็นผู้มีทะเบียนบ้านในตำบลบางแก้ว");
             }
 
-            // แสดง Pop-up แจ้งเตือนสายพันธุ์
             document.getElementById("breed-warning-modal").style.display = "flex";
         });
     }
 
-    // [เพิ่มใหม่] เมื่อกดยอมรับ Pop-up ค่อยเปลี่ยนไป Step 2
     const btnAcceptBreed = document.getElementById("btn-accept-breed-warning");
     if(btnAcceptBreed) {
         btnAcceptBreed.addEventListener("click", () => {
@@ -260,7 +260,6 @@ function setupNavigation() {
         });
     }
 }
-
 function changeStep(stepId) {
     document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
     document.getElementById(`step-${stepId}`).classList.add('active');
@@ -445,7 +444,6 @@ function setupFinalSubmit() {
         document.getElementById("btn-submit").textContent = "กำลังบันทึกข้อมูล...";
         
         try {
-            // คำนวณคิวก่อนบันทึก เพื่อใช้ส่งข้อความ LINE
             const allPetsSnap = await getDocs(collection(db, "pets"));
             let currentQ = 0;
             allPetsSnap.forEach(d => { if(d.data().status !== "cancelled") currentQ++; });
@@ -453,7 +451,6 @@ function setupFinalSubmit() {
             const hn = document.getElementById("house-no").value, vn = document.getElementById("village-no").value;
             const rental = document.getElementById("is-rental").checked;
             
-            // บันทึกข้อมูลเจ้าของ
             await setDoc(doc(db, "users", userProfileData.userId), {
                 owner_name: document.getElementById("owner-name").value,
                 phone_number: document.getElementById("phone-number").value,
@@ -461,7 +458,6 @@ function setupFinalSubmit() {
                 line_displayName: userProfileData.displayName, updated_at: serverTimestamp()
             });
 
-            // บันทึกข้อมูลสัตว์เลี้ยงและลายเซ็น
             for (let i=0; i<pets.length; i++) {
                 await addDoc(collection(db, "pets"), {
                     owner_uid: userProfileData.userId,
@@ -471,14 +467,12 @@ function setupFinalSubmit() {
                 });
             }
 
-            // เตรียมข้อความเรื่องคิว และชื่อสัตว์เลี้ยง
             let queueText = "";
             if (pets.length === 1) queueText = `${currentQ + 1}`;
             else queueText = `${currentQ + 1} ถึง ${currentQ + pets.length}`;
             
             let petNames = pets.map(p => p.name).join(", ");
 
-            // [อัปเดต] ส่งข้อความ LINE เข้าแชทอัตโนมัติ โดยเพิ่ม "บ้านเลขที่" และ "หมู่" เข้าไป
             if (liff.isInClient()) {
                 await liff.sendMessages([
                     {
@@ -488,7 +482,24 @@ function setupFinalSubmit() {
                 ]);
             }
 
-            alert("ลงทะเบียนสำเร็จ!"); liff.closeWindow();
+            alert("ลงทะเบียนสำเร็จ!");
+            
+            // [อัปเดตใหม่] เช็กว่าแอดมินกำลังใช้งานอยู่หรือไม่
+            const btnBackAdmin = document.getElementById("btn-back-to-admin");
+            if (btnBackAdmin && btnBackAdmin.style.display === "block") {
+                // หากแอดมินกรอกให้ -> รีเซ็ตฟอร์มกลับหน้าแรก ไม่ต้องปิดหน้าต่าง
+                document.getElementById("btn-submit").disabled = false; 
+                document.getElementById("btn-submit").textContent = "ยืนยันการลงทะเบียน";
+                document.getElementById("registration-form").reset();
+                pets = [];
+                updatePetListUI();
+                changeStep("0");
+                loadDashboardData();
+            } else {
+                // หากประชาชนกรอกเอง -> ปิดหน้าต่าง LINE อัตโนมัติ
+                liff.closeWindow();
+            }
+
         } catch (e) { 
             console.error(e);
             alert("เกิดข้อผิดพลาด"); 
@@ -497,8 +508,6 @@ function setupFinalSubmit() {
         }
     });
 }
-
-
 
 // ==========================================
 // 6. ระบบเจ้าหน้าที่: Login & Sidebar
@@ -532,11 +541,10 @@ function setupSidebarAndSettings() {
     });
     document.getElementById("btn-close-sidebar").addEventListener("click", () => sidebar.style.right = "-250px");
 
-        document.getElementById("menu-checkin").addEventListener("click", () => switchAdminView("admin-container"));
+    document.getElementById("menu-checkin").addEventListener("click", () => switchAdminView("admin-container"));
     document.getElementById("menu-report").addEventListener("click", () => {
         switchAdminView("report-container"); generateReport();
     });
-    // เพิ่ม 3 บรรทัดนี้ลงไป
     document.getElementById("menu-user-list").addEventListener("click", () => {
         switchAdminView("user-list-container"); loadUserList();
     });
@@ -544,14 +552,42 @@ function setupSidebarAndSettings() {
         switchAdminView("settings-container"); loadAdminSettings();
     });
 
+    // [อัปเดตใหม่] เมนูสำหรับลงทะเบียนแทนประชาชน
+    const menuProxy = document.getElementById("menu-register-proxy");
+    if(menuProxy) {
+        menuProxy.addEventListener("click", () => {
+            document.querySelectorAll(".admin-view").forEach(el => el.style.display = "none");
+            sidebar.style.right = "-250px"; // ปิด Sidebar
+            
+            document.getElementById("app-container").style.display = "block"; // เปิดหน้าฟอร์มประชาชน
+            document.getElementById("btn-back-to-admin").style.display = "block"; // โชว์ปุ่มกลับ
+            
+            // รีเซ็ตฟอร์มให้ว่างเปล่า พร้อมสำหรับลงทะเบียนให้คนใหม่
+            document.getElementById("registration-form").reset();
+            pets = []; 
+            updatePetListUI();
+            changeStep("0"); 
+            loadDashboardData();
+        });
+    }
+
+    // [อัปเดตใหม่] ปุ่มกลับหน้าแอดมินจากหน้าลงทะเบียน
+    const btnBackAdmin = document.getElementById("btn-back-to-admin");
+    if(btnBackAdmin) {
+        btnBackAdmin.addEventListener("click", () => {
+            document.getElementById("app-container").style.display = "none";
+            btnBackAdmin.style.display = "none";
+            switchAdminView("admin-container"); 
+        });
+    }
 
     document.getElementById("btn-save-settings").addEventListener("click", async () => {
         const btn = document.getElementById("btn-save-settings");
         btn.disabled = true; btn.textContent = "กำลังบันทึก...";
         try {
             await setDoc(doc(db, "system_config", "main_config"), {
-                start_date: document.getElementById("setting-start-date").value, // [เพิ่มใหม่]
-                end_date: document.getElementById("setting-end-date").value, // [เพิ่มใหม่]
+                start_date: document.getElementById("setting-start-date").value, 
+                end_date: document.getElementById("setting-end-date").value, 
                 service_date: document.getElementById("setting-date").value,
                 service_location: document.getElementById("setting-location").value,
                 quota_neuter: parseInt(document.getElementById("setting-quota-neuter").value) || 0,
@@ -561,7 +597,6 @@ function setupSidebarAndSettings() {
         } catch (e) { alert("เกิดข้อผิดพลาด"); } finally { btn.disabled = false; btn.textContent = "💾 บันทึกการตั้งค่า"; }
     });
 }
-
 window.switchAdminView = function(viewId) {
     document.querySelectorAll(".admin-view").forEach(el => el.style.display = "none");
     document.getElementById(viewId).style.display = "block";
