@@ -17,18 +17,15 @@
         <a href="#" id="menu-checkin">🏠 หน้าเช็คอิน (Check-in)</a>
         <a href="#" id="menu-report">📊 ดูรายงานสรุปโครงการ</a>
         <a href="#" id="menu-user-list">📋 รายชื่อผู้ลงทะเบียน (ติดตามคิว)</a>
-        
-        <!-- แทรกบรรทัดนี้ลงไปครับ -->
         <a href="#" id="menu-register-proxy">📝 ลงทะเบียนแทนประชาชน</a> 
-        
         <a href="#" id="menu-settings">⚙️ ตั้งค่าระบบ</a>
     </div>
 
     <!-- ================= โหมดประชาชน (Citizen Flow) ================= -->
     <div id="app-container" class="container" style="display: none;">
         <div class="project-header">
-            <!-- แทรกปุ่มนี้ลงไปครับ (จะโชว์เฉพาะตอนแอดมินเข้าใช้งานหน้านี้) -->
-        <button type="button" id="btn-back-to-admin" class="neumorphic-btn outline-btn" style="display: none; margin-bottom: 20px; color: #ff6b6b; border-color: #ff6b6b;">⬅ กลับหน้าการจัดการของเจ้าหน้าที่</button>
+            <!-- ปุ่มนี้ลงจะโชว์เฉพาะตอนแอดมินเข้าใช้งานหน้านี้ -->
+            <button type="button" id="btn-back-to-admin" class="neumorphic-btn outline-btn" style="display: none; margin-bottom: 20px; color: #ff6b6b; border-color: #ff6b6b;">⬅ กลับหน้าการจัดการของเจ้าหน้าที่</button>
             <h3>โครงการทำหมันสุนัขและแมวในพื้นที่ตำบลบางแก้ว</h3>
             <p>เทศบาลเมืองบางแก้ว สมุทรปราการ</p>
         </div>
@@ -39,7 +36,6 @@
                 <div class="card neumorphic">
                     <h3 class="section-title">📊 สถานะคิวปัจจุบัน</h3>
                     
-                    <!-- (อัปเดต) กำหนดการทำหมัน ให้เด่นชัดขึ้น -->
                     <div style="background: #1b2941; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; border-left: 4px solid #50E3C2;">
                         <h4 style="color: #50E3C2; font-size: 18px; margin-bottom: 10px;">📅 กำหนดการทำหมัน</h4>
                         <p id="txt-service-info" style="color: #FFF; font-size: 16px; margin: 0;">กำลังโหลดข้อมูล...</p>
@@ -60,7 +56,6 @@
                     <div id="my-pets-list"></div>
                 </div>
 
-                <!-- (อัปเดต) กล่องแจ้งเตือนปิดรับลงทะเบียน (ซ่อนไว้เป็นค่าเริ่มต้น) -->
                 <div id="registration-closed-msg" style="display: none; background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
                     <p style="color: #ff6b6b; font-size: 16px; font-weight: bold;">⚠️ สิ้นสุดการรับลงทะเบียน หรือ โควตาเต็มแล้ว</p>
                     <p style="color: #E0E5EC; font-size: 14px; margin-top: 5px;">กรุณารอการรับลงทะเบียนในครั้งถัดไป</p>
@@ -85,7 +80,6 @@
                     <div class="input-group checkbox-group"><input type="checkbox" id="is-rental" class="neumorphic-checkbox"><label for="is-rental">อาศัยในบ้านเช่า/หอพัก</label></div>
                     <div class="input-group" id="room-no-group" style="display: none;"><label>เลขห้องเช่า (ถ้ามี)</label><input type="text" id="room-no" class="neumorphic-input"></div>
                     
-                    <!-- (อัปเดต) Checkbox บังคับติ๊ก ทะเบียนบ้านบางแก้ว -->
                     <div class="input-group checkbox-group" style="margin-top: 20px; background: rgba(80, 227, 194, 0.1); padding: 10px; border-radius: 8px;">
                         <input type="checkbox" id="is-resident" class="neumorphic-checkbox">
                         <label for="is-resident" style="color: #50E3C2; font-weight: bold; line-height: 1.4;">ข้าพเจ้าเป็นผู้มีทะเบียนบ้านอยู่ในตำบลบางแก้วจริง</label>
@@ -93,7 +87,6 @@
                 </div>
                 <div class="row">
                     <button type="button" class="neumorphic-btn half btn-back" data-back="0">⬅ กลับ</button>
-                    <!-- เปลี่ยน ID เพื่อให้ JS ดักจับและโชว์ Pop-up ได้ง่ายขึ้น -->
                     <button type="button" id="btn-next-step1" class="neumorphic-btn gold-btn half">ถัดไป ➔</button>
                 </div>
             </div>
@@ -187,7 +180,7 @@
         </div>
     </div>
     
-        <!-- ================= โหมดเจ้าหน้าที่ (4): ตรวจสอบรายชื่อผู้ลงทะเบียน ================= -->
+    <!-- ================= โหมดเจ้าหน้าที่ (4): ตรวจสอบรายชื่อผู้ลงทะเบียน ================= -->
     <div id="user-list-container" class="container admin-view" style="display: none; max-width: 900px;">
         <div class="project-header no-print" style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
             <div><h3 style="font-size: 16px;">โครงการทำหมันสุนัขและแมวฯ</h3><p style="font-size: 12px;">เทศบาลเมืองบางแก้ว สมุทรปราการ</p></div>
@@ -305,8 +298,7 @@
             <p><strong>ชื่อสัตว์เลี้ยง:</strong> <span id="p-pet-name"></span> &nbsp;&nbsp;&nbsp; <strong>ประเภท:</strong> <span id="p-pet-type"></span> &nbsp;&nbsp;&nbsp; <strong>เพศ:</strong> <span id="p-pet-gender"></span></p>
 
             <p style="margin-top: 30px; text-indent: 40px; text-align: justify;">
-                ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางเพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด
-เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)
+                ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด<br><br>เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)
             </p>
         </div>
         <div style="margin-top: 50px; text-align: center;">
