@@ -836,49 +836,69 @@ async function loadUserList() {
     tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#D4AF37;'>กำลังโหลดข้อมูล...</td></tr>";
     
     try {
-        // ดึงข้อมูลผู้ใช้และสัตว์เลี้ยงมาพร้อมกันเพื่อความรวดเร็ว
         const [usersSnap, petsSnap] = await Promise.all([
             getDocs(collection(db, "users")),
             getDocs(collection(db, "pets"))
         ]);
 
-        const userStats = {};
-        // 1. สร้างโครงสร้างข้อมูลผู้ใช้แต่ละคน
+        // 1. นำข้อมูล User มาทำเป็น Cache ไว้ค้นหาชื่อและเบอร์โทรอย่างรวดเร็ว
+        const usersCache = {};
         usersSnap.forEach(d => {
-            const u = d.data();
-            userStats[d.id] = {
-                name: u.owner_name || "ไม่ระบุ",
-                phone: u.phone_number || "-",
-                address: `${u.house_no || "-"} ม.${u.village_no || "-"}`,
-                n_booked: 0, v_booked: 0,
-                n_checked: 0, v_checked: 0,
-                total_booked: 0, total_checked: 0
-            };
+            usersCache[d.id] = d.data();
         });
 
-        // 2. นำข้อมูลสัตว์เลี้ยงมานับยอดใส่ในโครงสร้างของผู้ใช้
+        const houseStats = {}; // ใช้จัดกลุ่มตาม UID + บ้านเลขที่
+
+        // 2. วนลูปสัตว์เลี้ยงทั้งหมด เพื่อแยกกลุ่มตามบ้านเลขที่
         petsSnap.forEach(d => {
             const p = d.data();
             if(p.status === "cancelled") return; // ข้ามตัวที่ยกเลิก
             
             const uid = p.owner_uid;
-            if(!userStats[uid]) return; 
+            const user = usersCache[uid] || {};
+            
+            // ใช้บ้านเลขที่ของสัตว์เลี้ยงตัวนั้นๆ เป็นคีย์ (ถ้าไม่มีให้ดึงจากโปรไฟล์เจ้าของ)
+            const rawAddress = p.house_village_search || `${user.house_no}-${user.village_no}`;
+            
+            // คีย์สำหรับจัดกลุ่ม: รหัสคนลงทะเบียน + บ้านเลขที่
+            const groupKey = `${uid}_${rawAddress}`;
 
+            // ถ้ายังไม่มีกลุ่มของบ้านหลังนี้ ให้สร้างใหม่
+            if(!houseStats[groupKey]) {
+                let displayAddress = "ไม่ระบุ";
+                if(rawAddress.includes("-")) {
+                    const parts = rawAddress.split("-");
+                    displayAddress = `${parts[0]} ม.${parts[1]}`;
+                } else {
+                    displayAddress = rawAddress;
+                }
+
+                houseStats[groupKey] = {
+                    name: user.owner_name || "ไม่ระบุ",
+                    phone: user.phone_number || "-",
+                    address: displayAddress,
+                    n_booked: 0, v_booked: 0,
+                    n_checked: 0, v_checked: 0,
+                    total_booked: 0, total_checked: 0
+                };
+            }
+
+            // นับยอดตามบริการและสถานะ แยกใส่บ้านใครบ้านมัน
             if(p.status === "booked") {
-                userStats[uid].total_booked++;
-                if(p.service_type === "ทำหมันและวัคซีน") userStats[uid].n_booked++;
-                if(p.service_type === "วัคซีนอย่างเดียว") userStats[uid].v_booked++;
+                houseStats[groupKey].total_booked++;
+                if(p.service_type === "ทำหมันและวัคซีน") houseStats[groupKey].n_booked++;
+                if(p.service_type === "วัคซีนอย่างเดียว") houseStats[groupKey].v_booked++;
             } else if(p.status === "checked_in") {
-                userStats[uid].total_checked++;
-                if(p.service_type === "ทำหมันและวัคซีน") userStats[uid].n_checked++;
-                if(p.service_type === "วัคซีนอย่างเดียว") userStats[uid].v_checked++;
+                houseStats[groupKey].total_checked++;
+                if(p.service_type === "ทำหมันและวัคซีน") houseStats[groupKey].n_checked++;
+                if(p.service_type === "วัคซีนอย่างเดียว") houseStats[groupKey].v_checked++;
             }
         });
 
-        // 3. กรองเอาเฉพาะคนที่มีคิวลงทะเบียน (ตัดคนที่ไม่มีข้อมูลสัตว์เลี้ยงออก)
-        window.userListData = Object.values(userStats).filter(u => (u.total_booked + u.total_checked) > 0);
+        // 3. แปลงเป็น Array เพื่อนำไปแสดงผล
+        window.userListData = Object.values(houseStats).filter(u => (u.total_booked + u.total_checked) > 0);
         
-        renderUserTable(); // เรียกฟังก์ชันแสดงผล
+        renderUserTable(); 
     } catch(e) {
         console.error(e);
         tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#ff6b6b;'>เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>";
@@ -892,31 +912,31 @@ window.renderUserTable = function() {
     
     let count = 0;
     window.userListData.forEach(u => {
-        // เงื่อนไขฟิลเตอร์
-        if (filter === "pending" && u.total_booked === 0) return; // เลือก pending แต่ไม่มีคิวค้าง -> ข้าม
-        if (filter === "completed" && (u.total_booked > 0 || u.total_checked === 0)) return; // เลือก completed แต่ยังมีคิวค้าง -> ข้าม
+        if (filter === "pending" && u.total_booked === 0) return; 
+        if (filter === "completed" && (u.total_booked > 0 || u.total_checked === 0)) return; 
         
         count++;
         
-        // จัดรูปแบบข้อความจำนวน/ประเภท
+        // แยกบรรทัด ทำหมัน กับ วัคซีน ให้เห็นชัดเจน
         let serviceText = [];
         let totalN = u.n_booked + u.n_checked;
         let totalV = u.v_booked + u.v_checked;
-        if(totalN > 0) serviceText.push(`ทำหมัน: ${totalN} ตัว`);
-        if(totalV > 0) serviceText.push(`วัคซีน: ${totalV} ตัว`);
+        
+        if(totalN > 0) serviceText.push(`<span style="color:#D4AF37;">ทำหมัน: ${totalN} ตัว</span>`);
+        if(totalV > 0) serviceText.push(`<span style="color:#A0B0C0;">วัคซีน: ${totalV} ตัว</span>`);
 
-        // จัดรูปแบบข้อความสถานะ
+        // แยกสถานะการเข้ารับบริการ
         let statusText = [];
         if(u.total_booked > 0) statusText.push(`<span style="color:#ff6b6b; font-weight:bold;">⏳ รอรับบริการ: ${u.total_booked}</span>`);
         if(u.total_checked > 0) statusText.push(`<span style="color:#50E3C2; font-weight:bold;">✅ รับแล้ว: ${u.total_checked}</span>`);
 
         tbody.insertAdjacentHTML("beforeend", `
-            <tr>
-                <td style="text-align:left;">${u.name}</td>
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="text-align:left; font-weight: 600;">${u.name}</td>
                 <td><a href="tel:${u.phone}" class="neumorphic-btn outline-btn" style="padding: 4px 8px; font-size: 12px; color:#D4AF37; border-color:#D4AF37; text-decoration:none;">📞 ${u.phone}</a></td>
-                <td>${u.address}</td>
-                <td>${serviceText.join("<br>")}</td>
-                <td>${statusText.join("<br>")}</td>
+                <td style="font-size: 15px;">${u.address}</td>
+                <td style="line-height: 1.6; font-size: 14px;">${serviceText.join("<br>")}</td>
+                <td style="line-height: 1.6; font-size: 14px;">${statusText.join("<br>")}</td>
             </tr>
         `);
     });
