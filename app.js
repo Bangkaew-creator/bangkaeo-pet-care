@@ -19,7 +19,7 @@ const LIFF_ID = "2010813512-Wln3PzpL";
 let userProfileData = null;
 let pets = []; 
 let canvasInstances = []; 
-window.currentSearchPets = {}; // สำหรับดึงข้อมูลตอนพิมพ์ใบเดี่ยว
+window.currentSearchPets = {}; 
 
 document.addEventListener("DOMContentLoaded", () => {
     initializeLiff();
@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupAdminSearch();
     setupSidebarAndSettings();
     setupReportPrint();
-    setupPrintAllConsents(); // ฟังก์ชันพิมพ์ใบยินยอมทั้งหมด
+    setupPrintAllConsents(); 
 });
 
 // ==========================================
@@ -57,12 +57,11 @@ async function checkUserRole() {
         } else {
             document.getElementById("app-container").style.display = "block";
             loadDashboardData(); 
-            loadUserData(); // โหลดข้อมูลเจ้าของเดิม (Auto-fill)
+            loadUserData(); 
         }
     } catch (error) { console.error("Role Check Error", error); }
 }
 
-// ฟังก์ชันดึงข้อมูลเจ้าของที่เคยลงทะเบียนไว้มากรอกอัตโนมัติ
 async function loadUserData() {
     try {
         const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
@@ -106,42 +105,30 @@ async function loadDashboardData() {
 
         const petsSnap = await getDocs(collection(db, "pets"));
         let curNeuter = 0, curVaccine = 0;
-        
-        // 1. สร้างตัวแปร Object เพื่อใช้จัดกลุ่มตามที่อยู่
         const groupedPets = {};
         
         petsSnap.forEach(d => {
             const data = d.data();
             if(data.status !== "cancelled") {
-                // นับโควตา
                 if(data.service_type === "ทำหมันและวัคซีน") curNeuter++;
                 if(data.service_type === "วัคซีนอย่างเดียว") curVaccine++;
                 
-                // ดึงเฉพาะข้อมูลของคนๆ นี้มาจัดกลุ่ม
                 if(data.owner_uid === userProfileData.userId) {
                     const searchKey = data.house_village_search || "ไม่ระบุที่อยู่";
-                    
-                    // ถ้ายังไม่มีกลุ่มของบ้านเลขที่นี้ ให้สร้าง Array ว่างขึ้นมาก่อน
-                    if (!groupedPets[searchKey]) {
-                        groupedPets[searchKey] = [];
-                    }
-                    // ดันข้อมูลสัตว์เลี้ยงเข้าไปในกลุ่มบ้านเลขที่นั้นๆ
+                    if (!groupedPets[searchKey]) groupedPets[searchKey] = [];
                     groupedPets[searchKey].push({ id: d.id, ...data });
                 }
             }
         });
 
-        // 2. นำข้อมูลที่จัดกลุ่มแล้วมาสร้างเป็น HTML
         let myPetsHtml = "";
         for (const addressKey in groupedPets) {
-            // สร้างหัวข้อบ้านเลขที่
             let addressHeader = "ไม่ระบุที่อยู่";
             if (addressKey && addressKey.includes("-")) {
                 const parts = addressKey.split("-");
                 addressHeader = `🏠 บ้านเลขที่ ${parts[0]} หมู่ที่ ${parts[1]}`;
             }
 
-            // เปิดกรอบสำหรับแต่ละบ้าน
             myPetsHtml += `
             <div style="margin-bottom: 20px; background: rgba(0, 0, 0, 0.15); padding: 12px; border-radius: 10px; border: 1px solid rgba(212, 175, 55, 0.2);">
                 <div style="color: #D4AF37; font-size: 15px; font-weight: bold; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed rgba(212, 175, 55, 0.4);">
@@ -149,30 +136,33 @@ async function loadDashboardData() {
                 </div>
             `;
 
-            // วนลูปนำสัตว์เลี้ยงในบ้านนั้นมาแสดง
             groupedPets[addressKey].forEach(pet => {
                 const badge = pet.status === "checked_in" ? `<span style="color:#50E3C2; font-size:12px; margin-left: 5px;">(✅ รับบริการแล้ว)</span>` : ``;
-                const cancelBtn = pet.status === "booked" ? `<button type="button" class="btn-cancel-pet" onclick="cancelMyPet('${pet.id}')">❌ ยกเลิกสิทธิ์คืนโควตา</button>` : ``;
+                
+                // [อัปเดตใหม่] ระบบปุ่ม: ถ้ายังไม่เช็คอินให้โชว์ยกเลิกคิว ถ้าเช็คอินแล้วให้โชว์ปุ่มขอคู่มือหลังผ่าตัด
+                let actionBtn = "";
+                if (pet.status === "booked") {
+                    actionBtn = `<button type="button" class="btn-cancel-pet" onclick="cancelMyPet('${pet.id}')">❌ ยกเลิกสิทธิ์คืนโควตา</button>`;
+                } else if (pet.status === "checked_in" && pet.service_type === "ทำหมันและวัคซีน") {
+                    actionBtn = `<button type="button" class="neumorphic-btn outline-btn" style="padding: 6px 10px; font-size: 12px; margin-top: 5px; color: #50E3C2; border-color: #50E3C2;" onclick="sendPostOpCare('${pet.pet_name}')">📥 รับคู่มือดูแลหลังผ่าตัด (เข้าแชท LINE)</button>`;
+                }
 
                 myPetsHtml += `
                 <div class="pet-item" style="margin-bottom: 8px; border-left: 3px solid #D4AF37;">
                     <strong>${pet.pet_name}</strong> ${badge}<br>
                     <span style="color:#A0B0C0; font-size: 13px;">${pet.pet_type} ${pet.pet_gender} - ${pet.service_type}</span>
-                    <br>${cancelBtn}
+                    <br>${actionBtn}
                 </div>`;
             });
 
-            // ปิดกรอบบ้าน
             myPetsHtml += `</div>`;
         }
 
-        // อัปเดตตัวเลขโควตาบนหน้าจอ
         document.getElementById("txt-neuter-quota").textContent = `${curNeuter} / ${maxNeuter} คิว`;
         document.getElementById("bar-neuter").style.width = `${Math.min((curNeuter/maxNeuter)*100, 100)}%`;
         document.getElementById("txt-vaccine-quota").textContent = `${curVaccine} / ${maxVaccine} คิว`;
         document.getElementById("bar-vaccine").style.width = `${Math.min((curVaccine/maxVaccine)*100, 100)}%`;
 
-        // แสดงผลรายการ
         if(myPetsHtml !== "") {
             document.getElementById("my-registered-pets").style.display = "block";
             document.getElementById("my-pets-list").innerHTML = myPetsHtml;
@@ -180,10 +170,8 @@ async function loadDashboardData() {
             document.getElementById("my-registered-pets").style.display = "none";
         }
 
-        // เช็กเปิด-ปิดระบบอัตโนมัติตามวันที่และโควตา
         const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); 
         let isOpen = true;
-        
         if (startDate && todayStr < startDate) isOpen = false; 
         if (endDate && todayStr > endDate) isOpen = false; 
         if (curNeuter >= maxNeuter && curVaccine >= maxVaccine) isOpen = false; 
@@ -197,7 +185,6 @@ async function loadDashboardData() {
             btnStart.style.display = "none";
             msgClosed.style.display = "block";
         }
-
     } catch (error) { console.error(error); }
 }
 
@@ -208,6 +195,22 @@ window.cancelMyPet = async function(docId) {
             alert("ยกเลิกสิทธิ์เรียบร้อยแล้ว โควตาได้ถูกส่งคืนสู่ระบบครับ");
             loadDashboardData(); 
         } catch (e) { alert("เกิดข้อผิดพลาด กรุณาลองใหม่"); }
+    }
+}
+
+// [อัปเดตใหม่] ฟังก์ชันสำหรับประชาชนกดรับข้อความคู่มือหลังผ่าตัด
+window.sendPostOpCare = async function(petName) {
+    if (!liff.isInClient()) return alert("ฟังก์ชันนี้ใช้ได้เมื่อเปิดผ่านแอป LINE เท่านั้นครับ");
+    
+    try {
+        await liff.sendMessages([{
+            type: "text",
+            text: `📌 คำแนะนำการดูแลหลังผ่าตัด (น้อง${petName})\n\n๑. ให้สัตว์นอนในท่าปกติ(ท่านอนตะแคงข้างใดข้างหนึ่ง ระวังยาให้คอพับ) ในกรณีพื้นปูน พื้นกระเบื้องเย็น หรืออากาศหนาว ปูผ้ารองตัวสัตว์เพื่อให้ความอบอุ่น\n๒. อย่าทำการป้อนอาหารป้อนน้ำให้แก่สัตว์ที่ยังไม่รู้สึกตัว รอให้สัตว์ฟื้นจากยาสลบดีแล้วจึงให้อาหารและน้ำ โดยให้สัตว์เดินไปกินด้วยตัวเอง\n๓. ในช่วงแรกของการฟื้นระยะแรก สัตว์ยังทรงตัวไม่ดี คอยระมัดระวังไม่ให้ส่วนศีรษะกระแทกพื้น\n๔. หลังการผ่าตัดไม่ให้สัตว์เลีย กัดแทะแผลผ่าตัด หรือ กระโดด ต้องใส่อุปกรณ์กันเลีย เช่น ปลอกคอกันเลีย เสื้อผ่าตัด เป็นต้น เนื่องจากว่าน้ำลายสัตว์มีแบคทีเรีย เมื่อมีการเลีย กัดแทะแผล จะทำให้เกิดการติดเชื้อจะทำให้แผลไม่ติดกันได้\n๕. ป้อนยาสัตว์ตามที่สัตวแพทย์สั่งอย่างเคร่งครัด เพื่อป้องกันการติดเชื้อและอักเสบหลังผ่าตัด\n๖. ห้ามโดนน้ำ ห้ามอาบน้ำ ห้ามให้สัตว์อยู่ในที่ชื้น เป็นเวลา ๗ วัน หรือ จนกว่าแผลจะหาย\n๗. ปิดแผลให้ครบ ๗ วันหรือจนกว่าจะตัดไหม ยกเว้นแผลเปียกน้ำ ถ้าแผลผ่าตัดมีอาการแฉะให้เปิดแผลและแต้มด้วยเบตาดีนเท่านั้น จากนั้นปิดแผลด้วยผ้าก็อตและเทปสำหรับปิดแผล ห้าม!!!ใช้แอลกอฮอล์ล้างแผลโดยเด็ดขาด เพราะจะทำให้เนื้อเยื่อบริเวณปากแผลตายและจะทำให้แผลไม่ติดกัน`
+        }]);
+        alert("ระบบได้ส่งคำแนะนำเข้าแชท LINE ของท่านแล้ว กรุณากลับไปตรวจสอบที่แชทครับ");
+    } catch (e) {
+        console.error(e);
+        alert("เกิดข้อผิดพลาด ไม่สามารถส่งข้อความได้");
     }
 }
 
@@ -239,7 +242,6 @@ function setupNavigation() {
             inputs.forEach(i => { if (!i.value) isValid = false; });
             if (!isValid) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
 
-            // ตรวจสอบเบอร์โทรศัพท์ว่าครบ 10 หลักหรือไม่
             const phoneVal = document.getElementById("phone-number").value.replace(/\D/g, ''); 
             if (phoneVal.length !== 10) {
                 return alert("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (10 หลัก)");
@@ -286,13 +288,11 @@ function setupPetSystem() {
 
         if(!name || !type || !gender || !service) return alert("กรุณากรอกข้อมูลสัตว์เลี้ยงให้ครบ");
 
-        // ป้องกันคนกดรัวๆ ระหว่างที่ระบบกำลังดึงข้อมูลเช็กโควตา
         const btnAdd = document.getElementById("btn-add-pet");
         btnAdd.textContent = "กำลังตรวจสอบโควตา...";
         btnAdd.disabled = true;
 
         try {
-            // 1. ดึงข้อมูลโควตาสูงสุดที่แอดมินตั้งค่าไว้
             const configDoc = await getDoc(doc(db, "system_config", "main_config"));
             let maxN = 100, maxV = 300;
             if (configDoc.exists()) {
@@ -300,7 +300,6 @@ function setupPetSystem() {
                 maxV = configDoc.data().quota_vaccine || 300;
             }
 
-            // 2. ดึงข้อมูลว่าตอนนี้มีคนจองคิวไปแล้วกี่ตัว (ไม่นับตัวที่ยกเลิก)
             const allPetsSnap = await getDocs(collection(db, "pets"));
             let currentN = 0, currentV = 0;
             allPetsSnap.forEach(d => {
@@ -310,19 +309,15 @@ function setupPetSystem() {
                 }
             });
 
-            // 3. นับจำนวนที่อยู่ในตะกร้าของคนที่กำลังกดอยู่
             const cartN = pets.filter(p => p.service === "ทำหมันและวัคซีน").length;
             const cartV = pets.filter(p => p.service === "วัคซีนอย่างเดียว").length;
 
-            // 4. เริ่มตรวจสอบเงื่อนไขทั้งหมดก่อนยอมให้บันทึก
             if (service === "ทำหมันและวัคซีน") {
-                // เช็ก 4.1: โควตารวมของโครงการเต็มหรือยัง?
                 if ((currentN + cartN) >= maxN) {
                     alert(`ขออภัยครับ โควตา "ทำหมัน" เต็มแล้ว (${maxN} คิว)`);
                     return resetAddBtn(btnAdd);
                 }
 
-                // เช็ก 4.2: บ้านเลขที่นี้ใช้สิทธิ์เกิน 2 ตัวหรือยัง?
                 const hNo = document.getElementById("house-no").value;
                 const vNo = document.getElementById("village-no").value;
                 if(!hNo || !vNo) {
@@ -346,14 +341,12 @@ function setupPetSystem() {
                 }
 
             } else if (service === "วัคซีนอย่างเดียว") {
-                // เช็ก 4.3: โควตาฉีดวัคซีนเต็มหรือยัง?
                 if ((currentV + cartV) >= maxV) {
                     alert(`ขออภัยครับ โควตา "ฉีดวัคซีน" เต็มแล้ว (${maxV} คิว)`);
                     return resetAddBtn(btnAdd);
                 }
             }
 
-            // หากผ่านเงื่อนไขทุกอย่าง ให้นำเข้าตะกร้าได้
             pets.push({ name, type, gender, service, signed: false });
             document.getElementById("pet-name").value = "";
             document.getElementById("pet-type").value = "";
@@ -396,8 +389,7 @@ function renderConsentForms() {
     const c = document.getElementById("dynamic-consent-container");
     c.innerHTML = ""; canvasInstances = [];
     
-    // [แก้ไข Syntax Error ตรงนี้: เปลี่ยนจากใช้ " " เป็น ` ` (Backtick) เพื่อให้พิมพ์แบบหลายบรรทัดได้]
-    const legalText = `ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางเพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด
+    const legalText = `ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด
 เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)`;
     
     pets.forEach((p, i) => {
@@ -455,6 +447,7 @@ function setupFinalSubmit() {
             const hn = document.getElementById("house-no").value, vn = document.getElementById("village-no").value;
             const rental = document.getElementById("is-rental").checked;
             
+            // 1. บันทึก/อัปเดตข้อมูลผู้ใช้หลัก (ถ้าเป็นแอดมิน ข้อมูลตรงนี้จะเปลี่ยนชั่วคราวแต่ไม่ส่งผลเสียเพราะเราฝังไว้ที่สัตว์)
             await setDoc(doc(db, "users", userProfileData.userId), {
                 owner_name: document.getElementById("owner-name").value,
                 phone_number: document.getElementById("phone-number").value,
@@ -462,12 +455,23 @@ function setupFinalSubmit() {
                 line_displayName: userProfileData.displayName, updated_at: serverTimestamp()
             });
 
+            // 2. [อัปเดตสำคัญ] ฝังข้อมูลเจ้าของลงไปใน Document ของสัตว์เลี้ยงแต่ละตัวเลย (Snapshot Data)
             for (let i=0; i<pets.length; i++) {
                 await addDoc(collection(db, "pets"), {
-                    owner_uid: userProfileData.userId,
+                    owner_uid: userProfileData.userId, // ใช้ UID ของผู้กรอก (อาจจะเป็นแอดมินหรือชาวบ้าน)
+                    owner_name: document.getElementById("owner-name").value, // ล็อกชื่อเจ้าของไว้ที่ตัวสัตว์เลย
+                    phone_number: document.getElementById("phone-number").value, // ล็อกเบอร์โทรไว้
+                    house_no: hn,
+                    village_no: vn,
                     house_village_search: `${hn}-${vn}`,
-                    pet_name: pets[i].name, pet_type: pets[i].type, pet_gender: pets[i].gender, service_type: pets[i].service,
-                    status: "booked", consent_agreed: true, signature_base64: canvasInstances[i].canvas.toDataURL("image/png"), signed_timestamp: serverTimestamp()
+                    pet_name: pets[i].name, 
+                    pet_type: pets[i].type, 
+                    pet_gender: pets[i].gender, 
+                    service_type: pets[i].service,
+                    status: "booked", 
+                    consent_agreed: true, 
+                    signature_base64: canvasInstances[i].canvas.toDataURL("image/png"), 
+                    signed_timestamp: serverTimestamp()
                 });
             }
 
@@ -491,7 +495,6 @@ function setupFinalSubmit() {
             // เช็กว่าแอดมินกำลังใช้งานอยู่หรือไม่
             const btnBackAdmin = document.getElementById("btn-back-to-admin");
             if (btnBackAdmin && btnBackAdmin.style.display === "block") {
-                // หากแอดมินกรอกให้ -> รีเซ็ตฟอร์มกลับหน้าแรก ไม่ต้องปิดหน้าต่าง
                 document.getElementById("btn-submit").disabled = false; 
                 document.getElementById("btn-submit").textContent = "ยืนยันการลงทะเบียน";
                 document.getElementById("registration-form").reset();
@@ -500,7 +503,6 @@ function setupFinalSubmit() {
                 changeStep("0");
                 loadDashboardData();
             } else {
-                // หากประชาชนกรอกเอง -> ปิดหน้าต่าง LINE อัตโนมัติ
                 liff.closeWindow();
             }
 
@@ -556,17 +558,15 @@ function setupSidebarAndSettings() {
         switchAdminView("settings-container"); loadAdminSettings();
     });
 
-    // เมนูสำหรับลงทะเบียนแทนประชาชน
     const menuProxy = document.getElementById("menu-register-proxy");
     if(menuProxy) {
         menuProxy.addEventListener("click", () => {
             document.querySelectorAll(".admin-view").forEach(el => el.style.display = "none");
-            sidebar.style.right = "-250px"; // ปิด Sidebar
+            sidebar.style.right = "-250px"; 
             
-            document.getElementById("app-container").style.display = "block"; // เปิดหน้าฟอร์มประชาชน
-            document.getElementById("btn-back-to-admin").style.display = "block"; // โชว์ปุ่มกลับ
+            document.getElementById("app-container").style.display = "block"; 
+            document.getElementById("btn-back-to-admin").style.display = "block"; 
             
-            // รีเซ็ตฟอร์มให้ว่างเปล่า พร้อมสำหรับลงทะเบียนให้คนใหม่
             document.getElementById("registration-form").reset();
             pets = []; 
             updatePetListUI();
@@ -575,7 +575,6 @@ function setupSidebarAndSettings() {
         });
     }
 
-    // ปุ่มกลับหน้าแอดมินจากหน้าลงทะเบียน
     const btnBackAdmin = document.getElementById("btn-back-to-admin");
     if(btnBackAdmin) {
         btnBackAdmin.addEventListener("click", () => {
@@ -601,6 +600,7 @@ function setupSidebarAndSettings() {
         } catch (e) { alert("เกิดข้อผิดพลาด"); } finally { btn.disabled = false; btn.textContent = "💾 บันทึกการตั้งค่า"; }
     });
 }
+
 window.switchAdminView = function(viewId) {
     document.querySelectorAll(".admin-view").forEach(el => el.style.display = "none");
     document.getElementById(viewId).style.display = "block";
@@ -689,7 +689,6 @@ window.printConsentA4 = async function(docId) {
     const pet = window.currentSearchPets[docId];
     if(!pet || !pet.signature_base64) return alert("ไม่สามารถพิมพ์ได้ เนื่องจากยังไม่มีลายเซ็น");
     try {
-        // หาอันดับคิว (จัดเรียงตามเวลาที่เซ็น)
         const snapAll = await getDocs(collection(db, "pets"));
         let allPets = [];
         snapAll.forEach(d => {
@@ -703,15 +702,20 @@ window.printConsentA4 = async function(docId) {
         const queueNo = qIndex !== -1 ? qIndex + 1 : "-";
 
         const userSnap = await getDoc(doc(db, "users", pet.owner_uid));
-        if(!userSnap.exists()) return alert("ไม่พบข้อมูลเจ้าของ");
-        const user = userSnap.data();
+        const user = userSnap.exists() ? userSnap.data() : {};
+
+        // [อัปเดต] ดึงข้อมูลจากสัตว์เลี้ยงก่อน ถ้าไม่มีค่อยดึงจาก Users 
+        const printName = pet.owner_name || user.owner_name || "-";
+        const printPhone = pet.phone_number || user.phone_number || "-";
+        const printHouse = pet.house_no || user.house_no || "-";
+        const printVillage = pet.village_no || user.village_no || "-";
 
         document.getElementById("p-queue-no").textContent = `คิวที่: ${queueNo}`;
-        document.getElementById("p-owner-name").textContent = user.owner_name;
-        document.getElementById("p-owner-name-sig").textContent = user.owner_name;
-        document.getElementById("p-phone").textContent = user.phone_number;
-        document.getElementById("p-house").textContent = user.house_no;
-        document.getElementById("p-village").textContent = user.village_no;
+        document.getElementById("p-owner-name").textContent = printName;
+        document.getElementById("p-owner-name-sig").textContent = printName;
+        document.getElementById("p-phone").textContent = printPhone;
+        document.getElementById("p-house").textContent = printHouse;
+        document.getElementById("p-village").textContent = printVillage;
         document.getElementById("p-pet-name").textContent = pet.pet_name;
         document.getElementById("p-pet-type").textContent = pet.pet_type;
         document.getElementById("p-pet-gender").textContent = pet.pet_gender;
@@ -743,7 +747,6 @@ function setupPrintAllConsents() {
                     }
                 });
 
-                // เรียงตามเวลาที่เซ็น เพื่อรันคิว
                 validPets.sort((a, b) => {
                     const tA = a.signed_timestamp ? a.signed_timestamp.toMillis() : 0;
                     const tB = b.signed_timestamp ? b.signed_timestamp.toMillis() : 0;
@@ -757,18 +760,22 @@ function setupPrintAllConsents() {
                     return;
                 }
 
-                // โหลดข้อมูล User ทั้งหมดมาเก็บไว้ (จะได้ไม่ต้องดึงทีละคน)
                 const usersCache = {};
                 const usersSnap = await getDocs(collection(db, "users"));
                 usersSnap.forEach(u => { usersCache[u.id] = u.data(); });
 
                 const container = document.getElementById("print-all-consents-container");
-                container.innerHTML = ""; // เคลียร์กล่อง
+                container.innerHTML = ""; 
 
-                // สร้าง HTML ใส่กระดาษทีละหน้า
                 validPets.forEach((pet, index) => {
                     const user = usersCache[pet.owner_uid] || {};
                     const queueNo = index + 1;
+                    
+                    // [อัปเดต] ดึงข้อมูลจากสัตว์เลี้ยงก่อน 
+                    const printName = pet.owner_name || user.owner_name || "-";
+                    const printPhone = pet.phone_number || user.phone_number || "-";
+                    const printHouse = pet.house_no || user.house_no || "-";
+                    const printVillage = pet.village_no || user.village_no || "-";
                     
                     const html = `
                     <div class="consent-page">
@@ -777,22 +784,22 @@ function setupPrintAllConsents() {
                         <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px;">กับเทศบาลเมืองบางแก้ว ร่วมกับปศุสัตว์จังหวัดสมุทรปราการ</h3>
                         
                         <div style="font-size: 16px; line-height: 2;">
-                            <p><strong>ข้าพเจ้า (ชื่อเจ้าของ):</strong> <span>${user.owner_name || "-"}</span></p>
-                            <p><strong>เบอร์โทรศัพท์:</strong> <span>${user.phone_number || "-"}</span></p>
-                            <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ <span>${user.house_no || "-"}</span> หมู่ที่ <span>${user.village_no || "-"}</span> ตำบลบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ</p>
+                            <p><strong>ข้าพเจ้า (ชื่อเจ้าของ):</strong> <span>${printName}</span></p>
+                            <p><strong>เบอร์โทรศัพท์:</strong> <span>${printPhone}</span></p>
+                            <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ <span>${printHouse}</span> หมู่ที่ <span>${printVillage}</span> ตำบลบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ</p>
                             
                             <p style="margin-top: 15px;"><strong>มีความประสงค์ขอรับบริการทำหมัน/ฉีดวัคซีน ให้แก่สัตว์เลี้ยงดังนี้:</strong></p>
                             <p><strong>ชื่อสัตว์เลี้ยง:</strong> <span>${pet.pet_name}</span> &nbsp;&nbsp;&nbsp; <strong>ประเภท:</strong> <span>${pet.pet_type}</span> &nbsp;&nbsp;&nbsp; <strong>เพศ:</strong> <span>${pet.pet_gender}</span></p>
 
                             <p style="margin-top: 30px; text-indent: 40px; text-align: justify;">
-                                ข้าพเจ้ายินยอมให้สัตวแพทย์ดำเนินการผ่าตัดทำหมัน โดยรับทราบความเสี่ยงที่อาจเกิดภาวะแทรกซ้อนจากการวางยาสลบ หรือปัจจัยทางสุขภาพของสัตว์เลี้ยงที่มองไม่เห็นภายนอก ซึ่งสัตวแพทย์ผู้ปฏิบัติทำการผ่าตัดทำหมันได้ปฏิบัติถูกต้องตามหลักวิชาการ หากสัตว์ของข้าพเจ้าตาย หรือเกิดความผิดปกติใดๆ ในระหว่างการดำเนินการหลังการผ่าตัด การผ่าตัดทำหมัน และ/หรือ ฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าให้แก่สัตว์เลี้ยง ข้าพเจ้าจะไม่ถือว่าเป็นความผิดของเจ้าหน้าที่และจะไม่เอาผิด หรือเรียกร้องค่าเสียหายใดๆกับเจ้าหน้าที่ ข้าพเจ้าขอลงลายมือชื่อไว้เป็นหลักฐาน
+                                ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด<br><br>เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)
                             </p>
                         </div>
 
                         <div style="margin-top: 50px; text-align: center;">
                             <img src="${pet.signature_base64}" style="max-height: 100px; display: block; margin: 0 auto; border-bottom: 1px dotted #000;">
                             <p style="margin-top: 10px;">(ลงชื่อ) .............................................................. ผู้ยินยอม</p>
-                            <p style="margin-top: 5px;">(<span>${user.owner_name || "-"}</span>)</p>
+                            <p style="margin-top: 5px;">(<span>${printName}</span>)</p>
                         </div>
                     </div>
                     `;
@@ -867,7 +874,7 @@ function renderTable(tableId, data) {
 // ==========================================
 // 10. ระบบเจ้าหน้าที่: ตรวจสอบรายชื่อ & ติดตามคิว
 // ==========================================
-window.userListData = []; // ตัวแปรเก็บข้อมูลเพื่อใช้ฟิลเตอร์
+window.userListData = []; 
 
 async function loadUserList() {
     const tbody = document.querySelector("#table-user-list tbody");
@@ -879,29 +886,26 @@ async function loadUserList() {
             getDocs(collection(db, "pets"))
         ]);
 
-        // 1. นำข้อมูล User มาทำเป็น Cache ไว้ค้นหาชื่อและเบอร์โทรอย่างรวดเร็ว
         const usersCache = {};
-        usersSnap.forEach(d => {
-            usersCache[d.id] = d.data();
-        });
+        usersSnap.forEach(d => { usersCache[d.id] = d.data(); });
 
-        const houseStats = {}; // ใช้จัดกลุ่มตาม UID + บ้านเลขที่
+        const houseStats = {}; 
 
-        // 2. วนลูปสัตว์เลี้ยงทั้งหมด เพื่อแยกกลุ่มตามบ้านเลขที่
         petsSnap.forEach(d => {
             const p = d.data();
-            if(p.status === "cancelled") return; // ข้ามตัวที่ยกเลิก
+            if(p.status === "cancelled") return; 
             
             const uid = p.owner_uid;
             const user = usersCache[uid] || {};
             
-            // ใช้บ้านเลขที่ของสัตว์เลี้ยงตัวนั้นๆ เป็นคีย์ (ถ้าไม่มีให้ดึงจากโปรไฟล์เจ้าของ)
-            const rawAddress = p.house_village_search || `${user.house_no}-${user.village_no}`;
+            // [อัปเดต] ใช้ข้อมูลที่ฝังในตัวสัตว์เลี้ยงมาเป็นหลักในการจัดกลุ่ม
+            const ownerName = p.owner_name || user.owner_name || "ไม่ระบุ";
+            const phoneNum = p.phone_number || user.phone_number || "-";
+            const rawAddress = p.house_village_search || `${p.house_no || user.house_no}-${p.village_no || user.village_no}`;
             
-            // คีย์สำหรับจัดกลุ่ม: รหัสคนลงทะเบียน + บ้านเลขที่
-            const groupKey = `${uid}_${rawAddress}`;
+            // คีย์สำหรับจัดกลุ่ม: ชื่อเจ้าของ + เบอร์โทร + บ้านเลขที่ (แก้ปัญหาแอดมินลงทะเบียนแทน)
+            const groupKey = `${ownerName}_${phoneNum}_${rawAddress}`;
 
-            // ถ้ายังไม่มีกลุ่มของบ้านหลังนี้ ให้สร้างใหม่
             if(!houseStats[groupKey]) {
                 let displayAddress = "ไม่ระบุ";
                 if(rawAddress.includes("-")) {
@@ -912,8 +916,8 @@ async function loadUserList() {
                 }
 
                 houseStats[groupKey] = {
-                    name: user.owner_name || "ไม่ระบุ",
-                    phone: user.phone_number || "-",
+                    name: ownerName,
+                    phone: phoneNum,
                     address: displayAddress,
                     n_booked: 0, v_booked: 0,
                     n_checked: 0, v_checked: 0,
@@ -921,7 +925,6 @@ async function loadUserList() {
                 };
             }
 
-            // นับยอดตามบริการและสถานะ แยกใส่บ้านใครบ้านมัน
             if(p.status === "booked") {
                 houseStats[groupKey].total_booked++;
                 if(p.service_type === "ทำหมันและวัคซีน") houseStats[groupKey].n_booked++;
@@ -933,9 +936,7 @@ async function loadUserList() {
             }
         });
 
-        // 3. แปลงเป็น Array เพื่อนำไปแสดงผล
         window.userListData = Object.values(houseStats).filter(u => (u.total_booked + u.total_checked) > 0);
-        
         renderUserTable(); 
     } catch(e) {
         console.error(e);
@@ -955,7 +956,6 @@ window.renderUserTable = function() {
         
         count++;
         
-        // แยกบรรทัด ทำหมัน กับ วัคซีน ให้เห็นชัดเจน
         let serviceText = [];
         let totalN = u.n_booked + u.n_checked;
         let totalV = u.v_booked + u.v_checked;
@@ -963,7 +963,6 @@ window.renderUserTable = function() {
         if(totalN > 0) serviceText.push(`<span style="color:#D4AF37;">ทำหมัน: ${totalN} ตัว</span>`);
         if(totalV > 0) serviceText.push(`<span style="color:#A0B0C0;">วัคซีน: ${totalV} ตัว</span>`);
 
-        // แยกสถานะการเข้ารับบริการ
         let statusText = [];
         if(u.total_booked > 0) statusText.push(`<span style="color:#ff6b6b; font-weight:bold;">⏳ รอรับบริการ: ${u.total_booked}</span>`);
         if(u.total_checked > 0) statusText.push(`<span style="color:#50E3C2; font-weight:bold;">✅ รับแล้ว: ${u.total_checked}</span>`);
