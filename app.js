@@ -5,12 +5,12 @@ import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateD
 // 1. ตั้งค่า Firebase และ ตัวแปรระบบ
 // ==========================================
 const firebaseConfig = {
-  apiKey: "AIzaSyCNsfEd11Yv2kNCO_T3s07WJ1eAXUyhssE",
-  authDomain: "bangkaew-pet-db.firebaseapp.com",
-  projectId: "bangkaew-pet-db",
-  storageBucket: "bangkaew-pet-db.firebasestorage.app",
-  messagingSenderId: "79581962937",
-  appId: "1:79581962937:web:aed2a3297cf269afcc7168"
+    apiKey: "AIzaSyCNsfEd11Yv2kNCO_T3s07WJ1eAXUyhssE",
+    authDomain: "bangkaew-pet-db.firebaseapp.com",
+    projectId: "bangkaew-pet-db",
+    storageBucket: "bangkaew-pet-db.firebasestorage.app",
+    messagingSenderId: "79581962937",
+    appId: "1:79581962937:web:aed2a3297cf269afcc7168"
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -57,12 +57,12 @@ async function checkUserRole() {
         } else {
             document.getElementById("app-container").style.display = "block";
             loadDashboardData(); 
-            loadUserData(); // [เพิ่มใหม่] โหลดข้อมูลเจ้าของเดิม (Auto-fill)
+            loadUserData(); // โหลดข้อมูลเจ้าของเดิม (Auto-fill)
         }
     } catch (error) { console.error("Role Check Error", error); }
 }
 
-// [เพิ่มใหม่] ฟังก์ชันดึงข้อมูลเจ้าของที่เคยลงทะเบียนไว้มากรอกอัตโนมัติ
+// ฟังก์ชันดึงข้อมูลเจ้าของที่เคยลงทะเบียนไว้มากรอกอัตโนมัติ
 async function loadUserData() {
     try {
         const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
@@ -141,7 +141,7 @@ async function loadDashboardData() {
                 addressHeader = `🏠 บ้านเลขที่ ${parts[0]} หมู่ที่ ${parts[1]}`;
             }
 
-            // เปิดกรอบสำหรับแต่ละบ้าน (เพิ่มพื้นหลังให้ดูแยกเป็นสัดส่วนชัดเจน)
+            // เปิดกรอบสำหรับแต่ละบ้าน
             myPetsHtml += `
             <div style="margin-bottom: 20px; background: rgba(0, 0, 0, 0.15); padding: 12px; border-radius: 10px; border: 1px solid rgba(212, 175, 55, 0.2);">
                 <div style="color: #D4AF37; font-size: 15px; font-weight: bold; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed rgba(212, 175, 55, 0.4);">
@@ -200,6 +200,7 @@ async function loadDashboardData() {
 
     } catch (error) { console.error(error); }
 }
+
 window.cancelMyPet = async function(docId) {
     if(confirm("คุณต้องการยกเลิกคิวนี้เพื่อคืนสิทธิ์ให้ผู้อื่น ใช่หรือไม่?")) {
         try {
@@ -238,7 +239,7 @@ function setupNavigation() {
             inputs.forEach(i => { if (!i.value) isValid = false; });
             if (!isValid) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
 
-            // [อัปเดตใหม่] ตรวจสอบเบอร์โทรศัพท์ว่าครบ 10 หลักหรือไม่
+            // ตรวจสอบเบอร์โทรศัพท์ว่าครบ 10 หลักหรือไม่
             const phoneVal = document.getElementById("phone-number").value.replace(/\D/g, ''); 
             if (phoneVal.length !== 10) {
                 return alert("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (10 หลัก)");
@@ -260,6 +261,7 @@ function setupNavigation() {
         });
     }
 }
+
 function changeStep(stepId) {
     document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
     document.getElementById(`step-${stepId}`).classList.add('active');
@@ -320,7 +322,7 @@ function setupPetSystem() {
                     return resetAddBtn(btnAdd);
                 }
 
-                // เช็ก 4.2: บ้านเลขที่นี้ใช้สิทธิ์เกิน 2 ตัวหรือยัง? (ของเดิม)
+                // เช็ก 4.2: บ้านเลขที่นี้ใช้สิทธิ์เกิน 2 ตัวหรือยัง?
                 const hNo = document.getElementById("house-no").value;
                 const vNo = document.getElementById("village-no").value;
                 if(!hNo || !vNo) {
@@ -370,7 +372,6 @@ function setupPetSystem() {
     document.getElementById("btn-go-consent").addEventListener("click", () => changeStep("3"));
 }
 
-// ฟังก์ชันเสริมสำหรับคืนค่าปุ่มกด
 function resetAddBtn(btnElement) {
     btnElement.textContent = "+ บันทึกข้อมูลสัตว์ตัวนี้";
     btnElement.disabled = false;
@@ -394,8 +395,10 @@ window.removePet = function(index) { pets.splice(index, 1); updatePetListUI(); }
 function renderConsentForms() {
     const c = document.getElementById("dynamic-consent-container");
     c.innerHTML = ""; canvasInstances = [];
-    const legalText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางเพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด
-เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)";
+    
+    // [แก้ไข Syntax Error ตรงนี้: เปลี่ยนจากใช้ " " เป็น ` ` (Backtick) เพื่อให้พิมพ์แบบหลายบรรทัดได้]
+    const legalText = `ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางเพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด
+เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)`;
     
     pets.forEach((p, i) => {
         c.insertAdjacentHTML('beforeend', `<div class="card neumorphic"><h3 class="section-title">ใบยินยอม ${i+1}: ${p.name}</h3><div class="terms-box neumorphic-inner"><p>${legalText}</p></div><div class="input-group checkbox-group"><input type="checkbox" id="accept-${i}" class="neumorphic-checkbox" onchange="toggleSignature(${i})"><label for="accept-${i}">ข้าพเจ้ายอมรับเงื่อนไข</label></div><div id="sig-section-${i}" class="disabled-section"><label>ลงลายมือชื่อเจ้าของ</label><canvas id="canvas-${i}" class="signature-pad"></canvas><button type="button" class="clear-btn" onclick="clearCanvas(${i})">ลบลายเซ็น</button></div></div>`);
@@ -478,19 +481,14 @@ function setupFinalSubmit() {
                 await liff.sendMessages([
                     {
                         type: "text",
-                        text: `✅ ยืนยันการลงทะเบียน (จองสิทธิ์สำเร็จ)\nลำดับคิวจองสิทธิ์ที่: ${queueText}\n🏠 บ้านเลขที่: ${hn} หมู่ ${vn}\n🐾 ชื่อสัตว์เลี้ยง: น้อง${petNames}\n(ระบบได้บันทึกใบยินยอมและลายเซ็นของท่านเรียบร้อยแล้ว)\n\n📌 ข้อปฏิบัติและการเตรียมตัวก่อนทำหมัน\n1. งดน้ำ-งดอาหารสัตว์อย่างน้อย 12 ชั่วโมง (ก่อนทำหมัน) และขังสัตว์ไว้ในพื้นที่มิดชิดไม่สามารถออกมากินอาหารได้
-\n2. สัตว์ที่มาทำหมันต้องสุขภาพดี ไม่ผอม ไม่ป่วย
-\n3. อายุสัตว์ที่มาทำหมันต้องอายุตั้งแต่ 6-8 เดือนขึ้นไป
-\n4. สุนัขเพศเมียที่มาทำหมัน ไม่ควรเป็นสัด๖อวัยวะเพศบวมแดง)และมีประจำเดือน เพราะจะทำให้ เสียเลือดมาก
-\n5. สุนัขและแมวที่เพิ่งคลอดลูก ควรพักมดลูก 2 เดือน เพราะถ้ามาทำหมันหลังคลอดเลยจะทำให้มดลูกเปื่อยและขาดได้
-\n6. ถ้ารู้ว่าสัตว์ท้องไม่ควรนำมาทำหมัน หรือถ้าหมอผ่าแล้วเจอจะเย็บปิดทันที\n7. ⚠️ ลำดับคิวที่ท่านได้รับนี้ เป็นเพียง "คิวการจองสิทธิ์" เท่านั้น ท่านจะต้องมาติดต่อรับ "บัตรคิวผ่าตัดทำหมัน" ที่หน้างานก่อนเวลา 10.00 น. ของวันเข้ารับบริการ\n8. กรุณาแสดงข้อความนี้แก่เจ้าหน้าที่ในวันรับบริการ (เจ้าหน้าที่จะตรวจสอบข้อมูลและลายเซ็นจากระบบ)`
+                        text: `✅ ยืนยันการลงทะเบียน (จองสิทธิ์สำเร็จ)\nลำดับคิวจองสิทธิ์ที่: ${queueText}\n🏠 บ้านเลขที่: ${hn} หมู่ ${vn}\n🐾 ชื่อสัตว์เลี้ยง: น้อง${petNames}\n(ระบบได้บันทึกใบยินยอมและลายเซ็นของท่านเรียบร้อยแล้ว)\n\n📌 ข้อปฏิบัติและการเตรียมตัวก่อนทำหมัน\n1. งดน้ำ-งดอาหารสัตว์อย่างน้อย 12 ชั่วโมง (ก่อนทำหมัน) และขังสัตว์ไว้ในพื้นที่มิดชิดไม่สามารถออกมากินอาหารได้\n2. สัตว์ที่มาทำหมันต้องสุขภาพดี ไม่ผอม ไม่ป่วย\n3. อายุสัตว์ที่มาทำหมันต้องอายุตั้งแต่ 6-8 เดือนขึ้นไป\n4. สุนัขเพศเมียที่มาทำหมัน ไม่ควรเป็นสัด (อวัยวะเพศบวมแดง) และมีประจำเดือน เพราะจะทำให้เสียเลือดมาก\n5. สุนัขและแมวที่เพิ่งคลอดลูก ควรพักมดลูก 2 เดือน เพราะถ้ามาทำหมันหลังคลอดเลยจะทำให้มดลูกเปื่อยและขาดได้\n6. ถ้ารู้ว่าสัตว์ท้องไม่ควรนำมาทำหมัน หรือถ้าหมอผ่าแล้วเจอจะเย็บปิดทันที\n7. ⚠️ ลำดับคิวที่ท่านได้รับนี้ เป็นเพียง "คิวการจองสิทธิ์" เท่านั้น ท่านจะต้องมาติดต่อรับ "บัตรคิวผ่าตัดทำหมัน" ที่หน้างานก่อนเวลา 10.00 น. ของวันเข้ารับบริการ\n8. กรุณาแสดงข้อความนี้แก่เจ้าหน้าที่ในวันรับบริการ (เจ้าหน้าที่จะตรวจสอบข้อมูลและลายเซ็นจากระบบ)`
                     }
                 ]);
             }
 
             alert("ลงทะเบียนสำเร็จ!");
             
-            // [อัปเดตใหม่] เช็กว่าแอดมินกำลังใช้งานอยู่หรือไม่
+            // เช็กว่าแอดมินกำลังใช้งานอยู่หรือไม่
             const btnBackAdmin = document.getElementById("btn-back-to-admin");
             if (btnBackAdmin && btnBackAdmin.style.display === "block") {
                 // หากแอดมินกรอกให้ -> รีเซ็ตฟอร์มกลับหน้าแรก ไม่ต้องปิดหน้าต่าง
@@ -558,7 +556,7 @@ function setupSidebarAndSettings() {
         switchAdminView("settings-container"); loadAdminSettings();
     });
 
-    // [อัปเดตใหม่] เมนูสำหรับลงทะเบียนแทนประชาชน
+    // เมนูสำหรับลงทะเบียนแทนประชาชน
     const menuProxy = document.getElementById("menu-register-proxy");
     if(menuProxy) {
         menuProxy.addEventListener("click", () => {
@@ -577,7 +575,7 @@ function setupSidebarAndSettings() {
         });
     }
 
-    // [อัปเดตใหม่] ปุ่มกลับหน้าแอดมินจากหน้าลงทะเบียน
+    // ปุ่มกลับหน้าแอดมินจากหน้าลงทะเบียน
     const btnBackAdmin = document.getElementById("btn-back-to-admin");
     if(btnBackAdmin) {
         btnBackAdmin.addEventListener("click", () => {
@@ -614,7 +612,6 @@ async function loadAdminSettings() {
         const configDoc = await getDoc(doc(db, "system_config", "main_config"));
         if(configDoc.exists()) {
             const c = configDoc.data();
-            // [เพิ่มใหม่] นำค่าวันที่เปิดปิดมากรอกโชว์แอดมิน
             document.getElementById("setting-start-date").value = c.start_date || "";
             document.getElementById("setting-end-date").value = c.end_date || "";
             document.getElementById("setting-date").value = c.service_date || "";
