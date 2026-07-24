@@ -14,8 +14,10 @@
     <div id="admin-sidebar" class="sidebar no-print">
         <a href="javascript:void(0)" class="close-btn" id="btn-close-sidebar">&times;</a>
         <div style="padding: 20px; color: #A0B0C0; border-bottom: 1px solid #1b2941; margin-bottom: 10px;">เมนูเจ้าหน้าที่</div>
-        <a href="#" id="menu-checkin">🏠 หน้าเช็คอิน (Check-in)</a>
+                <a href="#" id="menu-checkin">🏠 หน้าเช็คอิน (Check-in)</a>
         <a href="#" id="menu-report">📊 ดูรายงานสรุปโครงการ</a>
+        <!-- เพิ่มบรรทัดนี้ลงไป -->
+        <a href="#" id="menu-user-list">📋 รายชื่อผู้ลงทะเบียน (ติดตามคิว)</a> 
         <a href="#" id="menu-settings">⚙️ ตั้งค่าระบบ</a>
     </div>
 
@@ -179,6 +181,45 @@
             <div class="sig-box"><p>ลงชื่อ......................................................ผู้เห็นชอบ</p><p>(นายนริศ นิลประสิทธิ์)</p><p>ผู้อำนวยการกองสาธารณสุขและสิ่งแวดล้อม</p></div>
         </div>
     </div>
+    
+        <!-- ================= โหมดเจ้าหน้าที่ (4): ตรวจสอบรายชื่อผู้ลงทะเบียน ================= -->
+    <div id="user-list-container" class="container admin-view" style="display: none; max-width: 900px;">
+        <div class="project-header no-print" style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
+            <div><h3 style="font-size: 16px;">โครงการทำหมันสุนัขและแมวฯ</h3><p style="font-size: 12px;">เทศบาลเมืองบางแก้ว สมุทรปราการ</p></div>
+            <button class="hamburger-btn" onclick="document.getElementById('admin-sidebar').style.right = '0'">☰</button>
+        </div>
+
+        <h2 class="title" style="color: #50E3C2; text-align: left;">📋 รายชื่อผู้ลงทะเบียน</h2>
+        
+        <div class="card neumorphic" style="margin-bottom: 20px;">
+            <div class="input-group">
+                <label>ตัวกรองสถานะคิว</label>
+                <select id="filter-user-status" class="neumorphic-input" onchange="renderUserTable()">
+                    <option value="all">แสดงทั้งหมด</option>
+                    <option value="pending">⏳ ยังไม่มารับบริการ (มีคิวค้าง)</option>
+                    <option value="completed">✅ มารับบริการครบทุกคนแล้ว</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card neumorphic">
+            <div class="table-responsive">
+                <table class="neumorphic-table" id="table-user-list">
+                    <thead>
+                        <tr>
+                            <th>ชื่อ-สกุล</th>
+                            <th>เบอร์โทรศัพท์</th>
+                            <th>บ้านเลขที่</th>
+                            <th>จำนวน/ประเภทจอง</th>
+                            <th>สถานะคิว</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 
     <!-- ================= โหมดเจ้าหน้าที่ (3): ตั้งค่าระบบ ================= -->
     <div id="settings-container" class="container admin-view" style="display: none;">
