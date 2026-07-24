@@ -532,13 +532,18 @@ function setupSidebarAndSettings() {
     });
     document.getElementById("btn-close-sidebar").addEventListener("click", () => sidebar.style.right = "-250px");
 
-    document.getElementById("menu-checkin").addEventListener("click", () => switchAdminView("admin-container"));
+        document.getElementById("menu-checkin").addEventListener("click", () => switchAdminView("admin-container"));
     document.getElementById("menu-report").addEventListener("click", () => {
         switchAdminView("report-container"); generateReport();
+    });
+    // เพิ่ม 3 บรรทัดนี้ลงไป
+    document.getElementById("menu-user-list").addEventListener("click", () => {
+        switchAdminView("user-list-container"); loadUserList();
     });
     document.getElementById("menu-settings").addEventListener("click", () => {
         switchAdminView("settings-container"); loadAdminSettings();
     });
+
 
     document.getElementById("btn-save-settings").addEventListener("click", async () => {
         const btn = document.getElementById("btn-save-settings");
@@ -819,4 +824,104 @@ function renderTable(tableId, data) {
         <tr><td style="text-align: left;">ฉีดวัคซีนอย่างเดียว</td><td>${v.d.m}</td><td>${v.d.f}</td><td>${v.c.m}</td><td>${v.c.f}</td><td style="font-weight: bold;">${tv}</td></tr>
         <tr style="background: rgba(212, 175, 55, 0.1); font-weight: bold;"><td>รวมสุทธิ</td><td>${n.d.m + v.d.m}</td><td>${n.d.f + v.d.f}</td><td>${n.c.m + v.c.m}</td><td>${n.c.f + v.c.f}</td><td style="color: #D4AF37; font-size: 16px;">${tn + tv}</td></tr>
     `;
+}
+
+// ==========================================
+// 10. ระบบเจ้าหน้าที่: ตรวจสอบรายชื่อ & ติดตามคิว
+// ==========================================
+window.userListData = []; // ตัวแปรเก็บข้อมูลเพื่อใช้ฟิลเตอร์
+
+async function loadUserList() {
+    const tbody = document.querySelector("#table-user-list tbody");
+    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#D4AF37;'>กำลังโหลดข้อมูล...</td></tr>";
+    
+    try {
+        // ดึงข้อมูลผู้ใช้และสัตว์เลี้ยงมาพร้อมกันเพื่อความรวดเร็ว
+        const [usersSnap, petsSnap] = await Promise.all([
+            getDocs(collection(db, "users")),
+            getDocs(collection(db, "pets"))
+        ]);
+
+        const userStats = {};
+        // 1. สร้างโครงสร้างข้อมูลผู้ใช้แต่ละคน
+        usersSnap.forEach(d => {
+            const u = d.data();
+            userStats[d.id] = {
+                name: u.owner_name || "ไม่ระบุ",
+                phone: u.phone_number || "-",
+                address: `${u.house_no || "-"} ม.${u.village_no || "-"}`,
+                n_booked: 0, v_booked: 0,
+                n_checked: 0, v_checked: 0,
+                total_booked: 0, total_checked: 0
+            };
+        });
+
+        // 2. นำข้อมูลสัตว์เลี้ยงมานับยอดใส่ในโครงสร้างของผู้ใช้
+        petsSnap.forEach(d => {
+            const p = d.data();
+            if(p.status === "cancelled") return; // ข้ามตัวที่ยกเลิก
+            
+            const uid = p.owner_uid;
+            if(!userStats[uid]) return; 
+
+            if(p.status === "booked") {
+                userStats[uid].total_booked++;
+                if(p.service_type === "ทำหมันและวัคซีน") userStats[uid].n_booked++;
+                if(p.service_type === "วัคซีนอย่างเดียว") userStats[uid].v_booked++;
+            } else if(p.status === "checked_in") {
+                userStats[uid].total_checked++;
+                if(p.service_type === "ทำหมันและวัคซีน") userStats[uid].n_checked++;
+                if(p.service_type === "วัคซีนอย่างเดียว") userStats[uid].v_checked++;
+            }
+        });
+
+        // 3. กรองเอาเฉพาะคนที่มีคิวลงทะเบียน (ตัดคนที่ไม่มีข้อมูลสัตว์เลี้ยงออก)
+        window.userListData = Object.values(userStats).filter(u => (u.total_booked + u.total_checked) > 0);
+        
+        renderUserTable(); // เรียกฟังก์ชันแสดงผล
+    } catch(e) {
+        console.error(e);
+        tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#ff6b6b;'>เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>";
+    }
+}
+
+window.renderUserTable = function() {
+    const filter = document.getElementById("filter-user-status").value;
+    const tbody = document.querySelector("#table-user-list tbody");
+    tbody.innerHTML = "";
+    
+    let count = 0;
+    window.userListData.forEach(u => {
+        // เงื่อนไขฟิลเตอร์
+        if (filter === "pending" && u.total_booked === 0) return; // เลือก pending แต่ไม่มีคิวค้าง -> ข้าม
+        if (filter === "completed" && (u.total_booked > 0 || u.total_checked === 0)) return; // เลือก completed แต่ยังมีคิวค้าง -> ข้าม
+        
+        count++;
+        
+        // จัดรูปแบบข้อความจำนวน/ประเภท
+        let serviceText = [];
+        let totalN = u.n_booked + u.n_checked;
+        let totalV = u.v_booked + u.v_checked;
+        if(totalN > 0) serviceText.push(`ทำหมัน: ${totalN} ตัว`);
+        if(totalV > 0) serviceText.push(`วัคซีน: ${totalV} ตัว`);
+
+        // จัดรูปแบบข้อความสถานะ
+        let statusText = [];
+        if(u.total_booked > 0) statusText.push(`<span style="color:#ff6b6b; font-weight:bold;">⏳ รอรับบริการ: ${u.total_booked}</span>`);
+        if(u.total_checked > 0) statusText.push(`<span style="color:#50E3C2; font-weight:bold;">✅ รับแล้ว: ${u.total_checked}</span>`);
+
+        tbody.insertAdjacentHTML("beforeend", `
+            <tr>
+                <td style="text-align:left;">${u.name}</td>
+                <td><a href="tel:${u.phone}" class="neumorphic-btn outline-btn" style="padding: 4px 8px; font-size: 12px; color:#D4AF37; border-color:#D4AF37; text-decoration:none;">📞 ${u.phone}</a></td>
+                <td>${u.address}</td>
+                <td>${serviceText.join("<br>")}</td>
+                <td>${statusText.join("<br>")}</td>
+            </tr>
+        `);
+    });
+
+    if (count === 0) {
+        tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>ไม่พบข้อมูลที่ตรงกับเงื่อนไข</td></tr>";
+    }
 }
