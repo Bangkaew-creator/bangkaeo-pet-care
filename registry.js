@@ -33,15 +33,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const canvas = document.getElementById('signature-pad');
     if(canvas) {
         signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(224, 229, 236)' });
-        function resizeCanvas() {
+        window.resizeSignatureCanvas = function() {
             const ratio =  Math.max(window.devicePixelRatio || 1, 1);
             canvas.width = canvas.offsetWidth * ratio;
             canvas.height = canvas.offsetHeight * ratio;
             canvas.getContext("2d").scale(ratio, ratio);
             signaturePad.clear(); 
         }
-        window.addEventListener("resize", resizeCanvas);
-        resizeCanvas();
+        window.addEventListener("resize", window.resizeSignatureCanvas);
     }
 
     const btnAcceptBreed = document.getElementById("btn-accept-breed-warning");
@@ -78,8 +77,14 @@ window.acceptBreedWarning = function() {
     
     document.getElementById("consent-pet-name").textContent = `${pet.pet_name} (${pet.pet_type})`;
     document.getElementById("accept-consent").checked = false;
-    if(signaturePad) signaturePad.clear();
+    
+    // แสดง Modal ก่อน
     document.getElementById("consent-modal").style.display = "flex";
+    
+    // รันการปรับขนาด Canvas หลังจาก Modal แสดงแล้ว เพื่อให้ SignaturePad ทำงานได้
+    setTimeout(() => {
+        if(window.resizeSignatureCanvas) window.resizeSignatureCanvas();
+    }, 100);
 }
 
 async function initializeLiff() {
@@ -162,10 +167,14 @@ async function updateQuotaAndBanner() {
     currentBookedNeuter = 0;
 
     try {
-        const petsSnap = await getDocs(collection(db, "pets"));
-        petsSnap.forEach(d => {
+        // อัปเดต: นับจำนวนคิวจากฐานข้อมูลเดิม (vaccine_registrations)
+        const queueRef = collection(db, "vaccine_registrations");
+        const q = query(queueRef, where("service_type", "in", ["ทำหมัน (สุนัขและแมว)", "ทำหมันและฉีดวัคซีน"]));
+        const snap = await getDocs(q);
+        
+        snap.forEach(d => {
             const p = d.data();
-            if (p.status !== "cancelled" && p.neuter_booking && p.neuter_booking.status !== "cancelled") {
+            if (p.status !== "cancelled") {
                 currentBookedNeuter++;
             }
         });
@@ -219,14 +228,13 @@ async function loadMyPets() {
             let vacBadge = pet.vaccine_status === "ฉีดแล้ว" ? (parseInt(pet.vaccine_year) === currentVaccineYear ? `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${pet.vaccine_year})</span>` : `<span class="vaccine-badge badge-red">🔴 ขาดการต่อวัคซีน</span>`) : `<span class="vaccine-badge badge-red">🔴 ยังไม่เคยฉีด</span>`;
 
             let neuterBtn = "";
-            // ส่วนควบคุมปุ่มจองคิว / บัตรคิว / ยกเลิกคิว (เรียงในบรรทัดเดียวกัน)
             if (pet.neuter_status === "ทำหมันแล้ว") {
                 neuterBtn = `<div style="font-size:11px; color:#A0B0C0; text-align:center;">✂️ ทำหมันแล้ว</div>`;
             } else if (pet.neuter_booking && pet.neuter_booking.status === "booked") {
                 neuterBtn = `
-                    <div style="display: flex; gap: 5px;">
-                        <button class="btn-action-small btn-neuter-ticket" style="flex: 1;" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
-                        <button class="btn-action-small btn-cancel-neuter" style="width: auto; padding: 0 10px; margin-top: 0;" title="ยกเลิกการจองคิว" onclick="cancelBooking('${d.id}')">❌</button>
+                    <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px;">
+                        <button class="btn-action-small btn-neuter-ticket" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
+                        <button class="btn-action-small btn-cancel-neuter" title="ยกเลิกการจองคิว" onclick="cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>
                     </div>`;
             } else if (isBookingOpen && currentBookedNeuter < currentTotalNeuterQuota) {
                 neuterBtn = `<button class="btn-action-small btn-neuter" onclick="startBookingFlow('${d.id}')">✂️ จองคิวทำหมัน</button>`;
@@ -272,16 +280,15 @@ async function submitBooking() {
     btnConfirm.textContent = "กำลังรันคิว...";
 
     try {
-        const allPetsSnap = await getDocs(collection(db, "pets"));
-        let currentQ = 0;
-        allPetsSnap.forEach(d => {
-            const p = d.data();
-            if (p.status !== "cancelled" && p.neuter_booking && p.neuter_booking.status === "booked") {
-                currentQ++;
-            }
-        });
+        // อัปเดต: ค้นหาคิวล่าสุดจากฐานข้อมูลเดิม
+        const queueRef = collection(db, "vaccine_registrations"); 
+        const qLast = query(queueRef, where("service_type", "in", ["ทำหมัน (สุนัขและแมว)", "ทำหมันและฉีดวัคซีน"]), orderBy("queue_number", "desc"), limit(1));
+        const snapLast = await getDocs(qLast);
         
-        let nextQueueNo = currentQ + 1;
+        let nextQueueNo = 1;
+        if (!snapLast.empty) {
+            nextQueueNo = snapLast.docs[0].data().queue_number + 1;
+        }
 
         const bookingMeta = {
             status: "booked",
@@ -294,7 +301,6 @@ async function submitBooking() {
         
         await updateDoc(doc(db, "pets", bookingPetId), { neuter_booking: bookingMeta });
 
-        const queueRef = collection(db, "vaccine_registrations"); 
         const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
         const u = userSnap.data();
 
@@ -321,6 +327,7 @@ async function submitBooking() {
             timestamp: serverTimestamp()
         });
 
+        // อัปเดต: แจ้งเตือนเข้า LINE เมื่อจองคิวสำเร็จ
         if (liff.isInClient()) {
             await liff.sendMessages([{
                 type: "text",
@@ -389,6 +396,7 @@ window.cancelBooking = async function(docId) {
             neuter_booking: null
         });
 
+        // อัปเดต: แจ้งเตือนเข้า LINE เมื่อยกเลิกคิว
         if (liff.isInClient()) {
             await liff.sendMessages([{
                 type: "text",
@@ -409,7 +417,7 @@ window.cancelBooking = async function(docId) {
     }
 }
 
-// ฟังก์ชันดูใบรับรอง (นำกลับมา)
+// ฟังก์ชันดูใบรับรอง 
 window.viewCertificate = function(docId) {
     const pet = window.myPetsData[docId];
     if(!pet) return;
@@ -435,7 +443,7 @@ window.viewCertificate = function(docId) {
     document.getElementById("cert-modal").style.display = "flex";
 }
 
-// ฟังก์ชันแจ้งตาย/ย้าย (นำกลับมา)
+// ฟังก์ชันแจ้งตาย/ย้าย 
 window.softDeletePet = async function(docId) {
     if(confirm("ยืนยันการแจ้งสถานะ (สัตว์เสียชีวิต หรือ ย้ายถิ่นฐาน)?")) {
         try {
