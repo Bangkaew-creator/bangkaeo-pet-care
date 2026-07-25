@@ -17,17 +17,19 @@
         .badge-yellow { background: rgba(245, 166, 35, 0.2); color: #F5A623; border: 1px solid #F5A623; }
         .badge-red { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
         
-        .card-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-        .btn-action-small { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #FFF; font-size: 11px; padding: 5px 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 75px; }
+        .card-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+        .btn-action-small { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #FFF; font-size: 11px; padding: 5px 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 85px; }
         .btn-edit { color: #50E3C2; border-color: rgba(80, 227, 194, 0.4); }
         .btn-delete { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.4); }
+        .btn-neuter { color: #50E3C2; border-color: #50E3C2; background: rgba(80, 227, 194, 0.15); font-weight: bold; }
+        .btn-neuter-ticket { color: #D4AF37; border-color: #D4AF37; background: rgba(212, 175, 55, 0.2); font-weight: bold; }
 
-        /* Modal Flip Card */
-        .modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        /* Modal Overlays */
+        .modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         .flip-card { background-color: transparent; width: 100%; max-width: 320px; height: 480px; perspective: 1000px; }
         .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; cursor: pointer; }
         .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
-        .flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 15px; padding: 25px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+        .flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 15px; padding: 25px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; box-sizing: border-box; }
         .flip-card-front { background: linear-gradient(145deg, #141E30, #243B55); border: 2px solid #D4AF37; color: white; }
         .flip-card-back { background: #E0E5EC; color: #141E30; transform: rotateY(180deg); border: 2px solid #D4AF37; text-align: left; }
     </style>
@@ -35,7 +37,6 @@
 <body>
     <div id="loading" class="loading-screen">กำลังตรวจสอบข้อมูล...</div>
 
-    <!-- ส่วนที่ 1: ยืนยันบ้านเลขที่ -->
     <div id="household-setup-container" class="container" style="display: none;">
         <div class="project-header">
             <h3>ขึ้นทะเบียนสัตว์เลี้ยงปศุสัตว์</h3>
@@ -69,7 +70,6 @@
         </div>
     </div>
 
-    <!-- ส่วนที่ 1.5: หน้าจอรอการอนุมัติ (สำหรับลูกบ้าน) -->
     <div id="pending-approval-container" class="container" style="display: none; text-align: center; margin-top: 50px;">
         <div class="card neumorphic" style="padding: 40px 20px;">
             <h1 style="font-size: 50px; margin-bottom: 15px;">⏳</h1>
@@ -80,7 +80,6 @@
         </div>
     </div>
 
-    <!-- ส่วนที่ 2: แดชบอร์ดประชาชน -->
     <div id="dashboard-container" class="container" style="display: none;">
         <div class="project-header" style="text-align: left; display: flex; justify-content: space-between; align-items: center;">
             <div>
@@ -90,7 +89,11 @@
             <img id="user-profile-img" src="" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #D4AF37; display: none;">
         </div>
         
-        <!-- กล่องแจ้งเตือนคำขอเข้าบ้าน (โชว์เฉพาะเจ้าของบ้าน) -->
+        <div id="neuter-banner-container" style="display: none; margin-bottom: 15px; background: rgba(80, 227, 194, 0.1); border: 1px solid #50E3C2; border-radius: 12px; padding: 12px 15px;">
+            <div style="color: #50E3C2; font-weight: bold; font-size: 14px; margin-bottom: 3px;">✂️ เปิดรับลงทะเบียนทำหมันฟรี!</div>
+            <div id="neuter-banner-detail" style="font-size: 12px; color: #E0E5EC; line-height: 1.4;">-</div>
+        </div>
+
         <div id="approval-requests-container" style="display: none; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid rgba(245, 166, 35, 0.3);">
             <h4 style="color: #F5A623; margin-bottom: 10px; font-size: 14px;">🔔 มีคำขอเข้าร่วมบ้าน (รออนุมัติ)</h4>
             <div id="approval-list"></div>
@@ -101,11 +104,9 @@
         <div id="pet-cards-container"></div>
     </div>
 
-    <!-- ส่วนที่ 3: ฟอร์มเพิ่ม/แก้ไข สัตว์เลี้ยง -->
     <div id="add-pet-container" class="container" style="display: none;">
         <div class="project-header"><h3 id="form-title">+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่</h3></div>
         <div class="card neumorphic">
-            
             <div style="text-align: center; margin-bottom: 25px;">
                 <h3 class="section-title">📷 รูปถ่ายสัตว์เลี้ยง</h3>
                 <img id="pet-image-preview" src="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #D4AF37; margin-bottom: 10px; cursor: pointer; background: #1b2941;" onclick="document.getElementById('pet-image-upload').click()">
@@ -166,12 +167,10 @@
         </div>
     </div>
 
-    <!-- ส่วนที่ 4: ใบรับรองดิจิทัล (Flip Card) -->
     <div id="cert-modal" class="modal-overlay">
         <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
             <div class="flip-card" id="pet-cert-card" onclick="this.classList.toggle('flipped')">
                 <div class="flip-card-inner">
-                    <!-- หน้าบัตร -->
                     <div class="flip-card-front">
                         <h3 style="color: #D4AF37; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 10px; margin-bottom: 15px;">สมุดประจำตัวสัตว์เลี้ยง</h3>
                         <img id="cert-img" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #D4AF37; margin: 0 auto 15px; background: #1b2941;">
@@ -185,9 +184,8 @@
                             <div><b style="color: #50E3C2;">สถานะวัคซีน:</b> <span id="cert-vac-status"></span></div>
                             <div style="color: #A0B0C0; font-size: 11px; margin-top: 3px;" id="cert-vac-detail">รอการอัปเดตยี่ห้อ/Lot</div>
                         </div>
-                        <p style="font-size: 12px; color: #A0B0C0; margin-top: auto; animation: pulse 2s infinite;">👉 แตะที่บัตรเพื่อพลิกดูด้านหลัง</p>
+                        <p style="font-size: 12px; color: #A0B0C0; margin-top: auto;">👉 แตะที่บัตรเพื่อพลิกดูด้านหลัง</p>
                     </div>
-                    <!-- หลังบัตร -->
                     <div class="flip-card-back">
                         <h4 style="text-align: center; margin-bottom: 15px; color: #141E30; border-bottom: 2px solid #D4AF37; padding-bottom: 10px;">ข้อกำหนดและเงื่อนไข</h4>
                         <ul style="font-size: 12px; padding-left: 18px; line-height: 1.6; text-align: left; margin-bottom: 15px; color: #333;">
@@ -203,6 +201,34 @@
                 </div>
             </div>
             <button onclick="document.getElementById('cert-modal').style.display='none'" class="neumorphic-btn outline-btn" style="width: 200px; color: white;">✖ ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <div id="neuter-ticket-modal" class="modal-overlay">
+        <div class="card neumorphic" style="width: 100%; max-width: 340px; border: 2px solid #50E3C2; text-align: center; padding: 25px 20px;">
+            <div style="color: #50E3C2; font-size: 14px; font-weight: bold; letter-spacing: 1px;">บัตรคิวผ่าตัดทำหมันฟรี</div>
+            <div style="color: #A0B0C0; font-size: 12px; margin-top: 2px;" id="tk-agency-name">เทศบาลเมืองบางแก้ว</div>
+            
+            <div style="background: rgba(80, 227, 194, 0.1); border: 1px dashed #50E3C2; border-radius: 12px; padding: 15px; margin: 15px 0;">
+                <div style="font-size: 12px; color: #A0B0C0;">ลำดับคิวของท่าน</div>
+                <div id="tk-queue-no" style="font-size: 42px; font-weight: bold; color: #50E3C2; line-height: 1.1; margin: 5px 0;">#00</div>
+                <div id="tk-pet-name" style="font-size: 16px; color: #D4AF37; font-weight: bold;">-</div>
+            </div>
+
+            <div style="text-align: left; font-size: 13px; line-height: 1.6; color: #E0E5EC; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                <div><b style="color: #D4AF37;">📅 วันที่ผ่าตัด:</b> <span id="tk-date">-</span></div>
+                <div><b style="color: #D4AF37;">📍 สถานที่:</b> <span id="tk-location">-</span></div>
+                <div><b style="color: #D4AF37;">👤 เจ้าของ:</b> <span id="tk-owner">-</span></div>
+            </div>
+
+            <div style="text-align: left; background: rgba(255, 107, 107, 0.1); border-left: 3px solid #ff6b6b; padding: 10px; border-radius: 4px; font-size: 11px; color: #ff6b6b; line-height: 1.5; margin-bottom: 20px;">
+                <b>⚠️ คำแนะนำสำคัญก่อนมาทำหมัน:</b><br>
+                1. งดน้ำและอาหารสัตว์เลี้ยงอย่างน้อย 8-12 ชม.<br>
+                2. สัตว์เลี้ยงต้องมีสุขภาพแข็งแรง ไม่ป่วย<br>
+                3. กรุณามาถึงสถานที่ก่อนเวลา 08:30 น.
+            </div>
+
+            <button onclick="document.getElementById('neuter-ticket-modal').style.display='none'" class="neumorphic-btn gold-btn" style="width: 100%;">ตกลง / ปิดหน้าต่าง</button>
         </div>
     </div>
 
