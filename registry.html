@@ -7,21 +7,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
-        .pet-card { background: rgba(0, 0, 0, 0.15); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid #D4AF37; display: flex; gap: 15px; align-items: center; position: relative; }
-        .pet-photo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #D4AF37; flex-shrink: 0; background-color: #1b2941; }
-        .pet-info { flex-grow: 1; color: #E0E5EC; padding-right: 20px; }
-        .pet-name { color: #D4AF37; font-size: 18px; font-weight: 600; margin-bottom: 5px; }
-        .vaccine-badge { padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 5px; }
+                .pet-card { background: rgba(0, 0, 0, 0.15); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid #D4AF37; display: flex; gap: 12px; align-items: flex-start; }
+        .pet-photo { width: 75px; height: 75px; border-radius: 50%; object-fit: cover; border: 2px solid #D4AF37; flex-shrink: 0; background-color: #1b2941; margin-top: 5px; }
+        .pet-info { flex-grow: 1; color: #E0E5EC; min-width: 0; }
+        .pet-info div { line-height: 1.4; word-break: break-word; margin-bottom: 2px; }
+        .pet-name { color: #D4AF37; font-size: 18px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vaccine-badge { padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 6px; }
         .badge-green { background: rgba(80, 227, 194, 0.2); color: #50E3C2; border: 1px solid #50E3C2; }
         .badge-yellow { background: rgba(245, 166, 35, 0.2); color: #F5A623; border: 1px solid #F5A623; }
         .badge-red { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
         
-        /* ปุ่มแก้ไข และ แจ้งตาย */
-        .card-actions { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .btn-action-small { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #FFF; font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        /* ปุ่มแก้ไข และ แจ้งตาย (เอา absolute ออก) */
+        .card-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .btn-action-small { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #FFF; font-size: 11px; padding: 5px 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 75px; }
         .btn-edit { color: #50E3C2; border-color: rgba(80, 227, 194, 0.4); }
         .btn-delete { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.4); }
-    </style>
+</style>
 </head>
 <body>
     <div id="loading" class="loading-screen">กำลังดึงข้อมูลทะเบียนสัตว์...</div>
