@@ -199,31 +199,45 @@ async function checkPendingMembers() {
     const listDiv = document.getElementById("approval-list");
     container.style.display = "none";
     
-    const q = query(collection(db, "users"), where("house_village_search", "==", currentHouseholdKey), where("household_status", "==", "pending"));
-    const snap = await getDocs(q);
-    
-    if (!snap.empty) {
-        container.style.display = "block";
+    try {
+        // ลอจิกใหม่: ดึงข้อมูลทุกคนในบ้านเลขที่นี้ (ไม่ต้องใช้ where 2 ชั้น เลี่ยงปัญหา Firestore Index)
+        const q = query(collection(db, "users"), where("house_village_search", "==", currentHouseholdKey));
+        const snap = await getDocs(q);
+        
+        let hasPending = false;
         listDiv.innerHTML = "";
+        
         snap.forEach(docSnap => {
             const u = docSnap.data();
-            listDiv.insertAdjacentHTML('beforeend', `
-                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${u.picture_url || defaultPlaceholder}" style="width: 35px; height: 35px; border-radius: 50%;">
-                        <div>
-                            <div style="color: #E0E5EC; font-size: 13px;">${u.owner_name}</div>
+            // กรองเฉพาะคนที่สถานะ pending มาโชว์
+            if (u.household_status === "pending") {
+                hasPending = true;
+                listDiv.insertAdjacentHTML('beforeend', `
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="${u.picture_url || 'https://via.placeholder.com/35'}" style="width: 35px; height: 35px; border-radius: 50%;">
+                            <div>
+                                <div style="color: #E0E5EC; font-size: 13px;">${u.owner_name}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button onclick="approveMember('${docSnap.id}')" style="background: rgba(80, 227, 194, 0.2); border: 1px solid #50E3C2; color: #50E3C2; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor:pointer;">✔️ รับ</button>
+                            <button onclick="rejectMember('${docSnap.id}')" style="background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; color: #ff6b6b; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor:pointer;">❌ ปฏิเสธ</button>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 5px;">
-                        <button onclick="approveMember('${docSnap.id}')" style="background: rgba(80, 227, 194, 0.2); border: 1px solid #50E3C2; color: #50E3C2; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor:pointer;">✔️ รับ</button>
-                        <button onclick="rejectMember('${docSnap.id}')" style="background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; color: #ff6b6b; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor:pointer;">❌ ปฏิเสธ</button>
-                    </div>
-                </div>
-            `);
+                `);
+            }
         });
+
+        // ถ้ามีคนรออนุมัติ ค่อยเปิดกล่องแจ้งเตือน
+        if (hasPending) {
+            container.style.display = "block";
+        }
+    } catch (e) {
+        console.error("Error loading pending members:", e);
     }
 }
+
 
 // ฟังก์ชันปุ่มกดอนุมัติ/ปฏิเสธ
 window.approveMember = async function(uid) {
