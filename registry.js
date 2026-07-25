@@ -1,6 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+// ==========================================
+// 1. ตั้งค่า Firebase และตัวแปรระบบ
+// ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyCNsfEd11Yv2kNCO_T3s07WJ1eAXUyhssE",
     authDomain: "bangkaew-pet-db.firebaseapp.com",
@@ -11,15 +14,17 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const LIFF_ID = "2010813512-UqwFMq5V"; // ใช้ LIFF ID เดิม
+
+// รหัส LIFF ใหม่สำหรับหน้าระบบทะเบียน
+const LIFF_ID = "2010813512-UqwFMq5V"; 
 
 let userProfileData = null;
 let currentHouseholdKey = "";
 let currentPetBase64 = ""; 
 window.currentEditPetId = null; // ตัวแปรเก็บ ID สัตว์ตอนกดแก้ไข
-window.myPetsData = {}; // เก็บข้อมูลสัตว์ไว้ดึงตอนแก้ไข
+window.myPetsData = {}; // แคชข้อมูลสัตว์ไว้ดึงตอนแก้ไขและดูใบรับรอง
 
-// รูปรอยเท้าแบบ SVG สำหรับเป็นค่าเริ่มต้น
+// รูปรอยเท้าแบบ SVG (ภาพตั้งต้นไม่แตกแน่นอน)
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -28,6 +33,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setupPetForm();
 });
 
+// ==========================================
+// 2. LIFF & โหลดข้อมูลผู้ใช้
+// ==========================================
 async function initializeLiff() {
     try {
         await liff.init({ liffId: LIFF_ID });
@@ -59,6 +67,9 @@ async function checkUserData() {
     } catch (error) { console.error("Error", error); }
 }
 
+// ==========================================
+// 3. ระบบยืนยันที่อยู่อาศัย (หน้าแรก)
+// ==========================================
 function setupHouseholdForm() {
     document.getElementById("hh-is-rental").addEventListener("change", (e) => {
         document.getElementById("hh-room-group").style.display = e.target.checked ? "block" : "none";
@@ -101,6 +112,9 @@ function setupHouseholdForm() {
     });
 }
 
+// ==========================================
+// 4. โหลดข้อมูลสัตว์เลี้ยง (แดชบอร์ด)
+// ==========================================
 async function loadMyPets() {
     const container = document.getElementById("pet-cards-container");
     container.innerHTML = "<p style='color: #D4AF37; text-align: center;'>กำลังโหลดข้อมูลสัตว์เลี้ยง...</p>";
@@ -113,6 +127,7 @@ async function loadMyPets() {
         window.myPetsData = {}; // รีเซ็ตข้อมูลแคช
         let count = 0;
 
+        // ดึงปีวัคซีนปัจจุบันจาก config (ถ้าแอดมินยังไม่ตั้ง จะใช้ 2569 แทน)
         const configDoc = await getDoc(doc(db, "system_config", "main_config"));
         let currentVaccineYear = 2569; 
         if (configDoc.exists() && configDoc.data().current_vaccine_year) {
@@ -124,7 +139,7 @@ async function loadMyPets() {
             if(pet.status === "cancelled" || pet.status === "deceased" || pet.status === "moved") return;
             count++;
             
-            window.myPetsData[d.id] = pet; // เก็บข้อมูลไว้ให้ฟังก์ชัน Edit ดึงไปใช้
+            window.myPetsData[d.id] = pet; // เก็บข้อมูลไว้ให้ฟังก์ชัน Edit / View ดึงไปใช้
 
             let vacBadge = "";
             let vacYear = parseInt(pet.vaccine_year || 0);
@@ -144,16 +159,18 @@ async function loadMyPets() {
             const imgUrl = pet.pet_photo_base64 || defaultPlaceholder;
             const neuterText = pet.neuter_status === "ทำหมันแล้ว" ? " (ทำหมันแล้ว)" : "";
 
+            // เขียน HTML การ์ด
             container.insertAdjacentHTML('beforeend', `
                 <div class="pet-card">
                     <img src="${imgUrl}" class="pet-photo" alt="${pet.pet_name}">
                     <div class="pet-info">
                         <div class="pet-name">${pet.pet_name}</div>
-                        <div style="font-size: 13px;">${pet.pet_type} ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี${neuterText}</div>
+                        <div>${pet.pet_type} ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี${neuterText}</div>
                         <div style="font-size: 13px; color: #A0B0C0;">พันธุ์: ${pet.breed || '-'}</div>
                         ${vacBadge}
                     </div>
                     <div class="card-actions">
+                        <button class="btn-action-small" style="color: #F5A623; border-color: rgba(245, 166, 35, 0.4);" onclick="viewCertificate('${d.id}')">📄 ใบรับรอง</button>
                         <button class="btn-action-small btn-edit" onclick="editPet('${d.id}')">✏️ แก้ไข</button>
                         <button class="btn-action-small btn-delete" onclick="softDeletePet('${d.id}')">แจ้งตาย/ย้าย</button>
                     </div>
@@ -172,7 +189,38 @@ async function loadMyPets() {
     }
 }
 
-// ฟังก์ชันเปิดโหมดแก้ไข (ดึงข้อมูลเดิมมาใส่ฟอร์ม)
+// ==========================================
+// 5. ฟังก์ชันเปิดใบรับรอง / แก้ไข / ลบ
+// ==========================================
+window.viewCertificate = function(docId) {
+    const pet = window.myPetsData[docId];
+    if(!pet) return;
+
+    // ยัดข้อมูลใส่ด้านหน้าบัตร
+    document.getElementById("cert-img").src = pet.pet_photo_base64 || defaultPlaceholder;
+    document.getElementById("cert-pet-name").textContent = pet.pet_name;
+    document.getElementById("cert-pet-detail").textContent = `${pet.pet_type} | ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี`;
+    document.getElementById("cert-owner").textContent = pet.owner_name;
+    document.getElementById("cert-address").textContent = `${pet.house_no} ม.${pet.village_no}`;
+    
+    if (pet.vaccine_status === "ฉีดแล้ว") {
+        document.getElementById("cert-vac-status").textContent = `ฉีดแล้ว (ปี ${pet.vaccine_year})`;
+        document.getElementById("cert-vac-status").style.color = "#50E3C2";
+        document.getElementById("cert-vac-detail").textContent = pet.vaccine_brand ? `${pet.vaccine_brand} (Lot: ${pet.vaccine_lot || '-'})` : "ข้อมูลวัคซีนบันทึกโดยเจ้าของสัตว์";
+    } else {
+        document.getElementById("cert-vac-status").textContent = "ยังไม่เคยฉีดวัคซีน";
+        document.getElementById("cert-vac-status").style.color = "#ff6b6b";
+        document.getElementById("cert-vac-detail").textContent = "-";
+    }
+    
+    // ยัดข้อมูลผู้เซ็นชื่อ (ด้านหลังบัตร)
+    document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "(รอการยืนยันจากเจ้าหน้าที่หน้างาน)";
+
+    // รีเซ็ตสถานะการพลิกบัตร และเปิด Modal
+    document.getElementById("pet-cert-card").classList.remove("flipped");
+    document.getElementById("cert-modal").style.display = "flex";
+}
+
 window.editPet = function(docId) {
     const pet = window.myPetsData[docId];
     if(!pet) return;
@@ -181,7 +229,6 @@ window.editPet = function(docId) {
     document.getElementById("form-title").textContent = "✏️ แก้ไขข้อมูลสัตว์เลี้ยง";
     document.getElementById("btn-save-pet").textContent = "💾 บันทึกการแก้ไข";
     
-    // ใส่ค่าเดิมลงในช่อง
     document.getElementById("p-name").value = pet.pet_name || "";
     document.getElementById("p-type").value = pet.pet_type || "";
     document.getElementById("p-gender").value = pet.pet_gender || "";
@@ -213,14 +260,15 @@ window.softDeletePet = async function(docId) {
     }
 }
 
+// ==========================================
+// 6. ระบบฟอร์ม และ อัปโหลดรูป
+// ==========================================
 function setupPetForm() {
-    // ปุ่มเปิดฟอร์ม (โหมดเพิ่มใหม่)
     document.getElementById("btn-show-add-pet").addEventListener("click", () => {
-        window.currentEditPetId = null; // รีเซ็ตค่าว่าไม่ใช่การแก้
+        window.currentEditPetId = null; 
         document.getElementById("form-title").textContent = "+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่";
         document.getElementById("btn-save-pet").textContent = "💾 บันทึกทะเบียน";
         
-        // ล้างฟอร์ม
         document.querySelectorAll("#add-pet-container input[type='text'], #add-pet-container input[type='number']").forEach(i => i.value = "");
         document.querySelectorAll("#add-pet-container select").forEach(s => s.selectedIndex = 0);
         document.getElementById("p-age-year").value = "0";
@@ -239,12 +287,11 @@ function setupPetForm() {
         document.getElementById("dashboard-container").style.display = "block";
     });
 
-    // แสดงซ่อนช่องปีวัคซีน
     document.getElementById("p-vac-status").addEventListener("change", (e) => {
         document.getElementById("vac-year-group").style.display = e.target.value === "ฉีดแล้ว" ? "block" : "none";
     });
 
-    // อัปโหลดและบีบอัดภาพ Base64
+    // บีบอัดภาพ
     document.getElementById("pet-image-upload").addEventListener("change", (e) => {
         const file = e.target.files[0];
         if(!file) return;
@@ -272,7 +319,7 @@ function setupPetForm() {
         reader.readAsDataURL(file);
     });
 
-    // บันทึก หรือ อัปเดตข้อมูล
+    // บันทึก/อัปเดตข้อมูล
     document.getElementById("btn-save-pet").addEventListener("click", async () => {
         const pName = document.getElementById("p-name").value;
         const pType = document.getElementById("p-type").value;
@@ -312,11 +359,11 @@ function setupPetForm() {
             };
 
             if (window.currentEditPetId) {
-                // อัปเดตข้อมูลสัตว์ตัวเดิม
+                // โหมดอัปเดต
                 await updateDoc(doc(db, "pets", window.currentEditPetId), petData);
                 alert("แก้ไขข้อมูลสัตว์เลี้ยงสำเร็จ!");
             } else {
-                // เพิ่มข้อมูลสัตว์ตัวใหม่
+                // โหมดเพิ่มใหม่
                 const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
                 const u = userSnap.data();
                 
