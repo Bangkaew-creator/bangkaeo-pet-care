@@ -26,7 +26,6 @@
 
         .modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         
-        /* ลายเซ็น */
         #signature-pad { border: 2px dashed rgba(212, 175, 55, 0.5); background: #E0E5EC; border-radius: 8px; width: 100%; height: 150px; cursor: crosshair; touch-action: none; }
         .consent-box { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; font-size: 12px; color: #A0B0C0; line-height: 1.6; max-height: 150px; overflow-y: auto; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); text-align: left; }
     </style>
@@ -67,7 +66,6 @@
             <img id="user-profile-img" src="" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #D4AF37; display: none;">
         </div>
         
-        <!-- แถบประกาศโครงการทำหมัน + โควตา -->
         <div id="neuter-banner-container" style="display: none; margin-bottom: 20px;">
             <div class="card neumorphic" style="padding: 15px; border: 1px solid rgba(80, 227, 194, 0.3);">
                 <h3 class="section-title" style="color: #50E3C2; margin-bottom: 15px;">📊 สถานะคิวโครงการปัจจุบัน</h3>
@@ -93,11 +91,10 @@
         <div id="pet-cards-container"></div>
     </div>
 
-    <!-- ฟอร์มเพิ่มสัตว์เลี้ยง (ซ่อนไว้) -->
+    <!-- ฟอร์มเพิ่มสัตว์เลี้ยง -->
     <div id="add-pet-container" class="container" style="display: none;">
         <div class="project-header"><h3 id="form-title">+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่</h3></div>
         <div class="card neumorphic">
-            <!-- ข้อมูลรูปถ่ายและฟอร์มต่างๆ แบบเดิม -->
             <div style="text-align: center; margin-bottom: 25px;">
                 <h3 class="section-title">📷 รูปถ่ายสัตว์เลี้ยง</h3>
                 <img id="pet-image-preview" src="" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #D4AF37; margin-bottom: 10px; cursor: pointer; background: #1b2941;" onclick="document.getElementById('pet-image-upload').click()">
@@ -133,7 +130,7 @@
         </div>
     </div>
 
-    <!-- ================= Modal แจ้งเตือนสายพันธุ์งดรับทำหมัน ================= -->
+    <!-- Modal แจ้งเตือนสายพันธุ์งดรับทำหมัน -->
     <div id="breed-warning-modal" class="modal-overlay">
         <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
             <h3 class="section-title" style="color: #ff6b6b; border-bottom-color: rgba(255, 107, 107, 0.3);">⚠️ แจ้งเตือนเงื่อนไข</h3>
@@ -141,12 +138,12 @@
                 สงวนสิทธิ์ <strong style="color:#ff6b6b;">ไม่ทำหมัน</strong> ให้แก่สุนัขและแมว หน้าสั้น พันธุ์เล็ก เช่น ปอม ชิสุห์ ชิวาว่า เปอร์เซีย บริติสช็อตแฮร์ เป็นต้น <br><br>
                 <span style="color:#A0B0C0; font-size:12px;">* เนื่องจากมีความเสี่ยงสูงในการวางยาสลบ หากนำมาในวันงาน สัตวแพทย์มีสิทธิ์ปฏิเสธการผ่าตัด</span>
             </p>
-            <button type="button" onclick="acceptBreedWarning()" class="neumorphic-btn gold-btn" style="width: 100%;">รับทราบและดำเนินการต่อ</button>
+            <button type="button" id="btn-accept-breed-warning" class="neumorphic-btn gold-btn" style="width: 100%;">รับทราบและดำเนินการต่อ</button>
             <button type="button" onclick="document.getElementById('breed-warning-modal').style.display='none'" class="neumorphic-btn outline-btn" style="width: 100%; margin-top: 10px;">ยกเลิก</button>
         </div>
     </div>
 
-    <!-- ================= Modal ใบยินยอมผ่าตัด และเซ็นชื่อ ================= -->
+    <!-- Modal ใบยินยอมผ่าตัด และเซ็นชื่อ -->
     <div id="consent-modal" class="modal-overlay">
         <div class="card neumorphic" style="width: 100%; max-width: 400px; padding: 20px; text-align: center; max-height: 95vh; overflow-y: auto;">
             <h3 style="color: #F5A623; margin-bottom: 10px;">📄 ใบยินยอมรับการผ่าตัด</h3>
@@ -169,19 +166,19 @@
             <div style="margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
                     <label style="font-size: 13px; color: #A0B0C0;">เซ็นชื่อเจ้าของสัตว์ (ใช้นิ้ววาดลงในกรอบ)</label>
-                    <button type="button" onclick="clearSignature()" style="background: none; border: none; color: #ff6b6b; font-size: 12px; cursor: pointer; text-decoration: underline;">ล้างลายเซ็น</button>
+                    <button type="button" id="btn-clear-signature" style="background: none; border: none; color: #ff6b6b; font-size: 12px; cursor: pointer; text-decoration: underline;">ล้างลายเซ็น</button>
                 </div>
                 <canvas id="signature-pad"></canvas>
             </div>
 
             <div class="row">
-                <button onclick="document.getElementById('consent-modal').style.display='none'" class="neumorphic-btn outline-btn half">ยกเลิก</button>
-                <button id="btn-confirm-booking" class="neumorphic-btn gold-btn half" style="background: #50E3C2; border-color: #50E3C2; color: #141E30;">ยืนยันจองคิว</button>
+                <button type="button" id="btn-close-consent" class="neumorphic-btn outline-btn half">ยกเลิก</button>
+                <button type="button" id="btn-confirm-booking" class="neumorphic-btn gold-btn half" style="background: #50E3C2; border-color: #50E3C2; color: #141E30;">ยืนยันจองคิว</button>
             </div>
         </div>
     </div>
 
-    <!-- ================= บัตรคิวทำหมันดิจิทัล (แบบมีข้อปฏิบัติ 8 ข้อ) ================= -->
+    <!-- บัตรคิวทำหมันดิจิทัล -->
     <div id="neuter-ticket-modal" class="modal-overlay">
         <div class="card neumorphic" style="width: 100%; max-width: 360px; border: 2px solid #50E3C2; padding: 0; overflow: hidden; background: #141E30;">
             <div style="background: rgba(80, 227, 194, 0.1); padding: 20px; text-align: center; border-bottom: 1px dashed rgba(80, 227, 194, 0.3);">
@@ -191,7 +188,7 @@
                 <div style="background: rgba(20, 30, 48, 0.9); border: 1px solid #50E3C2; border-radius: 12px; padding: 20px; margin-top: 15px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
                     <div style="font-size: 12px; color: #A0B0C0;">ลำดับคิวของท่าน</div>
                     <div id="tk-queue-no" style="font-size: 60px; font-weight: bold; color: #50E3C2; line-height: 1.1; margin: 5px 0;">#00</div>
-                    <div id="tk-pet-name" style="font-size: 16px; color: #D4AF37; font-weight: bold;">-</div>
+                    <div id="tk-pet-name" style="font-size: 16px; color: #D4AF37; margin-top: 5px; font-weight: bold;">-</div>
                 </div>
             </div>
 
@@ -215,7 +212,7 @@
                 </div>
             </div>
             <div style="padding: 0 15px 15px;">
-                <button onclick="document.getElementById('neuter-ticket-modal').style.display='none'" class="neumorphic-btn gold-btn" style="width: 100%;">ตกลง / ปิดหน้าต่าง</button>
+                <button type="button" onclick="document.getElementById('neuter-ticket-modal').style.display='none'" class="neumorphic-btn gold-btn" style="width: 100%;">ตกลง / ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
