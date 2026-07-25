@@ -17,6 +17,8 @@ let userProfileData = null;
 let currentHouseholdKey = "";
 let currentUserIsHead = false;
 let currentPetBase64 = ""; 
+let sysConfig = null; // แคชการตั้งค่าระบบจากแอดมิน
+
 window.currentEditPetId = null; 
 window.myPetsData = {}; 
 
@@ -37,9 +39,17 @@ async function initializeLiff() {
             userProfileData = await liff.getProfile();
             document.getElementById("user-profile-img").src = userProfileData.pictureUrl;
             document.getElementById("user-profile-img").style.display = "block";
+            await loadSystemConfig();
             checkUserData();
         }
     } catch (err) { console.error("LIFF Init Error", err); }
+}
+
+async function loadSystemConfig() {
+    try {
+        const confSnap = await getDoc(doc(db, "system_config", "main_config"));
+        if(confSnap.exists()) sysConfig = confSnap.data();
+    } catch(e) { console.error("Error loading config:", e); }
 }
 
 async function checkUserData() {
@@ -52,15 +62,13 @@ async function checkUserData() {
             currentHouseholdKey = u.house_village_search || `${u.house_no}-${u.village_no}`;
             currentUserIsHead = u.is_head || false;
             
-            // เช็กสถานะการอนุมัติ
             if (u.household_status === "pending") {
-                // รอเจ้าของบ้านอนุมัติ
                 document.getElementById("pending-house-info").textContent = `${u.house_no} หมู่ ${u.village_no}`;
                 document.getElementById("pending-approval-container").style.display = "block";
             } else {
-                // อนุมัติแล้ว หรือ เป็นเจ้าของบ้าน
                 document.getElementById("display-household-info").textContent = `บ้านเลขที่ ${u.house_no} หมู่ ${u.village_no}`;
                 document.getElementById("dashboard-container").style.display = "block";
+                checkNeuterCampaignBanner();
                 loadMyPets();
             }
         } else {
@@ -69,18 +77,29 @@ async function checkUserData() {
     } catch (error) { console.error("Error", error); }
 }
 
+// ตรวจสอบว่าจะโชว์แถบประกาศทำหมันหรือไม่
+function checkNeuterCampaignBanner() {
+    if(!sysConfig || !sysConfig.nt_start_reg || !sysConfig.nt_end_reg) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    if(today >= sysConfig.nt_start_reg && today <= sysConfig.nt_end_reg) {
+        document.getElementById("neuter-banner-container").style.display = "block";
+        document.getElementById("neuter-banner-detail").textContent = `กำหนดวันผ่าตัดทำหมัน: ${sysConfig.nt_date || 'ตามนัดหมาย'} ณ ${sysConfig.nt_location || 'สถานที่ของหน่วยงาน'} (เปิดรับจองถึงวันที่ ${sysConfig.nt_end_reg})`;
+    }
+}
+
 function setupHouseholdForm() {
     document.getElementById("hh-is-rental").addEventListener("change", (e) => {
         document.getElementById("hh-room-group").style.display = e.target.checked ? "block" : "none";
     });
 
     document.getElementById("btn-register-household").addEventListener("click", async () => {
-        const name = document.getElementById("hh-name").value;
-        const phone = document.getElementById("hh-phone").value;
-        const hNo = document.getElementById("hh-house-no").value;
+        const name = document.getElementById("hh-name").value.trim();
+        const phone = document.getElementById("hh-phone").value.trim();
+        const hNo = document.getElementById("hh-house-no").value.trim();
         const vNo = document.getElementById("hh-village-no").value;
         const isRental = document.getElementById("hh-is-rental").checked;
-        const roomNo = document.getElementById("hh-room-no").value;
+        const roomNo = document.getElementById("hh-room-no").value.trim();
 
         if(!name || !phone || !hNo || !vNo) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
 
@@ -89,8 +108,6 @@ function setupHouseholdForm() {
 
         try {
             const hKey = `${hNo}-${vNo}`;
-            
-            // ลอจิกใหม่: เช็กแค่ว่ามีใครเคยลงบ้านเลขที่นี้ไว้หรือยัง (ครอบคลุมทั้งระบบเก่าและใหม่)
             const houseQuery = query(collection(db, "users"), where("house_no", "==", hNo), where("village_no", "==", vNo));
             const houseSnap = await getDocs(houseQuery);
             const isFirstPerson = houseSnap.empty; 
@@ -105,17 +122,16 @@ function setupHouseholdForm() {
                 line_displayName: userProfileData.displayName,
                 picture_url: userProfileData.pictureUrl,
                 house_village_search: hKey,
-                is_head: isFirstPerson, // ถ้าบ้านว่าง คนแรกจะได้เป็นเจ้าของ
-                household_status: isFirstPerson ? "approved" : "pending", // ถ้ามีคนอยู่แล้ว จะต้องรออนุมัติ
+                is_head: isFirstPerson,
+                household_status: isFirstPerson ? "approved" : "pending",
                 updated_at: serverTimestamp()
-            }, { merge: true }); // ใช้ merge ป้องกันข้อมูลเก่าหาย
+            }, { merge: true });
 
             document.getElementById("household-setup-container").style.display = "none";
             checkUserData(); 
             
-        } catch (e) {
-            console.error(e); alert("เกิดข้อผิดพลาด");
-        } finally { btn.disabled = false; btn.textContent = "ยืนยันข้อมูล ➔"; }
+        } catch (e) { console.error(e); alert("เกิดข้อผิดพลาด"); } 
+        finally { btn.disabled = false; btn.textContent = "ยืนยันข้อมูล ➔"; }
     });
 }
 
@@ -123,10 +139,7 @@ async function loadMyPets() {
     const container = document.getElementById("pet-cards-container");
     container.innerHTML = "<p style='color: #D4AF37; text-align: center;'>กำลังโหลดข้อมูลสัตว์เลี้ยง...</p>";
 
-    // ถ้าเป็นเจ้าของบ้าน ให้เช็กคำขออนุมัติด้วย
-    if (currentUserIsHead) {
-        checkPendingMembers();
-    }
+    if (currentUserIsHead) checkPendingMembers();
 
     try {
         const q = query(collection(db, "pets"), where("house_village_search", "==", currentHouseholdKey));
@@ -136,11 +149,8 @@ async function loadMyPets() {
         window.myPetsData = {}; 
         let count = 0;
 
-        const configDoc = await getDoc(doc(db, "system_config", "main_config"));
-        let currentVaccineYear = 2569; 
-        if (configDoc.exists() && configDoc.data().current_vaccine_year) {
-            currentVaccineYear = parseInt(configDoc.data().current_vaccine_year);
-        }
+        let currentVaccineYear = sysConfig ? (sysConfig.current_vaccine_year || 2569) : 2569;
+        const today = new Date().toISOString().split('T')[0];
 
         snap.forEach(d => {
             const pet = d.data();
@@ -149,19 +159,29 @@ async function loadMyPets() {
             
             window.myPetsData[d.id] = pet; 
 
+            // สถิติวัดวัคซีน
             let vacBadge = "";
             let vacYear = parseInt(pet.vaccine_year || 0);
 
             if (pet.vaccine_status === "ฉีดแล้ว") {
-                if (vacYear === currentVaccineYear) {
-                    vacBadge = `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${vacYear})</span>`;
-                } else if (vacYear === currentVaccineYear - 1) {
-                    vacBadge = `<span class="vaccine-badge badge-yellow">🟡 ใกล้ถึงกำหนดฉีดซ้ำ</span>`;
-                } else {
-                    vacBadge = `<span class="vaccine-badge badge-red">🔴 ขาดการต่อวัคซีน</span>`;
-                }
+                if (vacYear === currentVaccineYear) vacBadge = `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${vacYear})</span>`;
+                else if (vacYear === currentVaccineYear - 1) vacBadge = `<span class="vaccine-badge badge-yellow">🟡 ใกล้ถึงกำหนดฉีดซ้ำ</span>`;
+                else vacBadge = `<span class="vaccine-badge badge-red">🔴 ขาดการต่อวัคซีน</span>`;
             } else {
                 vacBadge = `<span class="vaccine-badge badge-red">🔴 ยังไม่เคยฉีดวัคซีน</span>`;
+            }
+
+            // ปุ่มทำหมัน (เฟส 3)
+            let neuterBtn = "";
+            if (pet.neuter_status === "ทำหมันแล้ว") {
+                neuterBtn = `<div style="font-size:11px; color:#50E3C2; text-align:center; margin-top:2px;">✂️ ทำหมันแล้ว</div>`;
+            } else if (pet.neuter_booking && pet.neuter_booking.status === "booked") {
+                // จองคิวแล้ว -> แสดงปุ่มดูบัตรคิว
+                neuterBtn = `<button class="btn-action-small btn-neuter-ticket" onclick="viewNeuterTicket('${d.id}')">🎫 คิวที่ #${pet.neuter_booking.queue_no}</button>`;
+            } else if (sysConfig && sysConfig.nt_start_reg && sysConfig.nt_end_reg) {
+                if (today >= sysConfig.nt_start_reg && today <= sysConfig.nt_end_reg) {
+                    neuterBtn = `<button class="btn-action-small btn-neuter" onclick="bookNeuter('${d.id}')">✂️ จองทำหมัน</button>`;
+                }
             }
 
             const imgUrl = pet.pet_photo_base64 || defaultPlaceholder;
@@ -177,6 +197,7 @@ async function loadMyPets() {
                         ${vacBadge}
                     </div>
                     <div class="card-actions">
+                        ${neuterBtn}
                         <button class="btn-action-small" style="color: #F5A623; border-color: rgba(245, 166, 35, 0.4);" onclick="viewCertificate('${d.id}')">📄 ใบรับรอง</button>
                         <button class="btn-action-small btn-edit" onclick="editPet('${d.id}')">✏️ แก้ไข</button>
                         <button class="btn-action-small btn-delete" onclick="softDeletePet('${d.id}')">แจ้งตาย/ย้าย</button>
@@ -188,19 +209,74 @@ async function loadMyPets() {
         if (count === 0) {
             container.innerHTML = `<div style="text-align: center; padding: 30px; background: rgba(255,255,255,0.05); border-radius: 10px;"><p style="color: #A0B0C0;">ยังไม่มีข้อมูลสัตว์เลี้ยงในบ้านของท่าน</p></div>`;
         }
-    } catch (e) {
-        console.error(e); container.innerHTML = "<p style='color: red;'>เกิดข้อผิดพลาดในการดึงข้อมูล</p>";
+    } catch (e) { console.error(e); container.innerHTML = "<p style='color: red;'>เกิดข้อผิดพลาดในการดึงข้อมูล</p>"; }
+}
+
+// ==========================================
+// ระบบจองคิว และ ออกบัตรคิวทำหมัน (เฟส 3)
+// ==========================================
+window.bookNeuter = async function(docId) {
+    const pet = window.myPetsData[docId];
+    if(!pet) return;
+
+    if(!confirm(`ยืนยันการจองคิวผ่าตัดทำหมันฟรี สำหรับ "${pet.pet_name}" ?`)) return;
+
+    document.getElementById("loading").style.display = "flex";
+    document.getElementById("loading").textContent = "กำลังออกคิวจองทำหมัน...";
+
+    try {
+        // นับจำนวนสัตว์ที่จองคิวไว้แล้วทั้งหมด เพื่อสร้างเลขคิว
+        const qCount = query(collection(db, "pets"), where("neuter_booking.status", "==", "booked"));
+        const snapCount = await getDocs(qCount);
+        const nextQueueNo = snapCount.size + 1;
+
+        const bookingData = {
+            status: "booked",
+            queue_no: nextQueueNo,
+            booked_at: serverTimestamp(),
+            nt_date: sysConfig.nt_date || "-",
+            nt_location: sysConfig.nt_location || "-"
+        };
+
+        // บันทึกลงในเอกสารสัตว์เลี้ยง
+        await updateDoc(doc(db, "pets", docId), { neuter_booking: bookingData });
+
+        document.getElementById("loading").style.display = "none";
+        alert(`จองคิวสำเร็จ! ท่านได้คิวลำดับที่ #${nextQueueNo}`);
+        
+        loadMyPets(); // รีโหลดแดชบอร์ด
+        viewNeuterTicket(docId); // เปิดบัตรคิวทันที
+
+    } catch(e) {
+        document.getElementById("loading").style.display = "none";
+        console.error(e); alert("เกิดข้อผิดพลาดในการจองคิว");
     }
 }
 
-// โหลดรายการลูกบ้านที่ขอเข้าบ้าน (เฉพาะเจ้าของบ้าน)
+window.viewNeuterTicket = function(docId) {
+    const pet = window.myPetsData[docId];
+    if(!pet || !pet.neuter_booking) return;
+
+    const b = pet.neuter_booking;
+    document.getElementById("tk-agency-name").textContent = sysConfig ? (sysConfig.agency_name || "เทศบาลเมืองบางแก้ว") : "เทศบาลเมืองบางแก้ว";
+    document.getElementById("tk-queue-no").textContent = `#${String(b.queue_no).padStart(2, '0')}`;
+    document.getElementById("tk-pet-name").textContent = `${pet.pet_name} (${pet.pet_type} ${pet.pet_gender})`;
+    document.getElementById("tk-date").textContent = b.nt_date || "-";
+    document.getElementById("tk-location").textContent = b.nt_location || "-";
+    document.getElementById("tk-owner").textContent = `${pet.owner_name} (บ้าน ${pet.house_no} ม.${pet.village_no})`;
+
+    document.getElementById("neuter-ticket-modal").style.display = "flex";
+}
+
+// ==========================================
+// ฟังก์ชันของเดิม (ลูกบ้าน, ใบรับรอง, แก้ไข)
+// ==========================================
 async function checkPendingMembers() {
     const container = document.getElementById("approval-requests-container");
     const listDiv = document.getElementById("approval-list");
     container.style.display = "none";
     
     try {
-        // ลอจิกใหม่: ดึงข้อมูลทุกคนในบ้านเลขที่นี้ (ไม่ต้องใช้ where 2 ชั้น เลี่ยงปัญหา Firestore Index)
         const q = query(collection(db, "users"), where("house_village_search", "==", currentHouseholdKey));
         const snap = await getDocs(q);
         
@@ -209,16 +285,13 @@ async function checkPendingMembers() {
         
         snap.forEach(docSnap => {
             const u = docSnap.data();
-            // กรองเฉพาะคนที่สถานะ pending มาโชว์
             if (u.household_status === "pending") {
                 hasPending = true;
                 listDiv.insertAdjacentHTML('beforeend', `
                     <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <img src="${u.picture_url || 'https://via.placeholder.com/35'}" style="width: 35px; height: 35px; border-radius: 50%;">
-                            <div>
-                                <div style="color: #E0E5EC; font-size: 13px;">${u.owner_name}</div>
-                            </div>
+                            <img src="${u.picture_url || defaultPlaceholder}" style="width: 35px; height: 35px; border-radius: 50%;">
+                            <div><div style="color: #E0E5EC; font-size: 13px;">${u.owner_name}</div></div>
                         </div>
                         <div style="display: flex; gap: 5px;">
                             <button onclick="approveMember('${docSnap.id}')" style="background: rgba(80, 227, 194, 0.2); border: 1px solid #50E3C2; color: #50E3C2; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor:pointer;">✔️ รับ</button>
@@ -229,17 +302,10 @@ async function checkPendingMembers() {
             }
         });
 
-        // ถ้ามีคนรออนุมัติ ค่อยเปิดกล่องแจ้งเตือน
-        if (hasPending) {
-            container.style.display = "block";
-        }
-    } catch (e) {
-        console.error("Error loading pending members:", e);
-    }
+        if (hasPending) container.style.display = "block";
+    } catch (e) { console.error("Error loading pending members:", e); }
 }
 
-
-// ฟังก์ชันปุ่มกดอนุมัติ/ปฏิเสธ
 window.approveMember = async function(uid) {
     if(confirm("ยืนยันการอนุมัติให้บุคคลนี้เข้าร่วมบ้าน?")) {
         await updateDoc(doc(db, "users", uid), { household_status: "approved" });
@@ -247,7 +313,7 @@ window.approveMember = async function(uid) {
     }
 }
 window.rejectMember = async function(uid) {
-    if(confirm("ปฏิเสธคำขอ? (ข้อมูลจะถูกลบออก และผู้ใช้ต้องลงทะเบียนใหม่)")) {
+    if(confirm("ปฏิเสธคำขอ?")) {
         await deleteDoc(doc(db, "users", uid));
         checkPendingMembers();
     }
@@ -273,8 +339,7 @@ window.viewCertificate = function(docId) {
         document.getElementById("cert-vac-detail").textContent = "-";
     }
     
-    document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "(รอการยืนยันจากเจ้าหน้าที่หน้างาน)";
-
+    document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "(รอการยืนยันจากหน้างาน)";
     document.getElementById("pet-cert-card").classList.remove("flipped");
     document.getElementById("cert-modal").style.display = "flex";
 }
@@ -309,12 +374,12 @@ window.editPet = function(docId) {
 }
 
 window.softDeletePet = async function(docId) {
-    if(confirm("ยืนยันการแจ้งสถานะ (สัตว์เสียชีวิต หรือ ย้ายถิ่นฐาน)? \nข้อมูลจะถูกซ่อนจากหน้าจอของท่าน แต่ยังคงอยู่ในระบบของเทศบาล")) {
+    if(confirm("ยืนยันการแจ้งสถานะ (สัตว์เสียชีวิต หรือ ย้ายถิ่นฐาน)?")) {
         try {
             await updateDoc(doc(db, "pets", docId), { status: "deceased", updated_at: serverTimestamp() });
-            alert("บันทึกการเปลี่ยนแปลงสถานะเรียบร้อยแล้ว");
+            alert("บันทึกเรียบร้อยแล้ว");
             loadMyPets(); 
-        } catch (e) { alert("เกิดข้อผิดพลาด กรุณาลองใหม่"); }
+        } catch (e) { alert("เกิดข้อผิดพลาด"); }
     }
 }
 
@@ -374,7 +439,7 @@ function setupPetForm() {
     });
 
     document.getElementById("btn-save-pet").addEventListener("click", async () => {
-        const pName = document.getElementById("p-name").value;
+        const pName = document.getElementById("p-name").value.trim();
         const pType = document.getElementById("p-type").value;
         const pGender = document.getElementById("p-gender").value;
         const pRearing = document.getElementById("p-rearing").value;
@@ -382,7 +447,7 @@ function setupPetForm() {
         const pNeuterStatus = document.getElementById("p-neuter-status").value;
 
         if(!pName || !pType || !pGender || !pRearing || !pVacStatus || !pNeuterStatus) {
-            return alert("กรุณากรอกข้อมูลที่มีดอกจันให้ครบถ้วน");
+            return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
         }
 
         let pVacYear = 0;
@@ -399,10 +464,10 @@ function setupPetForm() {
                 pet_name: pName,
                 pet_type: pType,
                 pet_gender: pGender,
-                breed: document.getElementById("p-breed").value,
-                color: document.getElementById("p-color").value,
-                age_year: parseInt(document.getElementById("p-age-year").value),
-                age_month: parseInt(document.getElementById("p-age-month").value),
+                breed: document.getElementById("p-breed").value.trim() || "พันธุ์ทาง",
+                color: document.getElementById("p-color").value.trim() || "ไม่ระบุ",
+                age_year: parseInt(document.getElementById("p-age-year").value) || 0,
+                age_month: parseInt(document.getElementById("p-age-month").value) || 0,
                 rearing_style: pRearing,
                 vaccine_status: pVacStatus,
                 vaccine_year: pVacYear,
@@ -435,11 +500,7 @@ function setupPetForm() {
             document.getElementById("dashboard-container").style.display = "block";
             loadMyPets();
 
-        } catch (e) {
-            console.error(e); alert("เกิดข้อผิดพลาดในการบันทึก");
-        } finally { 
-            btn.disabled = false; 
-            btn.textContent = window.currentEditPetId ? "💾 บันทึกการแก้ไข" : "💾 บันทึกทะเบียน"; 
-        }
+        } catch (e) { console.error(e); alert("เกิดข้อผิดพลาดในการบันทึก"); } 
+        finally { btn.disabled = false; btn.textContent = window.currentEditPetId ? "💾 บันทึกการแก้ไข" : "💾 บันทึกทะเบียน"; }
     });
 }
