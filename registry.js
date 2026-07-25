@@ -219,13 +219,14 @@ async function loadMyPets() {
             let vacBadge = pet.vaccine_status === "ฉีดแล้ว" ? (parseInt(pet.vaccine_year) === currentVaccineYear ? `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${pet.vaccine_year})</span>` : `<span class="vaccine-badge badge-red">🔴 ขาดการต่อวัคซีน</span>`) : `<span class="vaccine-badge badge-red">🔴 ยังไม่เคยฉีด</span>`;
 
             let neuterBtn = "";
+            // ส่วนควบคุมปุ่มจองคิว / บัตรคิว / ยกเลิกคิว (เรียงในบรรทัดเดียวกัน)
             if (pet.neuter_status === "ทำหมันแล้ว") {
-                neuterBtn = `<div style="font-size:11px; color:#A0B0C0; text-align:center;">ทำหมันแล้ว</div>`;
+                neuterBtn = `<div style="font-size:11px; color:#A0B0C0; text-align:center;">✂️ ทำหมันแล้ว</div>`;
             } else if (pet.neuter_booking && pet.neuter_booking.status === "booked") {
                 neuterBtn = `
-                    <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <div style="display: flex; gap: 5px;">
                         <button class="btn-action-small btn-neuter-ticket" style="flex: 1;" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
-                        <button class="btn-action-small btn-delete" style="width: auto; padding: 0 10px;" title="ยกเลิกการจอง" onclick="cancelBooking('${d.id}')">❌</button>
+                        <button class="btn-action-small btn-cancel-neuter" style="width: auto; padding: 0 10px; margin-top: 0;" title="ยกเลิกการจองคิว" onclick="cancelBooking('${d.id}')">❌</button>
                     </div>`;
             } else if (isBookingOpen && currentBookedNeuter < currentTotalNeuterQuota) {
                 neuterBtn = `<button class="btn-action-small btn-neuter" onclick="startBookingFlow('${d.id}')">✂️ จองคิวทำหมัน</button>`;
@@ -242,7 +243,9 @@ async function loadMyPets() {
                     </div>
                     <div class="card-actions">
                         ${neuterBtn}
-                        <button class="btn-action-small" onclick="editPet('${d.id}')">✏️ แก้ไข</button>
+                        <button class="btn-action-small" style="color: #F5A623; border-color: rgba(245, 166, 35, 0.4);" onclick="viewCertificate('${d.id}')">📄 ใบรับรอง</button>
+                        <button class="btn-action-small btn-edit" onclick="editPet('${d.id}')">✏️ แก้ไข</button>
+                        <button class="btn-action-small btn-delete" onclick="softDeletePet('${d.id}')">แจ้งตาย/ย้าย</button>
                     </div>
                 </div>
             `);
@@ -403,6 +406,43 @@ window.cancelBooking = async function(docId) {
         alert("เกิดข้อผิดพลาดในการยกเลิกคิว");
     } finally {
         if(loading) loading.style.display = "none";
+    }
+}
+
+// ฟังก์ชันดูใบรับรอง (นำกลับมา)
+window.viewCertificate = function(docId) {
+    const pet = window.myPetsData[docId];
+    if(!pet) return;
+
+    document.getElementById("cert-img").src = pet.pet_photo_base64 || defaultPlaceholder;
+    document.getElementById("cert-pet-name").textContent = pet.pet_name;
+    document.getElementById("cert-pet-detail").textContent = `${pet.pet_type} | ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี`;
+    document.getElementById("cert-owner").textContent = pet.owner_name;
+    document.getElementById("cert-address").textContent = `${pet.house_no} ม.${pet.village_no}`;
+    
+    if (pet.vaccine_status === "ฉีดแล้ว") {
+        document.getElementById("cert-vac-status").textContent = `ฉีดแล้ว (ปี ${pet.vaccine_year})`;
+        document.getElementById("cert-vac-status").style.color = "#50E3C2";
+        document.getElementById("cert-vac-detail").textContent = pet.vaccine_brand ? `${pet.vaccine_brand} (Lot: ${pet.vaccine_lot || '-'})` : "ข้อมูลวัคซีนบันทึกโดยเจ้าของสัตว์";
+    } else {
+        document.getElementById("cert-vac-status").textContent = "ยังไม่เคยฉีดวัคซีน";
+        document.getElementById("cert-vac-status").style.color = "#ff6b6b";
+        document.getElementById("cert-vac-detail").textContent = "-";
+    }
+    
+    document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "(รอการยืนยันจากหน้างาน)";
+    document.getElementById("pet-cert-card").classList.remove("flipped");
+    document.getElementById("cert-modal").style.display = "flex";
+}
+
+// ฟังก์ชันแจ้งตาย/ย้าย (นำกลับมา)
+window.softDeletePet = async function(docId) {
+    if(confirm("ยืนยันการแจ้งสถานะ (สัตว์เสียชีวิต หรือ ย้ายถิ่นฐาน)?")) {
+        try {
+            await updateDoc(doc(db, "pets", docId), { status: "deceased", updated_at: serverTimestamp() });
+            alert("บันทึกเรียบร้อยแล้ว");
+            loadMyPets(); 
+        } catch (e) { alert("เกิดข้อผิดพลาด"); }
     }
 }
 
