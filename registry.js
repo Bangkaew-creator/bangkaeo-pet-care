@@ -166,12 +166,14 @@ async function updateQuotaAndBanner() {
     currentBookedNeuter = 0;
 
     try {
+        // แก้ไข: ดึงข้อมูลทั้งหมดจากตารางเก่ามานับเองด้วย JS (เพื่อเลี่ยง Index Error)
         const queueRef = collection(db, "vaccine_registrations");
         const snap = await getDocs(queueRef);
         
         snap.forEach(d => {
             const p = d.data();
-            if (p.service_type && p.service_type.includes("ทำหมัน") && p.status !== "cancelled") {
+            // เช็คว่ามีคำว่า "ทำหมัน" หรือไม่ (ดักไว้เผื่อสะกดผิด หรือไม่มีฟิลด์นี้)
+            if (p.service_type && String(p.service_type).includes("ทำหมัน") && p.status !== "cancelled") {
                 currentBookedNeuter++;
             }
         });
@@ -225,15 +227,18 @@ async function loadMyPets() {
             let vacBadge = pet.vaccine_status === "ฉีดแล้ว" ? (parseInt(pet.vaccine_year) === currentVaccineYear ? `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${pet.vaccine_year})</span>` : `<span class="vaccine-badge badge-red">🔴 ขาดการต่อวัคซีน</span>`) : `<span class="vaccine-badge badge-red">🔴 ยังไม่เคยฉีด</span>`;
 
             let neuterBtn = "";
+            // ส่วนควบคุมปุ่ม
             if (pet.neuter_status === "ทำหมันแล้ว") {
                 neuterBtn = `<div style="font-size:11px; color:#A0B0C0; text-align:center;">✂️ ทำหมันแล้ว</div>`;
             } else if (pet.neuter_booking && pet.neuter_booking.status === "booked") {
                 neuterBtn = `
-                    <button class="btn-action-small btn-neuter-ticket" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
-                    <button class="btn-action-small btn-cancel-neuter" onclick="cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>
+                    <button class="btn-action-small btn-neuter-ticket" onclick="window.viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
+                    <button class="btn-action-small btn-cancel-neuter" onclick="window.cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>
                 `;
-            } else if (isBookingOpen && currentBookedNeuter < currentTotalNeuterQuota) {
-                neuterBtn = `<button class="btn-action-small btn-neuter" onclick="startBookingFlow('${d.id}')">✂️ จองคิวทำหมัน</button>`;
+            // แก้ไขเงื่อนไขการโชว์ปุ่มจอง (บางที currentBookedNeuter อาจไม่ได้คำนวณ)
+            } else if (isBookingOpen && (currentBookedNeuter < currentTotalNeuterQuota || !currentTotalNeuterQuota)) {
+                // อัปเดต: เพิ่ม window. นำหน้าฟังก์ชัน เพื่อให้ HTML หาเจอแน่นอน
+                neuterBtn = `<button class="btn-action-small btn-neuter" onclick="window.startBookingFlow('${d.id}')">✂️ จองคิวทำหมัน</button>`;
             }
 
             container.insertAdjacentHTML('beforeend', `
@@ -247,9 +252,9 @@ async function loadMyPets() {
                     </div>
                     <div class="card-actions">
                         ${neuterBtn}
-                        <button class="btn-action-small" style="color: #F5A623; border-color: rgba(245, 166, 35, 0.4);" onclick="viewCertificate('${d.id}')">📄 ใบรับรอง</button>
-                        <button class="btn-action-small btn-edit" onclick="editPet('${d.id}')">✏️ แก้ไข</button>
-                        <button class="btn-action-small btn-delete" onclick="softDeletePet('${d.id}')">แจ้งตาย/ย้าย</button>
+                        <button class="btn-action-small" style="color: #F5A623; border-color: rgba(245, 166, 35, 0.4);" onclick="window.viewCertificate('${d.id}')">📄 ใบรับรอง</button>
+                        <button class="btn-action-small btn-edit" onclick="window.editPet('${d.id}')">✏️ แก้ไข</button>
+                        <button class="btn-action-small btn-delete" onclick="window.softDeletePet('${d.id}')">แจ้งตาย/ย้าย</button>
                     </div>
                 </div>
             `);
@@ -271,22 +276,24 @@ async function submitBooking() {
     btnConfirm.textContent = "กำลังรันคิว...";
 
     try {
-        // [แก้ไข Error Index]: ค้นหาค่าคิวล่าสุดด้วย JS แทนการใช้ Firebase OrderBy
+        // อัปเดต: ค้นหาคิวล่าสุดด้วย JS เพื่อแก้ปัญหา Index
         const queueRef = collection(db, "vaccine_registrations"); 
         const snapQueue = await getDocs(queueRef);
         
         let maxQueue = 0;
         snapQueue.forEach(d => {
             const p = d.data();
-            if (p.service_type && p.service_type.includes("ทำหมัน") && p.queue_number) {
+            // เช็คว่ามีคำว่า "ทำหมัน" และมีฟิลด์ queue_number
+            if (p.service_type && String(p.service_type).includes("ทำหมัน") && p.queue_number) {
                 if (p.queue_number > maxQueue) {
                     maxQueue = p.queue_number;
                 }
             }
         });
         
+        // คิวใหม่คือ คิวสูงสุดที่หาเจอ + 1
         const nextQueueNo = maxQueue + 1;
-        const now = new Date(); // ใช้ Date() แทน serverTimestamp เพื่อป้องกันปัญหา
+        const now = new Date();
 
         const bookingMeta = {
             status: "booked",
@@ -325,7 +332,6 @@ async function submitBooking() {
             timestamp: now
         });
 
-        // จัดรูปแบบข้อความใหม่เพื่อป้องกัน Syntax Error
         const msgText = "✅ ยืนยันการจองคิวทำหมัน\nลำดับคิวของท่านคือ: #" + nextQueueNo + "\n🐾 ชื่อสัตว์เลี้ยง: " + pet.pet_name + "\n🏠 บ้านเลขที่: " + u.house_no + " ม." + u.village_no + "\n\n📌 ข้อปฏิบัติและการเตรียมตัวก่อนทำหมัน\n1. งดน้ำ-งดอาหารสัตว์อย่างน้อย 12 ชั่วโมง (ก่อนทำหมัน) และขังสัตว์ไว้ในพื้นที่มิดชิดไม่สามารถออกมากินอาหารได้\n2. สัตว์ที่มาทำหมันต้องสุขภาพดี ไม่ผอม ไม่ป่วย\n3. อายุสัตว์ที่มาทำหมันต้องอายุตั้งแต่ 6-8 เดือนขึ้นไป\n4. สุนัขเพศเมียที่มาทำหมัน ไม่ควรเป็นสัด (อวัยวะเพศบวมแดง) และมีประจำเดือน เพราะจะทำให้เสียเลือดมาก\n5. สุนัขและแมวที่เพิ่งคลอดลูก ควรพักมดลูก 2 เดือน เพราะถ้ามาทำหมันหลังคลอดเลยจะทำให้มดลูกเปื่อยและขาดได้\n6. ถ้ารู้ว่าสัตว์ท้องไม่ควรนำมาทำหมัน หรือถ้าหมอผ่าแล้วเจอจะเย็บปิดทันที\n7. ⚠️ ลำดับคิวที่ท่านได้รับนี้ เป็นเพียง \"คิวการจองสิทธิ์\" เท่านั้น ท่านจะต้องมาติดต่อรับ \"บัตรคิวผ่าตัดทำหมัน\" ที่หน้างานก่อนเวลา 10.00 น. ของวันเข้ารับบริการ\n8. กรุณาเปิดสมุดทะเบียนสัตว์และแสดงบัตรคิวดิจิทัลแก่เจ้าหน้าที่ในวันงาน";
 
         if (liff.isInClient()) {
@@ -337,7 +343,7 @@ async function submitBooking() {
 
         await updateQuotaAndBanner(); 
         loadMyPets(); 
-        setTimeout(() => { viewNeuterTicket(bookingPetId); }, 500); 
+        setTimeout(() => { window.viewNeuterTicket(bookingPetId); }, 500); 
 
     } catch (e) {
         console.error("Booking Error:", e);
