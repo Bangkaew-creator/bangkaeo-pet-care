@@ -9,20 +9,19 @@ const firebaseConfig = {
     messagingSenderId: "79581962937",
     appId: "1:79581962937:web:aed2a3297cf269afcc7168"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const LIFF_ID = "2010813512-UqwFMq5V"; 
 
 let userProfileData = null;
 let currentHouseholdKey = "";
-let currentUserIsHead = false;
 let currentPetBase64 = ""; 
 let sysConfig = null; 
 
 window.currentEditPetId = null; 
 window.myPetsData = {}; 
 
-// ตัวแปรสำหรับระบบจองคิว
 let signaturePad = null;
 let bookingPetId = null;
 let currentTotalNeuterQuota = 100;
@@ -31,7 +30,6 @@ let currentBookedNeuter = 0;
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
 
 document.addEventListener("DOMContentLoaded", () => {
-    // กำหนดค่า Signature Pad
     const canvas = document.getElementById('signature-pad');
     if(canvas) {
         signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(224, 229, 236)' });
@@ -46,17 +44,42 @@ document.addEventListener("DOMContentLoaded", () => {
         resizeCanvas();
     }
 
-    document.getElementById("btn-confirm-booking").addEventListener("click", submitBooking);
+    const btnAcceptBreed = document.getElementById("btn-accept-breed-warning");
+    if(btnAcceptBreed) btnAcceptBreed.addEventListener("click", window.acceptBreedWarning);
+
+    const btnClearSig = document.getElementById("btn-clear-signature");
+    if(btnClearSig) btnClearSig.addEventListener("click", window.clearSignature);
+
+    const btnCloseConsent = document.getElementById("btn-close-consent");
+    if(btnCloseConsent) btnCloseConsent.addEventListener("click", window.closeConsentModal);
+
+    const btnConfirmBooking = document.getElementById("btn-confirm-booking");
+    if(btnConfirmBooking) btnConfirmBooking.addEventListener("click", submitBooking);
+
     initializeLiff();
     setupHouseholdForm();
     setupPetForm();
 });
 
-window.clearSignature = function() { if(signaturePad) signaturePad.clear(); }
+window.clearSignature = function() { 
+    if(signaturePad) signaturePad.clear(); 
+}
+
 window.closeConsentModal = function() {
     document.getElementById("consent-modal").style.display = "none";
     if(signaturePad) signaturePad.clear();
     document.getElementById("accept-consent").checked = false;
+}
+
+window.acceptBreedWarning = function() {
+    document.getElementById("breed-warning-modal").style.display = "none";
+    const pet = window.myPetsData[bookingPetId];
+    if(!pet) return;
+    
+    document.getElementById("consent-pet-name").textContent = `${pet.pet_name} (${pet.pet_type})`;
+    document.getElementById("accept-consent").checked = false;
+    if(signaturePad) signaturePad.clear();
+    document.getElementById("consent-modal").style.display = "flex";
 }
 
 async function initializeLiff() {
@@ -65,8 +88,11 @@ async function initializeLiff() {
         if (!liff.isLoggedIn()) liff.login();
         else {
             userProfileData = await liff.getProfile();
-            document.getElementById("user-profile-img").src = userProfileData.pictureUrl;
-            document.getElementById("user-profile-img").style.display = "block";
+            const img = document.getElementById("user-profile-img");
+            if(img) {
+                img.src = userProfileData.pictureUrl;
+                img.style.display = "block";
+            }
             await loadSystemConfig();
             checkUserData();
         }
@@ -83,7 +109,8 @@ async function loadSystemConfig() {
 async function checkUserData() {
     try {
         const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
-        document.getElementById("loading").style.display = "none";
+        const loading = document.getElementById("loading");
+        if(loading) loading.style.display = "none";
         
         if (userSnap.exists()) {
             const u = userSnap.data();
@@ -100,33 +127,34 @@ async function checkUserData() {
 }
 
 function setupHouseholdForm() {
-    document.getElementById("btn-register-household").addEventListener("click", async () => {
-        const name = document.getElementById("hh-name").value.trim();
-        const phone = document.getElementById("hh-phone").value.trim();
-        const hNo = document.getElementById("hh-house-no").value.trim();
-        const vNo = document.getElementById("hh-village-no").value;
+    const btnRegHouse = document.getElementById("btn-register-household");
+    if(btnRegHouse) {
+        btnRegHouse.addEventListener("click", async () => {
+            const name = document.getElementById("hh-name").value.trim();
+            const phone = document.getElementById("hh-phone").value.trim();
+            const hNo = document.getElementById("hh-house-no").value.trim();
+            const vNo = document.getElementById("hh-village-no").value;
 
-        if(!name || !phone || !hNo || !vNo) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+            if(!name || !phone || !hNo || !vNo) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
 
-        const btn = document.getElementById("btn-register-household");
-        btn.disabled = true; btn.textContent = "กำลังบันทึก...";
+            btnRegHouse.disabled = true; 
+            btnRegHouse.textContent = "กำลังบันทึก...";
 
-        try {
-            await setDoc(doc(db, "users", userProfileData.userId), {
-                owner_name: name, phone_number: phone, house_no: hNo, village_no: vNo,
-                line_displayName: userProfileData.displayName, picture_url: userProfileData.pictureUrl,
-                house_village_search: `${hNo}-${vNo}`, is_head: true, updated_at: serverTimestamp()
-            }, { merge: true });
+            try {
+                await setDoc(doc(db, "users", userProfileData.userId), {
+                    owner_name: name, phone_number: phone, house_no: hNo, village_no: vNo,
+                    line_displayName: userProfileData.displayName, picture_url: userProfileData.pictureUrl,
+                    house_village_search: `${hNo}-${vNo}`, is_head: true, updated_at: serverTimestamp()
+                }, { merge: true });
 
-            document.getElementById("household-setup-container").style.display = "none";
-            checkUserData(); 
-        } catch (e) { alert("เกิดข้อผิดพลาด"); } finally { btn.disabled = false; }
-    });
+                document.getElementById("household-setup-container").style.display = "none";
+                checkUserData(); 
+            } catch (e) { alert("เกิดข้อผิดพลาด"); } 
+            finally { btnRegHouse.disabled = false; }
+        });
+    }
 }
 
-// ==========================================
-// การโหลดข้อมูล Dashboard (คำนวณคิว & Progress)
-// ==========================================
 async function updateQuotaAndBanner() {
     if(!sysConfig || !sysConfig.nt_start_reg || !sysConfig.nt_end_reg) return;
 
@@ -194,7 +222,6 @@ async function loadMyPets() {
             if (pet.neuter_status === "ทำหมันแล้ว") {
                 neuterBtn = `<div style="font-size:11px; color:#A0B0C0; text-align:center;">ทำหมันแล้ว</div>`;
             } else if (pet.neuter_booking && pet.neuter_booking.status === "booked") {
-                // เพิ่มปุ่มยกเลิกคิว
                 neuterBtn = `
                     <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                         <button class="btn-action-small btn-neuter-ticket" style="flex: 1;" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
@@ -225,23 +252,9 @@ async function loadMyPets() {
     } catch (e) { console.error(e); }
 }
 
-// ==========================================
-// ระบบจองคิวทำหมัน (เชื่อมฐานเดิม)
-// ==========================================
 window.startBookingFlow = function(docId) {
     bookingPetId = docId;
     document.getElementById("breed-warning-modal").style.display = "flex";
-}
-
-window.acceptBreedWarning = function() {
-    document.getElementById("breed-warning-modal").style.display = "none";
-    const pet = window.myPetsData[bookingPetId];
-    if(!pet) return;
-    
-    document.getElementById("consent-pet-name").textContent = `${pet.pet_name} (${pet.pet_type})`;
-    document.getElementById("accept-consent").checked = false;
-    if(signaturePad) signaturePad.clear();
-    document.getElementById("consent-modal").style.display = "flex";
 }
 
 async function submitBooking() {
@@ -251,8 +264,9 @@ async function submitBooking() {
     const pet = window.myPetsData[bookingPetId];
     const signatureData = signaturePad.toDataURL(); 
 
-    document.getElementById("btn-confirm-booking").disabled = true;
-    document.getElementById("btn-confirm-booking").textContent = "กำลังรันคิว...";
+    const btnConfirm = document.getElementById("btn-confirm-booking");
+    btnConfirm.disabled = true;
+    btnConfirm.textContent = "กำลังรันคิว...";
 
     try {
         const allPetsSnap = await getDocs(collection(db, "pets"));
@@ -275,10 +289,8 @@ async function submitBooking() {
             signature_base64: signatureData 
         };
         
-        // 1. อัปเดตตาราง pets
         await updateDoc(doc(db, "pets", bookingPetId), { neuter_booking: bookingMeta });
 
-        // 2. บันทึกลงตาราง vaccine_registrations (ระบบเก่า)
         const queueRef = collection(db, "vaccine_registrations"); 
         const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
         const u = userSnap.data();
@@ -306,7 +318,6 @@ async function submitBooking() {
             timestamp: serverTimestamp()
         });
 
-        // 3. ส่งข้อความเข้า LINE 
         if (liff.isInClient()) {
             await liff.sendMessages([{
                 type: "text",
@@ -315,21 +326,18 @@ async function submitBooking() {
         }
 
         document.getElementById("consent-modal").style.display = "none";
-        document.getElementById("btn-confirm-booking").disabled = false;
-        document.getElementById("btn-confirm-booking").textContent = "ยืนยันจองคิว";
-
         alert(`🎉 จองคิวสำเร็จ!\nท่านได้รับคิวทำหมันลำดับที่ #${nextQueueNo}`);
 
         await updateQuotaAndBanner(); 
         loadMyPets(); 
-        
         setTimeout(() => { viewNeuterTicket(bookingPetId); }, 500); 
 
     } catch (e) {
         console.error("Booking Error:", e);
         alert("เกิดข้อผิดพลาด ไม่สามารถจองคิวได้");
-        document.getElementById("btn-confirm-booking").disabled = false;
-        document.getElementById("btn-confirm-booking").textContent = "ยืนยันจองคิว";
+    } finally {
+        btnConfirm.disabled = false;
+        btnConfirm.textContent = "ยืนยันจองคิว";
     }
 }
 
@@ -349,20 +357,19 @@ window.viewNeuterTicket = function(docId) {
     document.getElementById("neuter-ticket-modal").style.display = "flex";
 }
 
-// ==========================================
-// ฟังก์ชันยกเลิกคิว (คืนโควตา)
-// ==========================================
 window.cancelBooking = async function(docId) {
     const pet = window.myPetsData[docId];
     if(!pet || !pet.neuter_booking) return;
 
     if(!confirm(`ยืนยันการยกเลิกคิวทำหมันของน้อง ${pet.pet_name} ใช่หรือไม่?\n\n(หากยกเลิกแล้ว โควตาของท่านจะถูกส่งคืนให้ระบบทันที)`)) return;
 
-    document.getElementById("loading").style.display = "flex";
-    document.getElementById("loading").textContent = "กำลังยกเลิกคิว...";
+    const loading = document.getElementById("loading");
+    if(loading) {
+        loading.style.display = "flex";
+        loading.textContent = "กำลังยกเลิกคิว...";
+    }
 
     try {
-        // 1. ค้นหาคิวในระบบเก่า (vaccine_registrations) แล้วลบทิ้ง
         const queueRef = collection(db, "vaccine_registrations");
         const q = query(queueRef, 
             where("pet_name", "==", pet.pet_name), 
@@ -371,17 +378,14 @@ window.cancelBooking = async function(docId) {
         );
         const snap = await getDocs(q);
         
-        // ลบเอกสารจองคิวที่เจอทิ้งทั้งหมด
         snap.forEach(async (d) => {
             await deleteDoc(doc(db, "vaccine_registrations", d.id));
         });
 
-        // 2. เคลียร์ค่า neuter_booking ในสมุดทะเบียน (ให้เป็น null เพื่อให้ปุ่มจองโผล่มาใหม่)
         await updateDoc(doc(db, "pets", docId), {
             neuter_booking: null
         });
 
-        // 3. ส่ง LINE แจ้งเตือนการยกเลิก
         if (liff.isInClient()) {
             await liff.sendMessages([{
                 type: "text",
@@ -389,112 +393,123 @@ window.cancelBooking = async function(docId) {
             }]);
         }
 
-        document.getElementById("loading").style.display = "none";
         alert("ยกเลิกคิวสำเร็จ โควตาได้ถูกส่งคืนสู่ระบบแล้วครับ");
         
-        await updateQuotaAndBanner(); // โหลดหลอดนับโควตาใหม่
-        loadMyPets(); // โหลดหน้าจอใหม่
+        await updateQuotaAndBanner(); 
+        loadMyPets(); 
 
     } catch(e) {
         console.error("Cancel Error:", e);
-        document.getElementById("loading").style.display = "none";
         alert("เกิดข้อผิดพลาดในการยกเลิกคิว");
+    } finally {
+        if(loading) loading.style.display = "none";
     }
 }
 
-// ==========================================
-// ฟังก์ชันจัดการฟอร์มเพิ่ม/แก้ไข สัตว์ 
-// ==========================================
 function setupPetForm() {
-    document.getElementById("btn-show-add-pet").addEventListener("click", () => {
-        window.currentEditPetId = null; 
-        document.getElementById("form-title").textContent = "+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่";
-        
-        document.querySelectorAll("#add-pet-container input[type='text'], #add-pet-container input[type='number']").forEach(i => i.value = "");
-        document.querySelectorAll("#add-pet-container select").forEach(s => s.selectedIndex = 0);
-        document.getElementById("p-age-year").value = "0"; document.getElementById("p-age-month").value = "0";
-        document.getElementById("vac-year-group").style.display = "none";
-        
-        currentPetBase64 = ""; document.getElementById("pet-image-preview").src = defaultPlaceholder;
-
-        document.getElementById("dashboard-container").style.display = "none";
-        document.getElementById("add-pet-container").style.display = "block";
-    });
-
-    document.getElementById("btn-cancel-add").addEventListener("click", () => {
-        document.getElementById("add-pet-container").style.display = "none";
-        document.getElementById("dashboard-container").style.display = "block";
-    });
-
-    document.getElementById("p-vac-status").addEventListener("change", (e) => {
-        document.getElementById("vac-year-group").style.display = e.target.value === "ฉีดแล้ว" ? "block" : "none";
-    });
-
-    document.getElementById("pet-image-upload").addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement("canvas");
-                const MAX_WIDTH = 500; let width = img.width; let height = img.height;
-                if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
-                else { if (height > MAX_WIDTH) { width *= MAX_WIDTH / height; height = MAX_WIDTH; } }
-                canvas.width = width; canvas.height = height;
-                canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-                currentPetBase64 = canvas.toDataURL("image/jpeg", 0.7);
-                document.getElementById("pet-image-preview").src = currentPetBase64;
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
-
-    document.getElementById("btn-save-pet").addEventListener("click", async () => {
-        const pName = document.getElementById("p-name").value.trim();
-        const pType = document.getElementById("p-type").value;
-        const pGender = document.getElementById("p-gender").value;
-        const pRearing = document.getElementById("p-rearing").value;
-        const pVacStatus = document.getElementById("p-vac-status").value;
-        const pNeuterStatus = document.getElementById("p-neuter-status").value;
-
-        if(!pName || !pType || !pGender || !pRearing || !pVacStatus || !pNeuterStatus) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
-
-        let pVacYear = 0;
-        if (pVacStatus === "ฉีดแล้ว") {
-            pVacYear = parseInt(document.getElementById("p-vac-year").value);
-            if(!pVacYear) return alert("กรุณาระบุปีที่ฉีดวัคซีนล่าสุด");
-        }
-
-        const btn = document.getElementById("btn-save-pet");
-        btn.disabled = true; btn.textContent = "กำลังบันทึก...";
-
-        try {
-            const petData = {
-                pet_name: pName, pet_type: pType, pet_gender: pGender,
-                breed: document.getElementById("p-breed").value.trim() || "พันธุ์ทาง", color: document.getElementById("p-color").value.trim() || "ไม่ระบุ",
-                age_year: parseInt(document.getElementById("p-age-year").value) || 0, age_month: parseInt(document.getElementById("p-age-month").value) || 0,
-                rearing_style: pRearing, vaccine_status: pVacStatus, vaccine_year: pVacYear, neuter_status: pNeuterStatus,
-                pet_photo_base64: currentPetBase64, updated_at: serverTimestamp()
-            };
-
-            if (window.currentEditPetId) {
-                await updateDoc(doc(db, "pets", window.currentEditPetId), petData);
-            } else {
-                const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
-                const u = userSnap.data();
-                petData.owner_uid = userProfileData.userId; petData.owner_name = u.owner_name; petData.phone_number = u.phone_number;
-                petData.house_no = u.house_no; petData.village_no = u.village_no; petData.house_village_search = `${u.house_no}-${u.village_no}`;
-                petData.status = "registered"; petData.registered_timestamp = serverTimestamp();
-                await addDoc(collection(db, "pets"), petData);
-            }
+    const btnShowAdd = document.getElementById("btn-show-add-pet");
+    if(btnShowAdd) {
+        btnShowAdd.addEventListener("click", () => {
+            window.currentEditPetId = null; 
+            document.getElementById("form-title").textContent = "+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่";
             
+            document.querySelectorAll("#add-pet-container input[type='text'], #add-pet-container input[type='number']").forEach(i => i.value = "");
+            document.querySelectorAll("#add-pet-container select").forEach(s => s.selectedIndex = 0);
+            document.getElementById("p-age-year").value = "0"; document.getElementById("p-age-month").value = "0";
+            document.getElementById("vac-year-group").style.display = "none";
+            
+            currentPetBase64 = ""; document.getElementById("pet-image-preview").src = defaultPlaceholder;
+
+            document.getElementById("dashboard-container").style.display = "none";
+            document.getElementById("add-pet-container").style.display = "block";
+        });
+    }
+
+    const btnCancelAdd = document.getElementById("btn-cancel-add");
+    if(btnCancelAdd) {
+        btnCancelAdd.addEventListener("click", () => {
             document.getElementById("add-pet-container").style.display = "none";
             document.getElementById("dashboard-container").style.display = "block";
-            loadMyPets();
-        } catch (e) { alert("เกิดข้อผิดพลาดในการบันทึก"); } finally { btn.disabled = false; }
-    });
+        });
+    }
+
+    const vacStatusSelect = document.getElementById("p-vac-status");
+    if(vacStatusSelect) {
+        vacStatusSelect.addEventListener("change", (e) => {
+            document.getElementById("vac-year-group").style.display = e.target.value === "ฉีดแล้ว" ? "block" : "none";
+        });
+    }
+
+    const imgUpload = document.getElementById("pet-image-upload");
+    if(imgUpload) {
+        imgUpload.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement("canvas");
+                    const MAX_WIDTH = 500; let width = img.width; let height = img.height;
+                    if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+                    else { if (height > MAX_WIDTH) { width *= MAX_WIDTH / height; height = MAX_WIDTH; } }
+                    canvas.width = width; canvas.height = height;
+                    canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+                    currentPetBase64 = canvas.toDataURL("image/jpeg", 0.7);
+                    document.getElementById("pet-image-preview").src = currentPetBase64;
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    const btnSavePet = document.getElementById("btn-save-pet");
+    if(btnSavePet) {
+        btnSavePet.addEventListener("click", async () => {
+            const pName = document.getElementById("p-name").value.trim();
+            const pType = document.getElementById("p-type").value;
+            const pGender = document.getElementById("p-gender").value;
+            const pRearing = document.getElementById("p-rearing").value;
+            const pVacStatus = document.getElementById("p-vac-status").value;
+            const pNeuterStatus = document.getElementById("p-neuter-status").value;
+
+            if(!pName || !pType || !pGender || !pRearing || !pVacStatus || !pNeuterStatus) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+
+            let pVacYear = 0;
+            if (pVacStatus === "ฉีดแล้ว") {
+                pVacYear = parseInt(document.getElementById("p-vac-year").value);
+                if(!pVacYear) return alert("กรุณาระบุปีที่ฉีดวัคซีนล่าสุด");
+            }
+
+            btnSavePet.disabled = true; btnSavePet.textContent = "กำลังบันทึก...";
+
+            try {
+                const petData = {
+                    pet_name: pName, pet_type: pType, pet_gender: pGender,
+                    breed: document.getElementById("p-breed").value.trim() || "พันธุ์ทาง", color: document.getElementById("p-color").value.trim() || "ไม่ระบุ",
+                    age_year: parseInt(document.getElementById("p-age-year").value) || 0, age_month: parseInt(document.getElementById("p-age-month").value) || 0,
+                    rearing_style: pRearing, vaccine_status: pVacStatus, vaccine_year: pVacYear, neuter_status: pNeuterStatus,
+                    pet_photo_base64: currentPetBase64, updated_at: serverTimestamp()
+                };
+
+                if (window.currentEditPetId) {
+                    await updateDoc(doc(db, "pets", window.currentEditPetId), petData);
+                } else {
+                    const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
+                    const u = userSnap.data();
+                    petData.owner_uid = userProfileData.userId; petData.owner_name = u.owner_name; petData.phone_number = u.phone_number;
+                    petData.house_no = u.house_no; petData.village_no = u.village_no; petData.house_village_search = `${u.house_no}-${u.village_no}`;
+                    petData.status = "registered"; petData.registered_timestamp = serverTimestamp();
+                    await addDoc(collection(db, "pets"), petData);
+                }
+                
+                document.getElementById("add-pet-container").style.display = "none";
+                document.getElementById("dashboard-container").style.display = "block";
+                loadMyPets();
+            } catch (e) { alert("เกิดข้อผิดพลาดในการบันทึก"); } finally { btnSavePet.disabled = false; btnSavePet.textContent = "💾 บันทึกทะเบียน"; }
+        });
+    }
 }
 
 window.editPet = function(docId) {
