@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCNsfEd11Yv2kNCO_T3s07WJ1eAXUyhssE",
@@ -78,13 +78,12 @@ window.acceptBreedWarning = function() {
     document.getElementById("consent-pet-name").textContent = `${pet.pet_name} (${pet.pet_type})`;
     document.getElementById("accept-consent").checked = false;
     
-    // แสดง Modal ก่อน
     document.getElementById("consent-modal").style.display = "flex";
     
-    // รันการปรับขนาด Canvas หลังจาก Modal แสดงแล้ว เพื่อให้ SignaturePad ทำงานได้
+    // บังคับให้พื้นที่ลายเซ็นเซ็ตค่าตัวเองเมื่อเปิด Modal ป้องกันบั๊กเซ็นไม่ได้
     setTimeout(() => {
         if(window.resizeSignatureCanvas) window.resizeSignatureCanvas();
-    }, 100);
+    }, 200);
 }
 
 async function initializeLiff() {
@@ -167,14 +166,12 @@ async function updateQuotaAndBanner() {
     currentBookedNeuter = 0;
 
     try {
-        // อัปเดต: นับจำนวนคิวจากฐานข้อมูลเดิม (vaccine_registrations)
         const queueRef = collection(db, "vaccine_registrations");
-        const q = query(queueRef, where("service_type", "in", ["ทำหมัน (สุนัขและแมว)", "ทำหมันและฉีดวัคซีน"]));
-        const snap = await getDocs(q);
+        const snap = await getDocs(queueRef);
         
         snap.forEach(d => {
             const p = d.data();
-            if (p.status !== "cancelled") {
+            if (p.service_type && p.service_type.includes("ทำหมัน") && p.status !== "cancelled") {
                 currentBookedNeuter++;
             }
         });
@@ -232,10 +229,9 @@ async function loadMyPets() {
                 neuterBtn = `<div style="font-size:11px; color:#A0B0C0; text-align:center;">✂️ ทำหมันแล้ว</div>`;
             } else if (pet.neuter_booking && pet.neuter_booking.status === "booked") {
                 neuterBtn = `
-                    <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px;">
-                        <button class="btn-action-small btn-neuter-ticket" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
-                        <button class="btn-action-small btn-cancel-neuter" title="ยกเลิกการจองคิว" onclick="cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>
-                    </div>`;
+                    <button class="btn-action-small btn-neuter-ticket" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
+                    <button class="btn-action-small btn-cancel-neuter" onclick="cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>
+                `;
             } else if (isBookingOpen && currentBookedNeuter < currentTotalNeuterQuota) {
                 neuterBtn = `<button class="btn-action-small btn-neuter" onclick="startBookingFlow('${d.id}')">✂️ จองคิวทำหมัน</button>`;
             }
@@ -263,11 +259,6 @@ async function loadMyPets() {
     } catch (e) { console.error(e); }
 }
 
-window.startBookingFlow = function(docId) {
-    bookingPetId = docId;
-    document.getElementById("breed-warning-modal").style.display = "flex";
-}
-
 async function submitBooking() {
     if(!document.getElementById("accept-consent").checked) return alert("กรุณากดยอมรับเงื่อนไขก่อนจองคิว");
     if(signaturePad.isEmpty()) return alert("กรุณาเซ็นชื่อรับรองในกรอบที่กำหนด");
@@ -280,20 +271,27 @@ async function submitBooking() {
     btnConfirm.textContent = "กำลังรันคิว...";
 
     try {
-        // อัปเดต: ค้นหาคิวล่าสุดจากฐานข้อมูลเดิม
+        // [แก้ไข Error Index]: ค้นหาค่าคิวล่าสุดด้วย JS แทนการใช้ Firebase OrderBy
         const queueRef = collection(db, "vaccine_registrations"); 
-        const qLast = query(queueRef, where("service_type", "in", ["ทำหมัน (สุนัขและแมว)", "ทำหมันและฉีดวัคซีน"]), orderBy("queue_number", "desc"), limit(1));
-        const snapLast = await getDocs(qLast);
+        const snapQueue = await getDocs(queueRef);
         
-        let nextQueueNo = 1;
-        if (!snapLast.empty) {
-            nextQueueNo = snapLast.docs[0].data().queue_number + 1;
-        }
+        let maxQueue = 0;
+        snapQueue.forEach(d => {
+            const p = d.data();
+            if (p.service_type && p.service_type.includes("ทำหมัน") && p.queue_number) {
+                if (p.queue_number > maxQueue) {
+                    maxQueue = p.queue_number;
+                }
+            }
+        });
+        
+        const nextQueueNo = maxQueue + 1;
+        const now = new Date(); // ใช้ Date() แทน serverTimestamp เพื่อป้องกันปัญหา
 
         const bookingMeta = {
             status: "booked",
             queue_no: nextQueueNo,
-            booked_at: serverTimestamp(),
+            booked_at: now,
             nt_date: sysConfig.nt_date || "-",
             nt_location: sysConfig.nt_location || "-",
             signature_base64: signatureData 
@@ -307,32 +305,31 @@ async function submitBooking() {
         await addDoc(queueRef, {
             queue_number: nextQueueNo,
             service_type: "ทำหมันและฉีดวัคซีน",
-            owner_name: u.owner_name,
-            phone_number: u.phone_number,
-            house_no: u.house_no,
-            village_no: u.village_no,
-            pet_name: pet.pet_name,
-            pet_type: pet.pet_type,
-            pet_gender: pet.pet_gender,
+            owner_name: u.owner_name || "-",
+            phone_number: u.phone_number || "-",
+            house_no: u.house_no || "-",
+            village_no: u.village_no || "-",
+            pet_name: pet.pet_name || "-",
+            pet_type: pet.pet_type || "-",
+            pet_gender: pet.pet_gender || "-",
             pet_breed: pet.breed || "ไม่ระบุ",
             pet_age_years: pet.age_year || 0,
             pet_age_months: pet.age_month || 0,
             pet_color: pet.color || "ไม่ระบุ",
-            rearing_style: pet.rearing_style,
+            rearing_style: pet.rearing_style || "ไม่ระบุ",
             userId: userProfileData.userId,
-            line_displayName: userProfileData.displayName,
-            picture_url: userProfileData.pictureUrl,
+            line_displayName: userProfileData.displayName || "ผู้ใช้",
+            picture_url: userProfileData.pictureUrl || "",
             status: "pending", 
             signature: signatureData, 
-            timestamp: serverTimestamp()
+            timestamp: now
         });
 
-        // อัปเดต: แจ้งเตือนเข้า LINE เมื่อจองคิวสำเร็จ
+        // จัดรูปแบบข้อความใหม่เพื่อป้องกัน Syntax Error
+        const msgText = "✅ ยืนยันการจองคิวทำหมัน\nลำดับคิวของท่านคือ: #" + nextQueueNo + "\n🐾 ชื่อสัตว์เลี้ยง: " + pet.pet_name + "\n🏠 บ้านเลขที่: " + u.house_no + " ม." + u.village_no + "\n\n📌 ข้อปฏิบัติและการเตรียมตัวก่อนทำหมัน\n1. งดน้ำ-งดอาหารสัตว์อย่างน้อย 12 ชั่วโมง (ก่อนทำหมัน) และขังสัตว์ไว้ในพื้นที่มิดชิดไม่สามารถออกมากินอาหารได้\n2. สัตว์ที่มาทำหมันต้องสุขภาพดี ไม่ผอม ไม่ป่วย\n3. อายุสัตว์ที่มาทำหมันต้องอายุตั้งแต่ 6-8 เดือนขึ้นไป\n4. สุนัขเพศเมียที่มาทำหมัน ไม่ควรเป็นสัด (อวัยวะเพศบวมแดง) และมีประจำเดือน เพราะจะทำให้เสียเลือดมาก\n5. สุนัขและแมวที่เพิ่งคลอดลูก ควรพักมดลูก 2 เดือน เพราะถ้ามาทำหมันหลังคลอดเลยจะทำให้มดลูกเปื่อยและขาดได้\n6. ถ้ารู้ว่าสัตว์ท้องไม่ควรนำมาทำหมัน หรือถ้าหมอผ่าแล้วเจอจะเย็บปิดทันที\n7. ⚠️ ลำดับคิวที่ท่านได้รับนี้ เป็นเพียง \"คิวการจองสิทธิ์\" เท่านั้น ท่านจะต้องมาติดต่อรับ \"บัตรคิวผ่าตัดทำหมัน\" ที่หน้างานก่อนเวลา 10.00 น. ของวันเข้ารับบริการ\n8. กรุณาเปิดสมุดทะเบียนสัตว์และแสดงบัตรคิวดิจิทัลแก่เจ้าหน้าที่ในวันงาน";
+
         if (liff.isInClient()) {
-            await liff.sendMessages([{
-                type: "text",
-                text: `✅ ยืนยันการจองคิวทำหมัน\nลำดับคิวของท่านคือ: #${nextQueueNo}\n🐾 ชื่อสัตว์เลี้ยง: ${pet.pet_name}\n🏠 บ้านเลขที่: ${pet.house_no} ม.${pet.village_no}\n\n📌 ข้อปฏิบัติและการเตรียมตัวก่อนทำหมัน\n1. งดน้ำ-งดอาหารสัตว์อย่างน้อย 12 ชั่วโมง (ก่อนทำหมัน) และขังสัตว์ไว้ในพื้นที่มิดชิดไม่สามารถออกมากินอาหารได้\n2. สัตว์ที่มาทำหมันต้องสุขภาพดี ไม่ผอม ไม่ป่วย\n3. อายุสัตว์ที่มาทำหมันต้องอายุตั้งแต่ 6-8 เดือนขึ้นไป\n4. สุนัขเพศเมียที่มาทำหมัน ไม่ควรเป็นสัด (อวัยวะเพศบวมแดง) และมีประจำเดือน เพราะจะทำให้เสียเลือดมาก\n5. สุนัขและแมวที่เพิ่งคลอดลูก ควรพักมดลูก 2 เดือน เพราะถ้ามาทำหมันหลังคลอดเลยจะทำให้มดลูกเปื่อยและขาดได้\n6. ถ้ารู้ว่าสัตว์ท้องไม่ควรนำมาทำหมัน หรือถ้าหมอผ่าแล้วเจอจะเย็บปิดทันที\n7. ⚠️ ลำดับคิวที่ท่านได้รับนี้ เป็นเพียง "คิวการจองสิทธิ์" เท่านั้น ท่านจะต้องมาติดต่อรับ "บัตรคิวผ่าตัดทำหมัน" ที่หน้างานก่อนเวลา 10.00 น. ของวันเข้ารับบริการ\n8. กรุณาเปิดสมุดทะเบียนสัตว์และแสดงบัตรคิวดิจิทัลแก่เจ้าหน้าที่ในวันงาน`
-            }]);
+            await liff.sendMessages([{ type: "text", text: msgText }]);
         }
 
         document.getElementById("consent-modal").style.display = "none";
@@ -344,7 +341,7 @@ async function submitBooking() {
 
     } catch (e) {
         console.error("Booking Error:", e);
-        alert("เกิดข้อผิดพลาด ไม่สามารถจองคิวได้");
+        alert(`เกิดข้อผิดพลาด: ${e.message}`);
     } finally {
         btnConfirm.disabled = false;
         btnConfirm.textContent = "ยืนยันจองคิว";
@@ -356,7 +353,14 @@ window.viewNeuterTicket = function(docId) {
     if(!pet || !pet.neuter_booking) return;
 
     const b = pet.neuter_booking;
-    const ntDate = new Date(b.nt_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    // ป้องกัน Error จากวันที่ ถ้าไม่ใช่รูปแบบ Date มาตรฐาน
+    let ntDate = "-";
+    if(b.nt_date && b.nt_date !== "-") {
+        try {
+            ntDate = new Date(b.nt_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+        } catch(e) { ntDate = b.nt_date; }
+    }
 
     document.getElementById("tk-queue-no").textContent = `#${String(b.queue_no).padStart(2, '0')}`;
     document.getElementById("tk-pet-name").textContent = `${pet.pet_name} (${pet.pet_type} ${pet.pet_gender})`;
@@ -380,28 +384,26 @@ window.cancelBooking = async function(docId) {
     }
 
     try {
+        // ค้นหาคิวในระบบเก่า โดยอิงจาก userId เพื่อเลี่ยง Index Error
         const queueRef = collection(db, "vaccine_registrations");
-        const q = query(queueRef, 
-            where("pet_name", "==", pet.pet_name), 
-            where("queue_number", "==", pet.neuter_booking.queue_no),
-            where("userId", "==", userProfileData.userId)
-        );
+        const q = query(queueRef, where("userId", "==", userProfileData.userId));
         const snap = await getDocs(q);
         
         snap.forEach(async (d) => {
-            await deleteDoc(doc(db, "vaccine_registrations", d.id));
+            const data = d.data();
+            if (data.queue_number === pet.neuter_booking.queue_no && data.pet_name === pet.pet_name) {
+                await deleteDoc(doc(db, "vaccine_registrations", d.id));
+            }
         });
 
         await updateDoc(doc(db, "pets", docId), {
             neuter_booking: null
         });
 
-        // อัปเดต: แจ้งเตือนเข้า LINE เมื่อยกเลิกคิว
+        const msgText = `❌ ยกเลิกการจองคิวสำเร็จ\nสิทธิการทำหมันของน้อง ${pet.pet_name} (คิวที่ #${pet.neuter_booking.queue_no}) ถูกยกเลิกและส่งคืนโควตาให้ระบบเรียบร้อยแล้วครับ`;
+
         if (liff.isInClient()) {
-            await liff.sendMessages([{
-                type: "text",
-                text: `❌ ยกเลิกการจองคิวสำเร็จ\nสิทธิการทำหมันของน้อง ${pet.pet_name} (คิวที่ #${pet.neuter_booking.queue_no}) ถูกยกเลิกและส่งคืนโควตาให้ระบบเรียบร้อยแล้วครับ`
-            }]);
+            await liff.sendMessages([{ type: "text", text: msgText }]);
         }
 
         alert("ยกเลิกคิวสำเร็จ โควตาได้ถูกส่งคืนสู่ระบบแล้วครับ");
@@ -417,7 +419,6 @@ window.cancelBooking = async function(docId) {
     }
 }
 
-// ฟังก์ชันดูใบรับรอง 
 window.viewCertificate = function(docId) {
     const pet = window.myPetsData[docId];
     if(!pet) return;
@@ -443,7 +444,6 @@ window.viewCertificate = function(docId) {
     document.getElementById("cert-modal").style.display = "flex";
 }
 
-// ฟังก์ชันแจ้งตาย/ย้าย 
 window.softDeletePet = async function(docId) {
     if(confirm("ยืนยันการแจ้งสถานะ (สัตว์เสียชีวิต หรือ ย้ายถิ่นฐาน)?")) {
         try {
