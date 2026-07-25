@@ -89,10 +89,11 @@ function setupHouseholdForm() {
 
         try {
             const hKey = `${hNo}-${vNo}`;
-            // เช็กว่ามีใครเป็นเจ้าของบ้านนี้หรือยัง
-            const headQuery = query(collection(db, "users"), where("house_village_search", "==", hKey), where("is_head", "==", true));
-            const headSnap = await getDocs(headQuery);
-            const isFirstPerson = headSnap.empty; // ถ้ายังไม่มีคนลง จะได้เป็น true
+            
+            // ลอจิกใหม่: เช็กแค่ว่ามีใครเคยลงบ้านเลขที่นี้ไว้หรือยัง (ครอบคลุมทั้งระบบเก่าและใหม่)
+            const houseQuery = query(collection(db, "users"), where("house_no", "==", hNo), where("village_no", "==", vNo));
+            const houseSnap = await getDocs(houseQuery);
+            const isFirstPerson = houseSnap.empty; 
 
             await setDoc(doc(db, "users", userProfileData.userId), {
                 owner_name: name,
@@ -104,13 +105,13 @@ function setupHouseholdForm() {
                 line_displayName: userProfileData.displayName,
                 picture_url: userProfileData.pictureUrl,
                 house_village_search: hKey,
-                is_head: isFirstPerson, // คนแรกได้เป็น Head
-                household_status: isFirstPerson ? "approved" : "pending", // คนถัดไปต้องรออนุมัติ
+                is_head: isFirstPerson, // ถ้าบ้านว่าง คนแรกจะได้เป็นเจ้าของ
+                household_status: isFirstPerson ? "approved" : "pending", // ถ้ามีคนอยู่แล้ว จะต้องรออนุมัติ
                 updated_at: serverTimestamp()
-            });
+            }, { merge: true }); // ใช้ merge ป้องกันข้อมูลเก่าหาย
 
             document.getElementById("household-setup-container").style.display = "none";
-            checkUserData(); // โหลดหน้าใหม่เพื่อให้ระบบตัดสินใจว่าจะไปโชว์หน้าไหน
+            checkUserData(); 
             
         } catch (e) {
             console.error(e); alert("เกิดข้อผิดพลาด");
