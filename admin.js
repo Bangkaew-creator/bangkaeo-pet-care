@@ -18,7 +18,7 @@ let sysConfig = null;
 let sysSecrets = null;
 
 let currentStaffRole = null; 
-let currentStaffMoo = null; // ตัวแปรเก็บว่าอาสาคนนี้อยู่หมู่ไหน
+let currentStaffMoo = null; 
 let currentProxyHouse = { hNo: "", vNo: "", hKey: "" };
 window.currentSearchPets = {}; 
 window.petOriginalState = {}; 
@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupLoginUI();
     setupNavigation();
     setupCheckinEvents();
+    setupMasterDataEvents();
     initializeLiff();
 });
 
@@ -36,7 +37,8 @@ function setupLoginUI() {
 }
 
 function setupNavigation() {
-    const views = { "nav-checkin": "view-checkin", "nav-settings": "view-settings" };
+    // เพิ่ม "nav-data": "view-data" สำหรับหน้า Master Data
+    const views = { "nav-checkin": "view-checkin", "nav-data": "view-data", "nav-settings": "view-settings" };
     Object.keys(views).forEach(navId => {
         const btn = document.getElementById(navId);
         if(btn) {
@@ -54,23 +56,19 @@ function setupNavigation() {
 function setupCheckinEvents() {
     const btnSearch = document.getElementById("btn-search-house");
     if(btnSearch) btnSearch.addEventListener("click", searchHouseForCheckin);
-
     const searchInput = document.getElementById("search-house-no");
-    if(searchInput) {
-        searchInput.addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                searchHouseForCheckin();
-            }
-        });
-    }
-
+    if(searchInput) searchInput.addEventListener("keypress", function(event) { if (event.key === "Enter") { event.preventDefault(); searchHouseForCheckin(); } });
     const btnProxyAdd = document.getElementById("btn-proxy-add-pet");
     if(btnProxyAdd) btnProxyAdd.addEventListener("click", () => { document.getElementById("proxy-add-form").style.display = "block"; });
     const btnCancelProxy = document.getElementById("btn-cancel-proxy");
     if(btnCancelProxy) btnCancelProxy.addEventListener("click", () => { document.getElementById("proxy-add-form").style.display = "none"; });
     const btnSaveProxy = document.getElementById("btn-save-proxy");
     if(btnSaveProxy) btnSaveProxy.addEventListener("click", saveProxyPet);
+}
+
+function setupMasterDataEvents() {
+    const btnLoadData = document.getElementById("btn-load-data");
+    if(btnLoadData) btnLoadData.addEventListener("click", loadMasterData);
 }
 
 async function initializeLiff() {
@@ -92,8 +90,11 @@ async function loadSystemConfig() {
         const secSnap = await getDoc(doc(db, "system_config", "secrets"));
         sysConfig = confSnap.exists() ? confSnap.data() : { moo_count: 16 };
         sysSecrets = secSnap.exists() ? secSnap.data() : { admin_secret: "admin1234", volunteer_secrets: {} };
+        
         populateMooDropdown(sysConfig.moo_count || 16, "login-vol-moo");
         populateMooDropdown(sysConfig.moo_count || 16, "search-village-no");
+        populateFilterMooDropdown(sysConfig.moo_count || 16); // ใส่ dropdown หน้า Master Data
+
         checkStaffRole();
     } catch (e) { console.error(e); alert("เชื่อมต่อฐานข้อมูลล้มเหลว"); }
 }
@@ -102,6 +103,13 @@ function populateMooDropdown(count, elementId) {
     const select = document.getElementById(elementId);
     if(!select) return;
     select.innerHTML = '<option value="" selected>เลือกหมู่</option>';
+    for(let i=1; i<=count; i++) select.innerHTML += `<option value="${i}">หมู่ที่ ${i}</option>`;
+}
+
+function populateFilterMooDropdown(count) {
+    const select = document.getElementById("filter-moo");
+    if(!select) return;
+    select.innerHTML = '<option value="ALL">ทั้งหมด</option>';
     for(let i=1; i<=count; i++) select.innerHTML += `<option value="${i}">หมู่ที่ ${i}</option>`;
 }
 
@@ -150,13 +158,12 @@ function showDashboard(role, respMoo, displayName) {
 
     if (role === "admin") {
         document.getElementById("display-role-title").textContent = "👑 ผู้ดูแลระบบ (Admin)";
-        document.getElementById("nav-data").style.display = "block";
-        document.getElementById("nav-settings").style.display = "block";
-        if(searchMooDropdown) searchMooDropdown.disabled = false; // แอดมินเลือกได้ทุกหมู่
+        document.getElementById("nav-data").style.display = "block"; // เปิดเมนู Data
+        document.getElementById("nav-settings").style.display = "block"; // เปิดเมนู Setting
+        if(searchMooDropdown) searchMooDropdown.disabled = false; 
         populateSettingsForm();
     } else if (role === "volunteer") {
         document.getElementById("display-role-title").textContent = `🛡️ อาสาปศุสัตว์ (รับผิดชอบหมู่ ${respMoo})`;
-        // บังคับล็อค Dropdown ค้นหาให้เป็นหมู่ของตัวเองเท่านั้น
         if(searchMooDropdown) {
             searchMooDropdown.value = respMoo;
             searchMooDropdown.disabled = true;
@@ -165,7 +172,7 @@ function showDashboard(role, respMoo, displayName) {
 }
 
 // ==========================================
-// ระบบค้นหาบ้าน เช็คอิน และ ลงทะเบียนแทน (ป้องกันค้นหาข้ามหมู่)
+// 1. ระบบค้นหาบ้าน เช็คอิน และ ลงทะเบียนแทน
 // ==========================================
 async function searchHouseForCheckin() {
     let rawInput = document.getElementById("search-house-no").value.trim();
@@ -174,22 +181,18 @@ async function searchHouseForCheckin() {
 
     if(!rawInput) return alert("กรุณากรอกข้อมูลค้นหา");
 
-    // Smart Search Logic (แยก บ้านเลขที่-หมู่)
     if(rawInput.includes("-")) {
         const parts = rawInput.split("-");
         hNo = parts[0].trim();
         vNo = parts[1].trim();
-        if(currentStaffRole === "admin") {
-            document.getElementById("search-village-no").value = vNo;
-        }
+        if(currentStaffRole === "admin") document.getElementById("search-village-no").value = vNo;
     } else if (currentStaffRole === "volunteer" && !vNo) {
-        vNo = currentStaffMoo; // ดึงค่าที่ล็อคไว้มาใช้
+        vNo = currentStaffMoo; 
     }
 
-    // ระบบป้องกัน: บล็อคอาสาฯ ค้นหาหรือพิมพ์ข้ามหมู่
     if (currentStaffRole === "volunteer" && vNo !== currentStaffMoo) {
         document.getElementById("search-village-no").value = currentStaffMoo;
-        document.getElementById("search-house-no").value = hNo; // ลบ -หมู่ ที่พิมพ์ผิดออก
+        document.getElementById("search-house-no").value = hNo; 
         return alert(`⚠️ สิทธิ์การเข้าถึงจำกัด:\nท่านสามารถจัดการข้อมูลได้เฉพาะ "หมู่ที่ ${currentStaffMoo}" ที่ท่านรับผิดชอบเท่านั้นครับ`);
     }
 
@@ -307,7 +310,80 @@ async function saveProxyPet() {
 }
 
 // ==========================================
-// ส่วนจัดการการตั้งค่าระบบ (แอดมินเท่านั้น)
+// 2. ระบบดึงตาราง Master Data (Admin Only)
+// ==========================================
+async function loadMasterData() {
+    const btn = document.getElementById("btn-load-data");
+    btn.disabled = true; btn.textContent = "กำลังโหลด...";
+    
+    const fMoo = document.getElementById("filter-moo").value;
+    const fType = document.getElementById("filter-type").value;
+    const fVac = document.getElementById("filter-vac").value;
+    const fNeuter = document.getElementById("filter-neuter").value;
+    const currentYear = sysConfig ? (sysConfig.current_vaccine_year || 2569) : 2569;
+    
+    const tbody = document.getElementById("master-data-tbody");
+    tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 25px; color: #D4AF37;'>กำลังดึงข้อมูลจากฐานข้อมูล...</td></tr>";
+    
+    try {
+        const q = query(collection(db, "pets"), where("status", "==", "registered"));
+        const snap = await getDocs(q);
+        
+        let total = 0;
+        let vacCount = 0;
+        let html = "";
+        
+        snap.forEach(d => {
+            const p = d.data();
+            
+            // กรองข้อมูลตามที่เลือก
+            if(fMoo !== "ALL" && String(p.village_no) !== fMoo) return;
+            if(fType !== "ALL" && p.pet_type !== fType) return;
+            
+            // ตรวจสอบวัคซีนให้ละเอียดขึ้น (นับเฉพาะปีปัจจุบัน)
+            let isVacThisYear = false;
+            if(p.vaccine_status === "ฉีดแล้ว" && parseInt(p.vaccine_year) === currentYear) {
+                isVacThisYear = true;
+            }
+            
+            if(fVac === "ฉีดแล้ว" && !isVacThisYear) return;
+            if(fVac === "ยังไม่เคยฉีด" && isVacThisYear) return;
+            if(fNeuter !== "ALL" && p.neuter_status !== fNeuter) return;
+            
+            total++;
+            if(isVacThisYear) vacCount++;
+            
+            html += `
+                <tr>
+                    <td>${p.house_no} ม.${p.village_no}</td>
+                    <td>${p.owner_name || '-'}</td>
+                    <td style="color: #D4AF37; font-weight: bold;">${p.pet_name}</td>
+                    <td>${p.pet_type}</td>
+                    <td style="color: ${isVacThisYear ? '#50E3C2' : '#ff6b6b'};">${isVacThisYear ? '✅ ' + currentYear : '❌ ขาด'}</td>
+                    <td>${p.neuter_status === 'ทำหมันแล้ว' ? '✂️ ทำแล้ว' : '-'}</td>
+                </tr>
+            `;
+        });
+        
+        document.getElementById("stat-total").textContent = total.toLocaleString();
+        document.getElementById("stat-vac").textContent = vacCount.toLocaleString();
+        
+        if(total === 0) {
+            tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 25px; color: #A0B0C0;'>ไม่พบข้อมูลตามเงื่อนไขที่กรอง</td></tr>";
+        } else {
+            tbody.innerHTML = html;
+        }
+        
+    } catch(e) {
+        console.error(e);
+        tbody.innerHTML = "<tr><td colspan='6' style='text-align: center; padding: 25px; color: red;'>เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>";
+    } finally {
+        btn.disabled = false; btn.textContent = "🔄 โหลดข้อมูล";
+    }
+}
+
+// ==========================================
+// 3. ส่วนจัดการการตั้งค่าระบบ (แอดมินเท่านั้น)
 // ==========================================
 function populateSettingsForm() {
     if(!sysConfig) return;
