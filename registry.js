@@ -14,7 +14,7 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const LIFF_ID = "2010813512-Wln3PzpL"; // ใช้ LIFF ID เดิมได้เลย
+const LIFF_ID = "2010813512-UqwFMq5V"; // ใช้ LIFF ID เดิมได้เลย
 
 let userProfileData = null;
 let currentHouseholdKey = "";
