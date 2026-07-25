@@ -228,14 +228,15 @@ async function loadMyPets() {
             let vacBadge = pet.vaccine_status === "ฉีดแล้ว" ? (parseInt(pet.vaccine_year) === currentVaccineYear ? `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${pet.vaccine_year})</span>` : `<span class="vaccine-badge badge-red">🔴 ขาดการต่อวัคซีน</span>`) : `<span class="vaccine-badge badge-red">🔴 ยังไม่เคยฉีด</span>`;
 
             let neuterBtn = "";
+            // ส่วนควบคุมปุ่ม
             if (pet.neuter_status === "ทำหมันแล้ว") {
                 neuterBtn = `<div style="font-size:11px; color:#A0B0C0; text-align:center;">✂️ ทำหมันแล้ว</div>`;
             } else if (pet.neuter_booking && pet.neuter_booking.status === "booked") {
+                // แก้ไขแล้ว: ปล่อยให้ปุ่มเรียงต่อกันเป็นแนวตั้งตามธรรมชาติ
                 neuterBtn = `
-                    <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px;">
-                        <button class="btn-action-small btn-neuter-ticket" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
-                        <button class="btn-action-small btn-cancel-neuter" title="ยกเลิกการจองคิว" onclick="cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>
-                    </div>`;
+                    <button class="btn-action-small btn-neuter-ticket" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
+                    <button class="btn-action-small btn-cancel-neuter" onclick="cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>
+                `;
             } else if (isBookingOpen && currentBookedNeuter < currentTotalNeuterQuota) {
                 neuterBtn = `<button class="btn-action-small btn-neuter" onclick="startBookingFlow('${d.id}')">✂️ จองคิวทำหมัน</button>`;
             }
