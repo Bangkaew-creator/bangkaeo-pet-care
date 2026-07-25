@@ -22,7 +22,19 @@
         .btn-action-small { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #FFF; font-size: 11px; padding: 5px 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 75px; }
         .btn-edit { color: #50E3C2; border-color: rgba(80, 227, 194, 0.4); }
         .btn-delete { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.4); }
-</style>
+                /* สไตล์ Modal และ Flip-Card ใบรับรอง */
+        .modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        .flip-card { background-color: transparent; width: 100%; max-width: 320px; height: 480px; perspective: 1000px; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; cursor: pointer; }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 15px; padding: 25px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+        
+        /* ด้านหน้าบัตร */
+        .flip-card-front { background: linear-gradient(145deg, #141E30, #243B55); border: 2px solid #D4AF37; color: white; }
+        /* ด้านหลังบัตร */
+        .flip-card-back { background: #E0E5EC; color: #141E30; transform: rotateY(180deg); border: 2px solid #D4AF37; text-align: left; }
+
+    </style>
 </head>
 <body>
     <div id="loading" class="loading-screen">กำลังดึงข้อมูลทะเบียนสัตว์...</div>
@@ -141,6 +153,50 @@
         <div class="row">
             <button type="button" id="btn-cancel-add" class="neumorphic-btn half outline-btn">⬅ ยกเลิก</button>
             <button type="button" id="btn-save-pet" class="neumorphic-btn gold-btn half">💾 บันทึกทะเบียน</button>
+        </div>
+    </div>
+        <!-- ส่วนที่ 4: หน้าต่างใบรับรองดิจิทัล (Flip-Card) -->
+    <div id="cert-modal" class="modal-overlay">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
+            <!-- ตัวบัตร -->
+            <div class="flip-card" id="pet-cert-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <!-- ด้านหน้า -->
+                    <div class="flip-card-front">
+                        <h3 style="color: #D4AF37; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 10px; margin-bottom: 15px;">สมุดประจำตัวสัตว์เลี้ยง</h3>
+                        <img id="cert-img" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #D4AF37; margin: 0 auto 15px; background: #1b2941;">
+                        <h2 id="cert-pet-name" style="margin-bottom: 5px; color: #50E3C2;">-</h2>
+                        <p id="cert-pet-detail" style="font-size: 14px; margin-bottom: 20px; color: #A0B0C0;">-</p>
+                        
+                        <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; text-align: left; font-size: 13px; line-height: 1.6;">
+                            <div><b style="color: #D4AF37;">เจ้าของ:</b> <span id="cert-owner"></span></div>
+                            <div><b style="color: #D4AF37;">ที่อยู่:</b> <span id="cert-address"></span></div>
+                            <hr style="border-color: rgba(255,255,255,0.05); margin: 10px 0;">
+                            <div><b style="color: #50E3C2;">สถานะวัคซีน:</b> <span id="cert-vac-status"></span></div>
+                            <div style="color: #A0B0C0; font-size: 11px; margin-top: 3px;" id="cert-vac-detail">รอการอัปเดตยี่ห้อ/Lot จากเจ้าหน้าที่</div>
+                        </div>
+                        <p style="font-size: 12px; color: #A0B0C0; margin-top: auto; animation: pulse 2s infinite;">👉 แตะที่บัตรเพื่อพลิกดูด้านหลัง</p>
+                    </div>
+                    
+                    <!-- ด้านหลัง -->
+                    <div class="flip-card-back">
+                        <h4 style="text-align: center; margin-bottom: 15px; color: #141E30; border-bottom: 2px solid #D4AF37; padding-bottom: 10px;">ข้อกำหนดและเงื่อนไข</h4>
+                        <ul style="font-size: 12px; padding-left: 18px; line-height: 1.6; text-align: left; margin-bottom: 15px; color: #333;">
+                            <li>ใบรับรองดิจิทัลนี้ออกโดย เทศบาลเมืองบางแก้ว เพื่อใช้ยืนยันประวัติทางปศุสัตว์ของสัตว์เลี้ยง</li>
+                            <li>เจ้าของสัตว์มีหน้าที่ต้องนำสัตว์เลี้ยงมารับการฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าเป็นประจำทุกปี</li>
+                            <li>หากสัตว์เลี้ยงเสียชีวิต สูญหาย หรือย้ายที่อยู่ กรุณาแจ้งผ่านระบบเพื่อปรับปรุงฐานข้อมูล</li>
+                        </ul>
+                        
+                        <div style="margin-top: auto; text-align: center; background: rgba(0,0,0,0.05); padding: 15px 10px; border-radius: 8px;">
+                            <p style="font-size: 11px; color: #666;">เจ้าหน้าที่ผู้บันทึกข้อมูล/ฉีดวัคซีน</p>
+                            <p id="cert-admin-name" style="font-weight: bold; font-size: 14px; margin-top: 5px; color: #141E30;">(รอการยืนยันจากหน้างาน)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ปุ่มปิด -->
+            <button onclick="document.getElementById('cert-modal').style.display='none'" class="neumorphic-btn outline-btn" style="width: 200px; color: white;">✖ ปิดหน้าต่าง</button>
         </div>
     </div>
 
