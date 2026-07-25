@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบเจ้าหน้าที่ - ทะเบียนสัตว์เลี้ยง</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-nav { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .nav-btn { flex-shrink: 0; padding: 10px 15px; border-radius: 8px; font-size: 14px; cursor: pointer; background: rgba(0,0,0,0.2); color: #A0B0C0; border: none; }
+        .nav-btn.active { background: rgba(212, 175, 55, 0.2); color: #D4AF37; border: 1px solid #D4AF37; font-weight: bold; }
+        
+        .settings-section { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-bottom: 20px; }
+        .settings-section h4 { color: #50E3C2; margin-bottom: 15px; border-bottom: 1px solid rgba(80, 227, 194, 0.3); padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading-screen">กำลังตรวจสอบสิทธิ์...</div>
+
+    <!-- หน้าเข้าสู่ระบบ (Login) -->
+    <div id="login-container" class="container" style="display: none;">
+        <div class="project-header">
+            <h3>ระบบปฏิบัติการหน้างาน</h3>
+            <p>สำหรับอาสาปศุสัตว์ และเจ้าหน้าที่</p>
+        </div>
+
+        <!-- ฟอร์มอาสาปศุสัตว์ (แสดงเป็นอันดับแรก) -->
+        <div id="volunteer-login-box" class="card neumorphic">
+            <h3 class="section-title" style="color: #F5A623; text-align: center;">🛡️ เข้าสู่ระบบ อาสาปศุสัตว์</h3>
+            <div class="input-group">
+                <label>หมู่ที่รับผิดชอบ</label>
+                <select id="login-vol-moo" class="neumorphic-input">
+                    <option value="" disabled selected>เลือกหมู่บ้าน</option>
+                    <!-- ตัวเลือกหมู่จะถูกสร้างด้วย JS อัตโนมัติตามที่แอดมินตั้งค่า -->
+                </select>
+            </div>
+            <div class="input-group">
+                <label>รหัสลับประจำหมู่</label>
+                <input type="password" id="login-vol-secret" class="neumorphic-input" placeholder="กรอกรหัสลับ">
+            </div>
+            <button id="btn-login-vol" class="neumorphic-btn gold-btn" style="width: 100%; margin-top: 15px;">เข้าสู่ระบบ อาสาปศุสัตว์</button>
+            
+            <div style="text-align: center; margin-top: 25px;">
+                <a href="#" id="link-show-admin" style="color: #A0B0C0; font-size: 13px; text-decoration: underline;">สำหรับผู้ดูแลระบบ (Admin) คลิกที่นี่</a>
+            </div>
+        </div>
+
+        <!-- ฟอร์มแอดมิน (ซ่อนไว้เป็นค่าเริ่มต้น) -->
+        <div id="admin-login-box" class="card neumorphic" style="display: none;">
+            <h3 class="section-title" style="color: #50E3C2; text-align: center;">⚙️ เข้าสู่ระบบ ผู้ดูแลระบบ</h3>
+            <p style="font-size: 12px; color: #A0B0C0; text-align: center; margin-bottom: 15px;">รหัสตั้งต้นครั้งแรกคือ: admin1234</p>
+            <div class="input-group">
+                <label>รหัสลับผู้ดูแลระบบ (Admin Secret)</label>
+                <input type="password" id="login-admin-secret" class="neumorphic-input" placeholder="กรอกรหัสลับ Admin">
+            </div>
+            <button id="btn-login-admin" class="neumorphic-btn outline-btn" style="width: 100%; margin-top: 15px; color: #50E3C2; border-color: #50E3C2;">เข้าสู่ระบบ Admin</button>
+            
+            <div style="text-align: center; margin-top: 25px;">
+                <a href="#" id="link-show-vol" style="color: #F5A623; font-size: 13px; text-decoration: underline;">⬅ กลับไปหน้าอาสาปศุสัตว์</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- หน้า Dashboard แอดมิน / อาสาปศุสัตว์ -->
+    <div id="dashboard-container" class="container" style="display: none; max-width: 800px;">
+        <div class="project-header" style="text-align: left; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 id="display-role-title" style="font-size: 18px;">ระบบเจ้าหน้าที่</h3>
+                <p id="display-user-name" style="color: #D4AF37; font-size: 14px;">-</p>
+            </div>
+            <img id="user-profile-img" src="" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #D4AF37; display: none;">
+        </div>
+
+        <!-- เมนูนำทาง (แอดมินเห็นครบ / อาสาฯเห็นแค่บางปุ่ม) -->
+        <div class="admin-nav">
+            <button class="nav-btn active" id="nav-checkin">ลงทะเบียนแทน/เช็คอิน</button>
+            <button class="nav-btn" id="nav-data" style="display: none;">จัดการข้อมูล (Master Data)</button>
+            <button class="nav-btn" id="nav-settings" style="display: none;">ตั้งค่าระบบ (Settings)</button>
+            <button class="nav-btn" id="btn-logout" style="color: #ff6b6b;">ออกจากระบบ</button>
+        </div>
+
+        <!-- พื้นที่แสดงผล: เช็คอิน (เดี๋ยวจะทำในสเต็ปถัดไป) -->
+        <div id="view-checkin">
+            <div class="card neumorphic" style="text-align: center; padding: 40px 20px;">
+                <h3 style="color: #D4AF37;">อยู่ระหว่างการพัฒนา (เฟส 2 - สเต็ปถัดไป)</h3>
+                <p style="color: #A0B0C0; margin-top: 10px;">ระบบเช็คอินและลงทะเบียนแทนประชาชน จะแสดงผลที่นี่</p>
+            </div>
+        </div>
+
+        <!-- พื้นที่แสดงผล: การตั้งค่าระบบ (White-label Settings) -->
+        <div id="view-settings" style="display: none;">
+            <div class="card neumorphic">
+                <h3 class="section-title">ตั้งค่าระบบ (White-Label)</h3>
+                
+                <div class="settings-section">
+                    <h4>🏢 1. ข้อมูลหน่วยงาน</h4>
+                    <div class="input-group"><label>ชื่อองค์กร (เช่น เทศบาลเมืองบางแก้ว)</label><input type="text" id="cfg-agency-name" class="neumorphic-input"></div>
+                    <div class="row">
+                        <div class="input-group half"><label>ตำบล</label><input type="text" id="cfg-tambon" class="neumorphic-input"></div>
+                        <div class="input-group half"><label>อำเภอ</label><input type="text" id="cfg-amphoe" class="neumorphic-input"></div>
+                    </div>
+                    <div class="row">
+                        <div class="input-group half"><label>จังหวัด</label><input type="text" id="cfg-province" class="neumorphic-input"></div>
+                        <div class="input-group half"><label>เบอร์โทรศัพท์ติดต่อ</label><input type="text" id="cfg-phone" class="neumorphic-input"></div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>📍 2. โครงสร้างพื้นที่</h4>
+                    <div class="input-group">
+                        <label>จำนวนหมู่บ้านทั้งหมด (เพื่อให้ระบบสร้างตัวเลือกอัตโนมัติ)</label>
+                        <input type="number" id="cfg-moo-count" class="neumorphic-input" value="16" min="1" max="50">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>💉 3. ข้อมูลวัคซีนประจำปี</h4>
+                    <div class="row">
+                        <div class="input-group half"><label>ปีงบประมาณปัจจุบัน (พ.ศ.)</label><input type="number" id="cfg-vac-year" class="neumorphic-input" value="2569"></div>
+                        <div class="input-group half"><label>ยี่ห้อวัคซีน (ตั้งต้น)</label><input type="text" id="cfg-vac-brand" class="neumorphic-input" placeholder="เช่น Rabisin"></div>
+                    </div>
+                    <div class="row">
+                        <div class="input-group half"><label>Lot Number</label><input type="text" id="cfg-vac-lot" class="neumorphic-input" placeholder="เช่น L-2026"></div>
+                        <div class="input-group half"><label>วันหมดอายุ (EXP)</label><input type="date" id="cfg-vac-exp" class="neumorphic-input"></div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>📝 4. สายการบังคับบัญชา (สำหรับออกรายงาน)</h4>
+                    <div class="row">
+                        <div class="input-group half"><label>ผู้รายงาน (ชื่อ)</label><input type="text" id="cfg-rep-name" class="neumorphic-input"></div>
+                        <div class="input-group half"><label>ตำแหน่ง</label><input type="text" id="cfg-rep-pos" class="neumorphic-input"></div>
+                    </div>
+                    <div class="row">
+                        <div class="input-group half"><label>ผู้ตรวจสอบ (ชื่อ)</label><input type="text" id="cfg-rev-name" class="neumorphic-input"></div>
+                        <div class="input-group half"><label>ตำแหน่ง</label><input type="text" id="cfg-rev-pos" class="neumorphic-input"></div>
+                    </div>
+                    <div class="row">
+                        <div class="input-group half"><label>ผู้เห็นชอบ (ชื่อ)</label><input type="text" id="cfg-app-name" class="neumorphic-input"></div>
+                        <div class="input-group half"><label>ตำแหน่ง</label><input type="text" id="cfg-app-pos" class="neumorphic-input"></div>
+                    </div>
+                </div>
+
+                <div class="settings-section" style="border-color: rgba(245, 166, 35, 0.4);">
+                    <h4 style="color: #F5A623; border-bottom-color: rgba(245, 166, 35, 0.3);">🔑 5. ความปลอดภัยและการจัดการสิทธิ์</h4>
+                    <div class="input-group">
+                        <label>รหัสลับสำหรับ แอดมิน (Admin Secret)</label>
+                        <input type="text" id="cfg-sec-admin" class="neumorphic-input" placeholder="ตั้งรหัสสำหรับแอดมิน">
+                    </div>
+                    <div class="input-group">
+                        <label style="color: #F5A623;">รหัสลับสำหรับ อาสาปศุสัตว์ (ตั้งแยกตามหมู่)</label>
+                        <p style="font-size: 11px; color: #A0B0C0; margin-bottom: 10px;">*บันทึก "จำนวนหมู่บ้าน" ในข้อ 2 ก่อน ระบบจะสร้างช่องใส่รหัสอาสาฯ ให้ตามจำนวนหมู่</p>
+                        <div id="volunteer-secrets-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <!-- ช่องใส่รหัสจะถูกสร้างอัตโนมัติผ่าน JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" id="btn-save-settings" class="neumorphic-btn gold-btn" style="width: 100%;">💾 บันทึกการตั้งค่าทั้งหมด</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script type="module" src="admin.js"></script>
+</body>
+</html>
