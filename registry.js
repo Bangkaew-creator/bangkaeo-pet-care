@@ -167,13 +167,14 @@ async function updateQuotaAndBanner() {
     currentBookedNeuter = 0;
 
     try {
+        // อัปเดต: นับจำนวนคิวจากฐานข้อมูลเดิม (vaccine_registrations)
         const queueRef = collection(db, "vaccine_registrations");
-        const snap = await getDocs(queueRef);
+        const q = query(queueRef, where("service_type", "in", ["ทำหมัน (สุนัขและแมว)", "ทำหมันและฉีดวัคซีน"]));
+        const snap = await getDocs(q);
         
         snap.forEach(d => {
             const p = d.data();
-            // นับทุกคิวที่มีคำว่า "ทำหมัน" และสถานะไม่ได้เป็น cancelled
-            if (p.service_type && p.service_type.includes("ทำหมัน") && p.status !== "cancelled") {
+            if (p.status !== "cancelled") {
                 currentBookedNeuter++;
             }
         });
@@ -203,7 +204,6 @@ async function updateQuotaAndBanner() {
     }
 }
 
-
 async function loadMyPets() {
     const container = document.getElementById("pet-cards-container");
     container.innerHTML = "<p style='color: #D4AF37; text-align: center;'>กำลังโหลดข้อมูลสัตว์เลี้ยง...</p>";
@@ -228,15 +228,14 @@ async function loadMyPets() {
             let vacBadge = pet.vaccine_status === "ฉีดแล้ว" ? (parseInt(pet.vaccine_year) === currentVaccineYear ? `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${pet.vaccine_year})</span>` : `<span class="vaccine-badge badge-red">🔴 ขาดการต่อวัคซีน</span>`) : `<span class="vaccine-badge badge-red">🔴 ยังไม่เคยฉีด</span>`;
 
             let neuterBtn = "";
-            // ส่วนควบคุมปุ่ม
             if (pet.neuter_status === "ทำหมันแล้ว") {
                 neuterBtn = `<div style="font-size:11px; color:#A0B0C0; text-align:center;">✂️ ทำหมันแล้ว</div>`;
             } else if (pet.neuter_booking && pet.neuter_booking.status === "booked") {
-                // แก้ไขแล้ว: ปล่อยให้ปุ่มเรียงต่อกันเป็นแนวตั้งตามธรรมชาติ
                 neuterBtn = `
-                    <button class="btn-action-small btn-neuter-ticket" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
-                    <button class="btn-action-small btn-cancel-neuter" onclick="cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>
-                `;
+                    <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px;">
+                        <button class="btn-action-small btn-neuter-ticket" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
+                        <button class="btn-action-small btn-cancel-neuter" title="ยกเลิกการจองคิว" onclick="cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>
+                    </div>`;
             } else if (isBookingOpen && currentBookedNeuter < currentTotalNeuterQuota) {
                 neuterBtn = `<button class="btn-action-small btn-neuter" onclick="startBookingFlow('${d.id}')">✂️ จองคิวทำหมัน</button>`;
             }
@@ -291,12 +290,10 @@ async function submitBooking() {
             nextQueueNo = snapLast.docs[0].data().queue_number + 1;
         }
 
-        const now = new Date(); // แก้ไข: ใช้ Date ของระบบแทน serverTimestamp
-        
         const bookingMeta = {
             status: "booked",
             queue_no: nextQueueNo,
-            booked_at: now,
+            booked_at: serverTimestamp(),
             nt_date: sysConfig.nt_date || "-",
             nt_location: sysConfig.nt_location || "-",
             signature_base64: signatureData 
@@ -310,30 +307,31 @@ async function submitBooking() {
         await addDoc(queueRef, {
             queue_number: nextQueueNo,
             service_type: "ทำหมันและฉีดวัคซีน",
-            owner_name: u.owner_name || "-",
-            phone_number: u.phone_number || "-",
-            house_no: u.house_no || "-",
-            village_no: u.village_no || "-",
-            pet_name: pet.pet_name || "-",
-            pet_type: pet.pet_type || "-",
-            pet_gender: pet.pet_gender || "-",
+            owner_name: u.owner_name,
+            phone_number: u.phone_number,
+            house_no: u.house_no,
+            village_no: u.village_no,
+            pet_name: pet.pet_name,
+            pet_type: pet.pet_type,
+            pet_gender: pet.pet_gender,
             pet_breed: pet.breed || "ไม่ระบุ",
             pet_age_years: pet.age_year || 0,
             pet_age_months: pet.age_month || 0,
             pet_color: pet.color || "ไม่ระบุ",
-            rearing_style: pet.rearing_style || "ไม่ระบุ",
+            rearing_style: pet.rearing_style,
             userId: userProfileData.userId,
-            line_displayName: userProfileData.displayName || "ผู้ใช้ทั่วไป",
-            picture_url: userProfileData.pictureUrl || "",
+            line_displayName: userProfileData.displayName,
+            picture_url: userProfileData.pictureUrl,
             status: "pending", 
             signature: signatureData, 
-            timestamp: now // แก้ไข: ใช้ Date ของระบบแทน serverTimestamp
+            timestamp: serverTimestamp()
         });
 
+        // อัปเดต: แจ้งเตือนเข้า LINE เมื่อจองคิวสำเร็จ
         if (liff.isInClient()) {
             await liff.sendMessages([{
                 type: "text",
-                text: `✅ ยืนยันการจองคิวทำหมัน\nลำดับคิวของท่านคือ: #${nextQueueNo}\n🐾 ชื่อสัตว์เลี้ยง: ${pet.pet_name}\n🏠 บ้านเลขที่: ${u.house_no} ม.${u.village_no}\n\n📌 ข้อปฏิบัติและการเตรียมตัวก่อนทำหมัน\n1. งดน้ำ-งดอาหารสัตว์อย่างน้อย 12 ชั่วโมง (ก่อนทำหมัน) และขังสัตว์ไว้ในพื้นที่มิดชิดไม่สามารถออกมากินอาหารได้\n2. สัตว์ที่มาทำหมันต้องสุขภาพดี ไม่ผอม ไม่ป่วย\n3. อายุสัตว์ที่มาทำหมันต้องอายุตั้งแต่ 6-8 เดือนขึ้นไป\n4. สุนัขเพศเมียที่มาทำหมัน ไม่ควรเป็นสัด (อวัยวะเพศบวมแดง) และมีประจำเดือน เพราะจะทำให้เสียเลือดมาก\n5. สุนัขและแมวที่เพิ่งคลอดลูก ควรพักมดลูก 2 เดือน เพราะถ้ามาทำหมันหลังคลอดเลยจะทำให้มดลูกเปื่อยและขาดได้\n6. ถ้ารู้ว่าสัตว์ท้องไม่ควรนำมาทำหมัน หรือถ้าหมอผ่าแล้วเจอจะเย็บปิดทันที\n7. ⚠️ ลำดับคิวที่ท่านได้รับนี้ เป็นเพียง "คิวการจองสิทธิ์" เท่านั้น ท่านจะต้องมาติดต่อรับ "บัตรคิวผ่าตัดทำหมัน" ที่หน้างานก่อนเวลา 10.00 น. ของวันเข้ารับบริการ\n8. กรุณาเปิดสมุดทะเบียนสัตว์และแสดงบัตรคิวดิจิทัลแก่เจ้าหน้าที่ในวันงาน`
+                text: `✅ ยืนยันการจองคิวทำหมัน\nลำดับคิวของท่านคือ: #${nextQueueNo}\n🐾 ชื่อสัตว์เลี้ยง: ${pet.pet_name}\n🏠 บ้านเลขที่: ${pet.house_no} ม.${pet.village_no}\n\n📌 ข้อปฏิบัติและการเตรียมตัวก่อนทำหมัน\n1. งดน้ำ-งดอาหารสัตว์อย่างน้อย 12 ชั่วโมง (ก่อนทำหมัน) และขังสัตว์ไว้ในพื้นที่มิดชิดไม่สามารถออกมากินอาหารได้\n2. สัตว์ที่มาทำหมันต้องสุขภาพดี ไม่ผอม ไม่ป่วย\n3. อายุสัตว์ที่มาทำหมันต้องอายุตั้งแต่ 6-8 เดือนขึ้นไป\n4. สุนัขเพศเมียที่มาทำหมัน ไม่ควรเป็นสัด (อวัยวะเพศบวมแดง) และมีประจำเดือน เพราะจะทำให้เสียเลือดมาก\n5. สุนัขและแมวที่เพิ่งคลอดลูก ควรพักมดลูก 2 เดือน เพราะถ้ามาทำหมันหลังคลอดเลยจะทำให้มดลูกเปื่อยและขาดได้\n6. ถ้ารู้ว่าสัตว์ท้องไม่ควรนำมาทำหมัน หรือถ้าหมอผ่าแล้วเจอจะเย็บปิดทันที\n7. ⚠️ ลำดับคิวที่ท่านได้รับนี้ เป็นเพียง "คิวการจองสิทธิ์" เท่านั้น ท่านจะต้องมาติดต่อรับ "บัตรคิวผ่าตัดทำหมัน" ที่หน้างานก่อนเวลา 10.00 น. ของวันเข้ารับบริการ\n8. กรุณาเปิดสมุดทะเบียนสัตว์และแสดงบัตรคิวดิจิทัลแก่เจ้าหน้าที่ในวันงาน`
             }]);
         }
 
@@ -346,7 +344,7 @@ async function submitBooking() {
 
     } catch (e) {
         console.error("Booking Error:", e);
-        alert(`เกิดข้อผิดพลาด: ${e.message}`); // จะโชว์ Error ว่าเกิดจากบรรทัดไหน
+        alert("เกิดข้อผิดพลาด ไม่สามารถจองคิวได้");
     } finally {
         btnConfirm.disabled = false;
         btnConfirm.textContent = "ยืนยันจองคิว";
