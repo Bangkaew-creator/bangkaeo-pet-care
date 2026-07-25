@@ -25,6 +25,12 @@
         .btn-neuter-ticket { color: #D4AF37; border-color: #D4AF37; background: rgba(212, 175, 55, 0.2); font-weight: bold; }
         .btn-cancel-neuter { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.4); background: rgba(255, 107, 107, 0.1); font-weight: bold; margin-top: 4px; }
 
+        /* Progress Bar (หลอดโควตา) */
+        .progress-container { margin-top: 15px; }
+        .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: #A0B0C0; margin-bottom: 5px; }
+        .progress-track { background: rgba(0,0,0,0.2); border-radius: 10px; height: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        .progress-fill { background: #F5A623; height: 100%; transition: width 0.5s ease; border-radius: 10px; }
+
         .modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         
         #signature-pad { border: 2px dashed rgba(212, 175, 55, 0.5); background: #E0E5EC; border-radius: 8px; width: 100%; height: 150px; cursor: crosshair; touch-action: none; }
@@ -75,13 +81,23 @@
             <img id="user-profile-img" src="" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #D4AF37; display: none;">
         </div>
         
-        <div id="neuter-banner-container" style="display: none; margin-bottom: 20px; background: linear-gradient(135deg, rgba(36, 59, 85, 0.9), rgba(20, 30, 48, 0.9)); border-left: 5px solid #50E3C2; border-radius: 12px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                <div style="background: #50E3C2; color: #141E30; padding: 5px; border-radius: 6px; font-size: 16px;">✂️</div>
-                <div style="color: #50E3C2; font-weight: bold; font-size: 15px; letter-spacing: 0.5px;">โครงการทำหมันสุนัขและแมว</div>
-            </div>
-            <div id="neuter-banner-detail" style="font-size: 13px; color: #E0E5EC; line-height: 1.5; padding-left: 36px;">
-                <!-- ข้อมูลจะถูกเติมด้วย JS -->
+        <div id="neuter-banner-container" style="display: none; margin-bottom: 20px;">
+            <div class="card neumorphic" style="padding: 15px; border: 1px solid rgba(80, 227, 194, 0.3);">
+                <h3 class="section-title" style="color: #50E3C2; margin-bottom: 15px;">📊 สถานะคิวโครงการปัจจุบัน</h3>
+                
+                <div style="background: #1b2941; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; border-left: 4px solid #50E3C2;">
+                    <h4 style="color: #50E3C2; font-size: 16px; margin-bottom: 5px;">📅 กำหนดการผ่าตัดทำหมัน</h4>
+                    <p id="txt-service-info" style="color: #FFF; font-size: 14px; margin: 0; line-height: 1.5;">กำลังโหลดข้อมูล...</p>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-label"><span>ทำหมัน (สุนัขและแมว)</span><span id="txt-neuter-quota">กำลังโหลด...</span></div>
+                    <div class="progress-track"><div id="bar-neuter" class="progress-fill" style="width: 0%;"></div></div>
+                </div>
+                
+                <div id="registration-closed-msg" style="display: none; background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; padding: 10px; border-radius: 8px; text-align: center; margin-top: 15px;">
+                    <p style="color: #ff6b6b; font-size: 14px; font-weight: bold;">⚠️ สิ้นสุดการรับจองคิว หรือ โควตาเต็มแล้ว</p>
+                </div>
             </div>
         </div>
 
