@@ -5,24 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ทะเบียนสัตว์เลี้ยง - เทศบาลเมืองบางแก้ว</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css"> <!-- ดึง CSS ตัวเดิมมาใช้ -->
+    <link rel="stylesheet" href="style.css">
     <style>
-        /* สไตล์เพิ่มเติมเฉพาะหน้าทะเบียน */
         .pet-card { background: rgba(0, 0, 0, 0.15); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid #D4AF37; display: flex; gap: 15px; align-items: center; position: relative; }
-        .pet-photo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #D4AF37; flex-shrink: 0; }
-        .pet-info { flex-grow: 1; color: #E0E5EC; }
+        .pet-photo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #D4AF37; flex-shrink: 0; background-color: #1b2941; }
+        .pet-info { flex-grow: 1; color: #E0E5EC; padding-right: 20px; }
         .pet-name { color: #D4AF37; font-size: 18px; font-weight: 600; margin-bottom: 5px; }
         .vaccine-badge { padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 5px; }
         .badge-green { background: rgba(80, 227, 194, 0.2); color: #50E3C2; border: 1px solid #50E3C2; }
         .badge-yellow { background: rgba(245, 166, 35, 0.2); color: #F5A623; border: 1px solid #F5A623; }
         .badge-red { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
-        .btn-soft-delete { position: absolute; top: 10px; right: 10px; background: transparent; border: none; color: #ff6b6b; font-size: 12px; cursor: pointer; text-decoration: underline; }
+        
+        /* ปุ่มแก้ไข และ แจ้งตาย */
+        .card-actions { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .btn-action-small { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #FFF; font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-edit { color: #50E3C2; border-color: rgba(80, 227, 194, 0.4); }
+        .btn-delete { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.4); }
     </style>
 </head>
 <body>
     <div id="loading" class="loading-screen">กำลังดึงข้อมูลทะเบียนสัตว์...</div>
 
-    <!-- ส่วนที่ 1: ยืนยันบ้านเลขที่ (โชว์เฉพาะคนเข้าใช้ครั้งแรก) -->
+    <!-- ส่วนที่ 1: ยืนยันบ้านเลขที่ -->
     <div id="household-setup-container" class="container" style="display: none;">
         <div class="project-header">
             <h3>ขึ้นทะเบียนสัตว์เลี้ยงปศุสัตว์</h3>
@@ -56,7 +60,7 @@
         </div>
     </div>
 
-    <!-- ส่วนที่ 2: แดชบอร์ดประชาชน (สมุดประจำตัวสัตว์) -->
+    <!-- ส่วนที่ 2: แดชบอร์ดประชาชน -->
     <div id="dashboard-container" class="container" style="display: none;">
         <div class="project-header" style="text-align: left; display: flex; justify-content: space-between; align-items: center;">
             <div>
@@ -68,24 +72,22 @@
         
         <button type="button" id="btn-show-add-pet" class="neumorphic-btn gold-btn" style="margin-bottom: 20px;">+ เพิ่มสัตว์เลี้ยงใหม่ในบ้าน</button>
 
-        <div id="pet-cards-container">
-            <!-- การ์ดสัตว์เลี้ยงจะถูกสร้างผ่าน JS ตรงนี้ -->
-        </div>
+        <div id="pet-cards-container"></div>
     </div>
 
-    <!-- ส่วนที่ 3: ฟอร์มเพิ่มสัตว์เลี้ยงใหม่ -->
+    <!-- ส่วนที่ 3: ฟอร์มเพิ่ม/แก้ไข สัตว์เลี้ยง -->
     <div id="add-pet-container" class="container" style="display: none;">
-        <div class="project-header"><h3>+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่</h3></div>
+        <div class="project-header"><h3 id="form-title">+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่</h3></div>
         <div class="card neumorphic">
-            <!-- อัปโหลดรูปภาพ -->
+            
             <div style="text-align: center; margin-bottom: 25px;">
                 <h3 class="section-title">📷 รูปถ่ายสัตว์เลี้ยง</h3>
-                <img id="pet-image-preview" src="https://via.placeholder.com/150?text=เพิ่มรูปภาพ" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #D4AF37; margin-bottom: 10px; cursor: pointer;" onclick="document.getElementById('pet-image-upload').click()">
+                <!-- รูปรอยเท้าแบบออฟไลน์ 100% -->
+                <img id="pet-image-preview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #D4AF37; margin-bottom: 10px; cursor: pointer; background: #1b2941;" onclick="document.getElementById('pet-image-upload').click()">
                 <input type="file" id="pet-image-upload" accept="image/*" style="display: none;">
                 <p style="font-size: 12px; color: #A0B0C0;">(แตะที่วงกลมเพื่อเลือกรูปภาพ)</p>
             </div>
 
-            <!-- ข้อมูลทั่วไป -->
             <h3 class="section-title">รายละเอียดข้อมูล</h3>
             <div class="input-group"><label>ชื่อสัตว์เลี้ยง</label><input type="text" id="p-name" class="neumorphic-input" required></div>
             <div class="row">
@@ -108,6 +110,32 @@
                     <option value="ปล่อยบางเวลา">ปล่อยบางเวลา</option>
                 </select>
             </div>
+
+            <!-- เพิ่มฟิลด์วัคซีนและทำหมัน -->
+            <h3 class="section-title" style="margin-top: 25px;">ประวัติทางปศุสัตว์</h3>
+            <div class="row">
+                <div class="input-group half">
+                    <label>วัคซีนพิษสุนัขบ้า</label>
+                    <select id="p-vac-status" class="neumorphic-input" required>
+                        <option value="" disabled selected>เลือก</option>
+                        <option value="ฉีดแล้ว">ฉีดแล้ว</option>
+                        <option value="ยังไม่เคยฉีด">ยังไม่เคยฉีด</option>
+                    </select>
+                </div>
+                <div class="input-group half" id="vac-year-group" style="display: none;">
+                    <label>ปีที่ฉีดล่าสุด (พ.ศ.)</label>
+                    <input type="number" id="p-vac-year" class="neumorphic-input" placeholder="เช่น 2568">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>สถานะการทำหมัน</label>
+                <select id="p-neuter-status" class="neumorphic-input" required>
+                    <option value="" disabled selected>เลือกสถานะ</option>
+                    <option value="ทำหมันแล้ว">ทำหมันแล้ว</option>
+                    <option value="ยังไม่ทำหมัน">ยังไม่ทำหมัน</option>
+                </select>
+            </div>
+
         </div>
         <div class="row">
             <button type="button" id="btn-cancel-add" class="neumorphic-btn half outline-btn">⬅ ยกเลิก</button>
