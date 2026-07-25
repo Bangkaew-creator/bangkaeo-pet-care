@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCNsfEd11Yv2kNCO_T3s07WJ1eAXUyhssE",
@@ -15,6 +15,7 @@ const LIFF_ID = "2010813512-UqwFMq5V";
 
 let userProfileData = null;
 let currentHouseholdKey = "";
+let currentUserIsHead = false;
 let currentPetBase64 = ""; 
 let sysConfig = null; 
 
@@ -52,6 +53,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.clearSignature = function() { if(signaturePad) signaturePad.clear(); }
+window.closeConsentModal = function() {
+    document.getElementById("consent-modal").style.display = "none";
+    if(signaturePad) signaturePad.clear();
+    document.getElementById("accept-consent").checked = false;
+}
 
 async function initializeLiff() {
     try {
@@ -127,7 +133,6 @@ async function updateQuotaAndBanner() {
     currentTotalNeuterQuota = sysConfig.quota_neuter || 100;
     currentBookedNeuter = 0;
 
-    // คำนวณคิว: นับจากระบบเดิม (สัตว์ที่มีสถานะจองคิว ไม่ถูกยกเลิก)
     try {
         const petsSnap = await getDocs(collection(db, "pets"));
         petsSnap.forEach(d => {
@@ -154,7 +159,11 @@ async function updateQuotaAndBanner() {
 
         if (isQuotaFull) {
             document.getElementById("registration-closed-msg").style.display = "block";
+        } else {
+            document.getElementById("registration-closed-msg").style.display = "none";
         }
+    } else {
+        document.getElementById("neuter-banner-container").style.display = "none";
     }
 }
 
@@ -185,9 +194,13 @@ async function loadMyPets() {
             if (pet.neuter_status === "ทำหมันแล้ว") {
                 neuterBtn = `<div style="font-size:11px; color:#A0B0C0; text-align:center;">ทำหมันแล้ว</div>`;
             } else if (pet.neuter_booking && pet.neuter_booking.status === "booked") {
-                neuterBtn = `<button class="btn-action-small btn-neuter-ticket" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>`;
+                // เพิ่มปุ่มยกเลิกคิว
+                neuterBtn = `
+                    <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                        <button class="btn-action-small btn-neuter-ticket" style="flex: 1;" onclick="viewNeuterTicket('${d.id}')">🎫 ดูบัตรคิว #${pet.neuter_booking.queue_no}</button>
+                        <button class="btn-action-small btn-delete" style="width: auto; padding: 0 10px;" title="ยกเลิกการจอง" onclick="cancelBooking('${d.id}')">❌</button>
+                    </div>`;
             } else if (isBookingOpen && currentBookedNeuter < currentTotalNeuterQuota) {
-                // ถ้าเปิดจองและคิวยังไม่เต็ม ให้ปุ่มจองขึ้นมา
                 neuterBtn = `<button class="btn-action-small btn-neuter" onclick="startBookingFlow('${d.id}')">✂️ จองคิวทำหมัน</button>`;
             }
 
@@ -242,7 +255,6 @@ async function submitBooking() {
     document.getElementById("btn-confirm-booking").textContent = "กำลังรันคิว...";
 
     try {
-        // นับคิวต่อจากระบบเดิม: คิวคือ จำนวนสัตว์ที่จองทั้งหมด + 1
         const allPetsSnap = await getDocs(collection(db, "pets"));
         let currentQ = 0;
         allPetsSnap.forEach(d => {
@@ -254,18 +266,47 @@ async function submitBooking() {
         
         let nextQueueNo = currentQ + 1;
 
-        // อัปเดตข้อมูลการจองลงในตัวสัตว์เลี้ยง (ตาราง pets ของสมุดทะเบียน)
         const bookingMeta = {
             status: "booked",
             queue_no: nextQueueNo,
             booked_at: serverTimestamp(),
             nt_date: sysConfig.nt_date || "-",
             nt_location: sysConfig.nt_location || "-",
-            signature_base64: signatureData // เก็บเซ็นด้วย
+            signature_base64: signatureData 
         };
+        
+        // 1. อัปเดตตาราง pets
         await updateDoc(doc(db, "pets", bookingPetId), { neuter_booking: bookingMeta });
 
-        // ส่งข้อความเข้า LINE (คำแนะนำ 8 ข้อตามระบบเก่า)
+        // 2. บันทึกลงตาราง vaccine_registrations (ระบบเก่า)
+        const queueRef = collection(db, "vaccine_registrations"); 
+        const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
+        const u = userSnap.data();
+
+        await addDoc(queueRef, {
+            queue_number: nextQueueNo,
+            service_type: "ทำหมันและฉีดวัคซีน",
+            owner_name: u.owner_name,
+            phone_number: u.phone_number,
+            house_no: u.house_no,
+            village_no: u.village_no,
+            pet_name: pet.pet_name,
+            pet_type: pet.pet_type,
+            pet_gender: pet.pet_gender,
+            pet_breed: pet.breed || "ไม่ระบุ",
+            pet_age_years: pet.age_year || 0,
+            pet_age_months: pet.age_month || 0,
+            pet_color: pet.color || "ไม่ระบุ",
+            rearing_style: pet.rearing_style,
+            userId: userProfileData.userId,
+            line_displayName: userProfileData.displayName,
+            picture_url: userProfileData.pictureUrl,
+            status: "pending", 
+            signature: signatureData, 
+            timestamp: serverTimestamp()
+        });
+
+        // 3. ส่งข้อความเข้า LINE 
         if (liff.isInClient()) {
             await liff.sendMessages([{
                 type: "text",
@@ -277,8 +318,10 @@ async function submitBooking() {
         document.getElementById("btn-confirm-booking").disabled = false;
         document.getElementById("btn-confirm-booking").textContent = "ยืนยันจองคิว";
 
-        await updateQuotaAndBanner(); // โหลดหลอดโควตาใหม่
-        loadMyPets(); // โหลดปุ่มให้กลายเป็นบัตรคิว
+        alert(`🎉 จองคิวสำเร็จ!\nท่านได้รับคิวทำหมันลำดับที่ #${nextQueueNo}`);
+
+        await updateQuotaAndBanner(); 
+        loadMyPets(); 
         
         setTimeout(() => { viewNeuterTicket(bookingPetId); }, 500); 
 
@@ -307,7 +350,60 @@ window.viewNeuterTicket = function(docId) {
 }
 
 // ==========================================
-// ฟังก์ชันจัดการฟอร์มเพิ่ม/แก้ไข สัตว์ (เหมือนเดิม)
+// ฟังก์ชันยกเลิกคิว (คืนโควตา)
+// ==========================================
+window.cancelBooking = async function(docId) {
+    const pet = window.myPetsData[docId];
+    if(!pet || !pet.neuter_booking) return;
+
+    if(!confirm(`ยืนยันการยกเลิกคิวทำหมันของน้อง ${pet.pet_name} ใช่หรือไม่?\n\n(หากยกเลิกแล้ว โควตาของท่านจะถูกส่งคืนให้ระบบทันที)`)) return;
+
+    document.getElementById("loading").style.display = "flex";
+    document.getElementById("loading").textContent = "กำลังยกเลิกคิว...";
+
+    try {
+        // 1. ค้นหาคิวในระบบเก่า (vaccine_registrations) แล้วลบทิ้ง
+        const queueRef = collection(db, "vaccine_registrations");
+        const q = query(queueRef, 
+            where("pet_name", "==", pet.pet_name), 
+            where("queue_number", "==", pet.neuter_booking.queue_no),
+            where("userId", "==", userProfileData.userId)
+        );
+        const snap = await getDocs(q);
+        
+        // ลบเอกสารจองคิวที่เจอทิ้งทั้งหมด
+        snap.forEach(async (d) => {
+            await deleteDoc(doc(db, "vaccine_registrations", d.id));
+        });
+
+        // 2. เคลียร์ค่า neuter_booking ในสมุดทะเบียน (ให้เป็น null เพื่อให้ปุ่มจองโผล่มาใหม่)
+        await updateDoc(doc(db, "pets", docId), {
+            neuter_booking: null
+        });
+
+        // 3. ส่ง LINE แจ้งเตือนการยกเลิก
+        if (liff.isInClient()) {
+            await liff.sendMessages([{
+                type: "text",
+                text: `❌ ยกเลิกการจองคิวสำเร็จ\nสิทธิการทำหมันของน้อง ${pet.pet_name} (คิวที่ #${pet.neuter_booking.queue_no}) ถูกยกเลิกและส่งคืนโควตาให้ระบบเรียบร้อยแล้วครับ`
+            }]);
+        }
+
+        document.getElementById("loading").style.display = "none";
+        alert("ยกเลิกคิวสำเร็จ โควตาได้ถูกส่งคืนสู่ระบบแล้วครับ");
+        
+        await updateQuotaAndBanner(); // โหลดหลอดนับโควตาใหม่
+        loadMyPets(); // โหลดหน้าจอใหม่
+
+    } catch(e) {
+        console.error("Cancel Error:", e);
+        document.getElementById("loading").style.display = "none";
+        alert("เกิดข้อผิดพลาดในการยกเลิกคิว");
+    }
+}
+
+// ==========================================
+// ฟังก์ชันจัดการฟอร์มเพิ่ม/แก้ไข สัตว์ 
 // ==========================================
 function setupPetForm() {
     document.getElementById("btn-show-add-pet").addEventListener("click", () => {
