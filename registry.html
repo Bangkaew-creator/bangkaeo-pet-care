@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ทะเบียนสัตว์เลี้ยง - เทศบาลเมืองบางแก้ว</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css"> <!-- ดึง CSS ตัวเดิมมาใช้ -->
+    <style>
+        /* สไตล์เพิ่มเติมเฉพาะหน้าทะเบียน */
+        .pet-card { background: rgba(0, 0, 0, 0.15); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid #D4AF37; display: flex; gap: 15px; align-items: center; position: relative; }
+        .pet-photo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #D4AF37; flex-shrink: 0; }
+        .pet-info { flex-grow: 1; color: #E0E5EC; }
+        .pet-name { color: #D4AF37; font-size: 18px; font-weight: 600; margin-bottom: 5px; }
+        .vaccine-badge { padding: 4px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 5px; }
+        .badge-green { background: rgba(80, 227, 194, 0.2); color: #50E3C2; border: 1px solid #50E3C2; }
+        .badge-yellow { background: rgba(245, 166, 35, 0.2); color: #F5A623; border: 1px solid #F5A623; }
+        .badge-red { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
+        .btn-soft-delete { position: absolute; top: 10px; right: 10px; background: transparent; border: none; color: #ff6b6b; font-size: 12px; cursor: pointer; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading-screen">กำลังดึงข้อมูลทะเบียนสัตว์...</div>
+
+    <!-- ส่วนที่ 1: ยืนยันบ้านเลขที่ (โชว์เฉพาะคนเข้าใช้ครั้งแรก) -->
+    <div id="household-setup-container" class="container" style="display: none;">
+        <div class="project-header">
+            <h3>ขึ้นทะเบียนสัตว์เลี้ยงปศุสัตว์</h3>
+            <p>เทศบาลเมืองบางแก้ว สมุทรปราการ</p>
+        </div>
+        <div class="card neumorphic">
+            <h3 class="section-title" style="color: #50E3C2;">🏠 ยืนยันข้อมูลที่อยู่อาศัย</h3>
+            <p style="font-size: 14px; color: #A0B0C0; margin-bottom: 20px; line-height: 1.5;">เพื่อเชื่อมโยงข้อมูลสัตว์เลี้ยงทั้งหมดในบ้านของท่านเข้าด้วยกัน (หากเคยลงทะเบียนแล้ว ระบบจะดึงข้อมูลมาให้โดยอัตโนมัติ)</p>
+            
+            <div class="input-group"><label>ชื่อ-นามสกุลเจ้าของ</label><input type="text" id="hh-name" class="neumorphic-input" placeholder="ระบุชื่อ-นามสกุล"></div>
+            <div class="input-group"><label>เบอร์โทรศัพท์</label><input type="tel" id="hh-phone" class="neumorphic-input" placeholder="08X-XXX-XXXX"></div>
+            
+            <div class="row">
+                <div class="input-group half"><label>บ้านเลขที่</label><input type="text" id="hh-house-no" class="neumorphic-input" placeholder="เช่น 99/9"></div>
+                <div class="input-group half"><label>หมู่ที่</label>
+                    <select id="hh-village-no" class="neumorphic-input">
+                        <option value="" disabled selected>เลือกหมู่</option>
+                        <script>for(let i=1; i<=16; i++) document.write(`<option value="${i}">หมู่ ${i}</option>`);</script>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="input-group checkbox-group" style="margin-top: 10px;">
+                <input type="checkbox" id="hh-is-rental" class="neumorphic-checkbox">
+                <label for="hh-is-rental">อาศัยในบ้านเช่า/หอพัก</label>
+            </div>
+            <div class="input-group" id="hh-room-group" style="display: none;">
+                <label>เลขห้อง</label><input type="text" id="hh-room-no" class="neumorphic-input">
+            </div>
+            <button type="button" id="btn-register-household" class="neumorphic-btn gold-btn" style="margin-top: 20px;">ยืนยันข้อมูล ➔</button>
+        </div>
+    </div>
+
+    <!-- ส่วนที่ 2: แดชบอร์ดประชาชน (สมุดประจำตัวสัตว์) -->
+    <div id="dashboard-container" class="container" style="display: none;">
+        <div class="project-header" style="text-align: left; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="font-size: 18px;">สมุดประจำตัวสัตว์เลี้ยง</h3>
+                <p id="display-household-info" style="color: #D4AF37; font-size: 14px;">บ้านเลขที่ -</p>
+            </div>
+            <img id="user-profile-img" src="" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #D4AF37; display: none;">
+        </div>
+        
+        <button type="button" id="btn-show-add-pet" class="neumorphic-btn gold-btn" style="margin-bottom: 20px;">+ เพิ่มสัตว์เลี้ยงใหม่ในบ้าน</button>
+
+        <div id="pet-cards-container">
+            <!-- การ์ดสัตว์เลี้ยงจะถูกสร้างผ่าน JS ตรงนี้ -->
+        </div>
+    </div>
+
+    <!-- ส่วนที่ 3: ฟอร์มเพิ่มสัตว์เลี้ยงใหม่ -->
+    <div id="add-pet-container" class="container" style="display: none;">
+        <div class="project-header"><h3>+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่</h3></div>
+        <div class="card neumorphic">
+            <!-- อัปโหลดรูปภาพ -->
+            <div style="text-align: center; margin-bottom: 25px;">
+                <h3 class="section-title">📷 รูปถ่ายสัตว์เลี้ยง</h3>
+                <img id="pet-image-preview" src="https://via.placeholder.com/150?text=เพิ่มรูปภาพ" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #D4AF37; margin-bottom: 10px; cursor: pointer;" onclick="document.getElementById('pet-image-upload').click()">
+                <input type="file" id="pet-image-upload" accept="image/*" style="display: none;">
+                <p style="font-size: 12px; color: #A0B0C0;">(แตะที่วงกลมเพื่อเลือกรูปภาพ)</p>
+            </div>
+
+            <!-- ข้อมูลทั่วไป -->
+            <h3 class="section-title">รายละเอียดข้อมูล</h3>
+            <div class="input-group"><label>ชื่อสัตว์เลี้ยง</label><input type="text" id="p-name" class="neumorphic-input" required></div>
+            <div class="row">
+                <div class="input-group half"><label>ประเภท</label><select id="p-type" class="neumorphic-input" required><option value="" disabled selected>เลือก</option><option value="สุนัข">สุนัข</option><option value="แมว">แมว</option></select></div>
+                <div class="input-group half"><label>เพศ</label><select id="p-gender" class="neumorphic-input" required><option value="" disabled selected>เลือก</option><option value="ตัวผู้">ตัวผู้</option><option value="ตัวเมีย">ตัวเมีย</option></select></div>
+            </div>
+            <div class="row">
+                <div class="input-group half"><label>สายพันธุ์</label><input type="text" id="p-breed" class="neumorphic-input" placeholder="เช่น พันธุ์ทาง"></div>
+                <div class="input-group half"><label>สี/ตำหนิ</label><input type="text" id="p-color" class="neumorphic-input" placeholder="เช่น ดำด่างขาว"></div>
+            </div>
+            <div class="row">
+                <div class="input-group half"><label>อายุ (ปี)</label><input type="number" id="p-age-year" class="neumorphic-input" value="0" min="0"></div>
+                <div class="input-group half"><label>อายุ (เดือน)</label><input type="number" id="p-age-month" class="neumorphic-input" value="0" min="0" max="11"></div>
+            </div>
+            <div class="input-group"><label>รูปแบบการเลี้ยง</label>
+                <select id="p-rearing" class="neumorphic-input" required>
+                    <option value="" disabled selected>เลือกระบบการเลี้ยง</option>
+                    <option value="เลี้ยงระบบปิด (ในบ้านตลอด)">เลี้ยงระบบปิด (ในบ้านตลอด)</option>
+                    <option value="เลี้ยงระบบเปิด (ปล่อยอิสระ)">เลี้ยงระบบเปิด (ปล่อยอิสระ)</option>
+                    <option value="ปล่อยบางเวลา">ปล่อยบางเวลา</option>
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <button type="button" id="btn-cancel-add" class="neumorphic-btn half outline-btn">⬅ ยกเลิก</button>
+            <button type="button" id="btn-save-pet" class="neumorphic-btn gold-btn half">💾 บันทึกทะเบียน</button>
+        </div>
+    </div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script type="module" src="registry.js"></script>
+</body>
+</html>
