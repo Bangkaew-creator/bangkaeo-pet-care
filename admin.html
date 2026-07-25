@@ -13,22 +13,19 @@
         
         .settings-section { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-bottom: 20px; }
         .settings-section h4 { color: #50E3C2; margin-bottom: 15px; border-bottom: 1px solid rgba(80, 227, 194, 0.3); padding-bottom: 5px; }
-                /* --- แก้ปัญหาช่องกรอกข้อมูลล้นกรอบบนมือถือ --- */
-        input[type="date"] {
-            box-sizing: border-box;
-            width: 100%;
-        }
-        @media (max-width: 500px) {
-            .row { 
-                display: flex;
-                flex-direction: column !important; 
-                gap: 0 !important; 
-            }
-            .input-group.half { 
-                width: 100% !important; 
-            }
-        }
 
+        input[type="date"] { box-sizing: border-box; width: 100%; }
+        @media (max-width: 500px) {
+            .row { display: flex; flex-direction: column !important; gap: 0 !important; }
+            .input-group.half { width: 100% !important; }
+        }
+        
+        /* สไตล์ตาราง Master Data */
+        .data-table-wrapper { overflow-x: auto; padding: 0; background: rgba(255,255,255,0.02); border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+        .master-table { width: 100%; border-collapse: collapse; min-width: 650px; font-size: 13px; }
+        .master-table th { padding: 12px; background: rgba(0,0,0,0.3); color: #D4AF37; text-align: left; border-bottom: 2px solid rgba(212, 175, 55, 0.2); }
+        .master-table td { padding: 10px 12px; color: #E0E5EC; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .master-table tr:hover { background: rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
@@ -84,6 +81,9 @@
             <button class="nav-btn" id="btn-logout" style="color: #ff6b6b;">ออกจากระบบ</button>
         </div>
 
+        <!-- ============================================== -->
+        <!-- 1. หน้าเช็คอิน & ลงทะเบียนแทน -->
+        <!-- ============================================== -->
         <div id="view-checkin">
             <div class="card neumorphic" style="margin-bottom: 20px;">
                 <h3 class="section-title">🔍 ค้นหาบ้าน / อัปเดตข้อมูล</h3>
@@ -115,7 +115,7 @@
                 <div id="proxy-add-form" class="card neumorphic" style="display: none; margin-bottom: 15px; border: 1px solid #50E3C2; background: rgba(80, 227, 194, 0.05);">
                     <h4 style="color: #50E3C2; margin-bottom: 15px;">📝 ลงทะเบียนสัตว์ตัวใหม่เข้าบ้านนี้</h4>
                     
-                    <div class="input-group"><label>ชื่อสัตว์เลี้ยง</label><input type="text" id="px-name" class="neumorphic-input" placeholder="ระบุชื่อสัตว์เลี้ยง"></div>
+                    <div class="input-group"><label>ชื่อสัตว์เลี้ยง</label><input type="text" id="px-name" class="neumorphic-input"></div>
                     <div class="row">
                         <div class="input-group half"><label>ประเภท</label><select id="px-type" class="neumorphic-input"><option value="สุนัข">สุนัข</option><option value="แมว">แมว</option></select></div>
                         <div class="input-group half"><label>เพศ</label><select id="px-gender" class="neumorphic-input"><option value="ตัวผู้">ตัวผู้</option><option value="ตัวเมีย">ตัวเมีย</option></select></div>
@@ -136,14 +136,8 @@
                         </select>
                     </div>
                     <div class="row">
-                        <div class="input-group half">
-                            <label>วัคซีนพิษสุนัขบ้า</label>
-                            <select id="px-vac-status" class="neumorphic-input"><option value="ยังไม่เคยฉีด">ยังไม่เคยฉีด</option><option value="ฉีดแล้ว">ฉีดแล้ว</option></select>
-                        </div>
-                        <div class="input-group half">
-                            <label>สถานะทำหมัน</label>
-                            <select id="px-neuter-status" class="neumorphic-input"><option value="ยังไม่ทำหมัน">ยังไม่ทำหมัน</option><option value="ทำหมันแล้ว">ทำหมันแล้ว</option></select>
-                        </div>
+                        <div class="input-group half"><label>วัคซีนพิษสุนัขบ้า</label><select id="px-vac-status" class="neumorphic-input"><option value="ยังไม่เคยฉีด">ยังไม่เคยฉีด</option><option value="ฉีดแล้ว">ฉีดแล้ว</option></select></div>
+                        <div class="input-group half"><label>สถานะทำหมัน</label><select id="px-neuter-status" class="neumorphic-input"><option value="ยังไม่ทำหมัน">ยังไม่ทำหมัน</option><option value="ทำหมันแล้ว">ทำหมันแล้ว</option></select></div>
                     </div>
                     
                     <div class="row" style="margin-top: 10px;">
@@ -156,6 +150,83 @@
             </div>
         </div>
 
+        <!-- ============================================== -->
+        <!-- 2. หน้าจัดการข้อมูล (Master Data - Admin Only) -->
+        <!-- ============================================== -->
+        <div id="view-data" style="display: none;">
+            <div class="card neumorphic" style="margin-bottom: 20px;">
+                <h3 class="section-title">📊 จัดการข้อมูล (Master Data)</h3>
+                
+                <div class="row">
+                    <div class="input-group half">
+                        <label>กรองตามหมู่บ้าน</label>
+                        <select id="filter-moo" class="neumorphic-input"><option value="ALL">ทั้งหมด</option></select>
+                    </div>
+                    <div class="input-group half">
+                        <label>ประเภทสัตว์</label>
+                        <select id="filter-type" class="neumorphic-input">
+                            <option value="ALL">ทั้งหมด</option>
+                            <option value="สุนัข">สุนัข</option>
+                            <option value="แมว">แมว</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-group half">
+                        <label>สถานะวัคซีน</label>
+                        <select id="filter-vac" class="neumorphic-input">
+                            <option value="ALL">ทั้งหมด</option>
+                            <option value="ฉีดแล้ว">ฉีดแล้ว</option>
+                            <option value="ยังไม่เคยฉีด">ยังไม่เคยฉีด</option>
+                        </select>
+                    </div>
+                    <div class="input-group half">
+                        <label>สถานะทำหมัน</label>
+                        <select id="filter-neuter" class="neumorphic-input">
+                            <option value="ALL">ทั้งหมด</option>
+                            <option value="ทำหมันแล้ว">ทำหมันแล้ว</option>
+                            <option value="ยังไม่ทำหมัน">ยังไม่ทำหมัน</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="btn-load-data" class="neumorphic-btn gold-btn" style="width: 100%; margin-top: 10px;">🔄 โหลดข้อมูล</button>
+            </div>
+
+            <!-- กล่องสรุปสถิติ -->
+            <div class="row" style="margin-bottom: 20px;">
+                <div class="half" style="background: rgba(80, 227, 194, 0.1); border: 1px solid #50E3C2; padding: 15px; border-radius: 8px; text-align: center;">
+                    <h4 style="color: #50E3C2; margin-bottom: 5px; font-size: 14px;">รวมทั้งหมด</h4>
+                    <h2 id="stat-total" style="color: white; margin: 0;">0</h2>
+                </div>
+                <div class="half" style="background: rgba(245, 166, 35, 0.1); border: 1px solid #F5A623; padding: 15px; border-radius: 8px; text-align: center;">
+                    <h4 style="color: #F5A623; margin-bottom: 5px; font-size: 14px;">ฉีดวัคซีนแล้ว</h4>
+                    <h2 id="stat-vac" style="color: white; margin: 0;">0</h2>
+                </div>
+            </div>
+
+            <!-- ตารางข้อมูล -->
+            <div class="data-table-wrapper">
+                <table class="master-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 100px;">บ้านเลขที่</th>
+                            <th style="min-width: 120px;">ชื่อเจ้าของ</th>
+                            <th style="min-width: 100px;">ชื่อสัตว์</th>
+                            <th style="min-width: 70px;">ชนิด</th>
+                            <th style="min-width: 80px;">วัคซีน</th>
+                            <th style="min-width: 80px;">ทำหมัน</th>
+                        </tr>
+                    </thead>
+                    <tbody id="master-data-tbody">
+                        <tr><td colspan="6" style="text-align: center; padding: 25px; color: #A0B0C0;">กดปุ่ม "โหลดข้อมูล" เพื่อแสดงตาราง</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 3. หน้าการตั้งค่า (Settings - Admin Only) -->
+        <!-- ============================================== -->
         <div id="view-settings" style="display: none;">
             <div class="card neumorphic">
                 <h3 class="section-title">ตั้งค่าระบบ (White-Label)</h3>
