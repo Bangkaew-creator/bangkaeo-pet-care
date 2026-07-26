@@ -3,217 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบเจ้าหน้าที่ - ทะเบียนสัตว์เลี้ยง</title>
+    <title>ระบบเจ้าหน้าที่ - เทศบาลเมืองบางแก้ว</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
-        .admin-nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .nav-btn { flex: 1 1 45%; padding: 10px 5px; border-radius: 8px; font-size: 13px; cursor: pointer; background: rgba(0,0,0,0.2); color: #A0B0C0; border: none; text-align: center; }
-        .nav-btn.active { background: rgba(212, 175, 55, 0.2); color: #D4AF37; border: 1px solid #D4AF37; font-weight: bold; }
+        /* Sidebar Admin */
+        .sidebar { position: fixed; top: 0; right: -250px; width: 250px; height: 100%; background: #1b2941; box-shadow: -2px 0 5px rgba(0,0,0,0.5); transition: right 0.3s ease; z-index: 2000; padding-top: 20px; }
+        .sidebar a { display: block; padding: 15px 20px; color: #E0E5EC; text-decoration: none; font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .sidebar a:hover { background: rgba(255,255,255,0.1); color: #D4AF37; }
+        .hamburger-btn { background: none; border: none; color: #D4AF37; font-size: 24px; cursor: pointer; padding: 5px; }
+        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 30px; color: #ff6b6b; cursor: pointer; text-decoration: none; border-bottom: none !important; }
         
-        .settings-section { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-bottom: 20px; }
-        .settings-section h4 { color: #50E3C2; margin-bottom: 15px; border-bottom: 1px solid rgba(80, 227, 194, 0.3); padding-bottom: 5px; }
-
-        input[type="date"] { box-sizing: border-box; width: 100%; }
-        @media (max-width: 500px) {
-            .row { display: flex; flex-direction: column !important; gap: 0 !important; }
-            .input-group.half { width: 100% !important; }
-        }
+        /* Admin Card & Table */
+        .admin-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+        .admin-card.checked { border-color: #50E3C2; background: rgba(80, 227, 194, 0.05); }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; margin-top: 5px; cursor: pointer; }
+        .badge-green { background: rgba(80, 227, 194, 0.2); color: #50E3C2; border: 1px solid #50E3C2; }
+        .badge-red { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
         
-        .data-table-wrapper { overflow-x: auto; padding: 0; background: rgba(255,255,255,0.02); border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
-        .master-table { width: 100%; border-collapse: collapse; min-width: 800px; font-size: 13px; }
-        .master-table th { padding: 12px; background: rgba(0,0,0,0.3); color: #D4AF37; text-align: left; border-bottom: 2px solid rgba(212, 175, 55, 0.2); }
-        .master-table td { padding: 10px 12px; color: #E0E5EC; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .master-table tr:hover { background: rgba(255,255,255,0.05); }
-        .action-icon { background: none; border: none; font-size: 16px; cursor: pointer; padding: 0 5px; }
+        .table-responsive { width: 100%; overflow-x: auto; margin-bottom: 20px; }
+        .neumorphic-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; min-width: 600px; }
+        .neumorphic-table th, .neumorphic-table td { padding: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .neumorphic-table th { background: rgba(0,0,0,0.3); color: #D4AF37; font-weight: bold; }
+        
+        .modal-overlay { display: none; position: fixed; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
 
-        /* จัดการหน้าตาตอนกด Print */
+        /* สไตล์สำหรับการสั่งปริ้นท์ (A4) */
         @media print {
-            body > div:not(#print-area) { display: none !important; }
-            body { background: white !important; color: black !important; }
-            #print-area { display: block !important; width: 100%; padding: 20px; font-family: 'Sarabun', sans-serif; }
-            .print-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 30px; }
-            .print-table th, .print-table td { border: 1px solid #000; padding: 6px 8px; text-align: left; }
-            .print-table th { background-color: #f2f2f2; }
+            body * { visibility: hidden; }
+            
+            /* กรณีปริ้นท์รายงาน */
+            .print-report-mode #report-container, .print-report-mode #report-container * { visibility: visible; }
+            .print-report-mode #report-container { position: absolute; left: 0; top: 0; width: 100%; }
+            
+            /* กรณีปริ้นท์ใบยินยอมแบบทีละใบ */
+            .print-consent-mode #print-consent-form, .print-consent-mode #print-consent-form * { visibility: visible; }
+            .print-consent-mode #print-consent-form { position: absolute; left: 0; top: 0; width: 100%; display: block !important; color: #000; }
+            
+            /* กรณีปริ้นท์ใบยินยอมแบบชุด (ทั้งหมด) */
+            .print-all-consents-mode #print-all-consents-container, .print-all-consents-mode #print-all-consents-container * { visibility: visible; }
+            .print-all-consents-mode #print-all-consents-container { position: absolute; left: 0; top: 0; width: 100%; display: block !important; color: #000; }
+
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .neumorphic-table th, .neumorphic-table td { color: #000; border: 1px solid #000; }
+            .neumorphic-table th { background: #EEE; }
+            .sig-box { width: 30%; float: left; text-align: center; margin-top: 50px; color: #000; }
+            
+            .consent-page { page-break-after: always; padding: 20px; font-family: 'Sarabun', sans-serif; color: #000; line-height: 1.8; }
+            .queue-badge { font-size: 20px; font-weight: bold; border: 2px solid #000; padding: 5px 15px; display: inline-block; margin-bottom: 20px; }
         }
+        .print-only { display: none; }
     </style>
 </head>
 <body>
-    <div id="loading" class="loading-screen">กำลังตรวจสอบสิทธิ์...</div>
+    <div id="loading" class="loading-screen">กำลังตรวจสอบสิทธิ์ผู้ดูแลระบบ...</div>
 
-    <div id="login-container" class="container" style="display: none;">
-        <div class="project-header">
-            <h3>ระบบปฏิบัติการหน้างาน</h3>
-            <p>สำหรับอาสาปศุสัตว์ และเจ้าหน้าที่</p>
-        </div>
-
-        <div id="volunteer-login-box" class="card neumorphic">
-            <h3 class="section-title" style="color: #F5A623; text-align: center;">🛡️ เข้าสู่ระบบ อาสาปศุสัตว์</h3>
-            <div class="input-group"><label>หมู่ที่รับผิดชอบ</label><select id="login-vol-moo" class="neumorphic-input"><option value="" disabled selected>เลือกหมู่บ้าน</option></select></div>
-            <div class="input-group"><label>รหัสลับประจำหมู่</label><input type="password" id="login-vol-secret" class="neumorphic-input" placeholder="กรอกรหัสลับ"></div>
-            <button id="btn-login-vol" class="neumorphic-btn gold-btn" style="width: 100%; margin-top: 15px;">เข้าสู่ระบบ อาสาปศุสัตว์</button>
-            <div style="text-align: center; margin-top: 25px;"><a href="#" id="link-show-admin" style="color: #A0B0C0; font-size: 13px; text-decoration: underline;">สำหรับผู้ดูแลระบบ (Admin) คลิกที่นี่</a></div>
-        </div>
-
-        <div id="admin-login-box" class="card neumorphic" style="display: none;">
-            <h3 class="section-title" style="color: #50E3C2; text-align: center;">⚙️ เข้าสู่ระบบ ผู้ดูแลระบบ</h3>
-            <div class="input-group"><label>รหัสลับผู้ดูแลระบบ (Admin Secret)</label><input type="password" id="login-admin-secret" class="neumorphic-input" placeholder="กรอกรหัสลับ Admin"></div>
-            <button id="btn-login-admin" class="neumorphic-btn outline-btn" style="width: 100%; margin-top: 15px; color: #50E3C2; border-color: #50E3C2;">เข้าสู่ระบบ Admin</button>
-            <div style="text-align: center; margin-top: 25px;"><a href="#" id="link-show-vol" style="color: #F5A623; font-size: 13px; text-decoration: underline;">⬅ กลับไปหน้าอาสาปศุสัตว์</a></div>
+    <!-- Modal กรอกรหัสลับ (กรณีไม่ได้เป็นแอดมิน) -->
+    <div id="secret-modal" class="modal-overlay" style="display: none;">
+        <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
+            <h3 class="section-title">เข้าสู่ระบบเจ้าหน้าที่</h3>
+            <p style="font-size: 14px; margin-bottom: 15px; color: #A0B0C0;">กรุณากรอกรหัสลับเพื่อเข้าใช้งาน</p>
+            <input type="password" id="secret-input" class="neumorphic-input" style="text-align: center; letter-spacing: 2px;" placeholder="********">
+            <div class="row" style="margin-top: 20px;">
+                <button type="button" id="btn-close-secret" class="neumorphic-btn half outline-btn">ยกเลิก</button>
+                <button type="button" id="btn-verify-secret" class="neumorphic-btn gold-btn half">ยืนยัน</button>
+            </div>
+            <p style="font-size: 12px; color: #ff6b6b; margin-top: 15px;">* หากไม่ใช่เจ้าหน้าที่ กรุณากดออก</p>
         </div>
     </div>
 
-    <div id="dashboard-container" class="container" style="display: none; max-width: 800px;">
-        <div class="project-header" style="text-align: left; display: flex; justify-content: space-between; align-items: center;">
-            <div><h3 id="display-role-title" style="font-size: 18px;">ระบบเจ้าหน้าที่</h3><p id="display-user-name" style="color: #D4AF37; font-size: 14px;">-</p></div>
-            <img id="user-profile-img" src="" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #D4AF37; display: none;">
-        </div>
+    <!-- ================= Sidebar เมนูสำหรับแอดมิน ================= -->
+    <div id="admin-sidebar" class="sidebar no-print">
+        <a href="javascript:void(0)" class="close-btn" id="btn-close-sidebar">&times;</a>
+        <div style="padding: 20px; color: #A0B0C0; border-bottom: 1px solid #1b2941; margin-bottom: 10px;">เมนูเจ้าหน้าที่</div>
+        <a href="#" id="menu-checkin">🏠 หน้าเช็คอิน (Check-in)</a>
+        <a href="#" id="menu-report">📊 ดูรายงานสรุปโครงการ</a>
+        <a href="#" id="menu-user-list">📋 รายชื่อและติดตามคิว</a>
+        <a href="#" id="menu-settings">⚙️ ตั้งค่าโครงการ</a>
+        <a href="#" id="menu-logout" style="color: #ff6b6b; margin-top: 20px;">🚪 ออกจากระบบ</a>
+    </div>
 
-        <div class="admin-nav">
-            <button class="nav-btn active" id="nav-checkin">ลงทะเบียนแทน/เช็คอิน</button>
-            <button class="nav-btn" id="nav-data" style="display: none;">จัดการข้อมูล (Master Data)</button>
-            <button class="nav-btn" id="nav-settings" style="display: none;">ตั้งค่าระบบ (Settings)</button>
-            <button class="nav-btn" id="btn-logout" style="color: #ff6b6b;">ออกจากระบบ</button>
-        </div>
-
-        <!-- หน้า 1: เช็คอิน & ลงทะเบียนแทน -->
-        <div id="view-checkin">
-            <div class="card neumorphic" style="margin-bottom: 20px;">
-                <h3 class="section-title">🔍 ค้นหาบ้าน / อัปเดตข้อมูล</h3>
-                <p style="font-size: 12px; color: #A0B0C0; margin-bottom: 15px;">(สามารถพิมพ์ บ้านเลขที่-หมู่ แล้วกด Enter ได้เลย เช่น 99/9-8)</p>
-                <div class="row">
-                    <div class="input-group half"><label>บ้านเลขที่ หรือ บ้านเลขที่-หมู่</label><input type="text" id="search-house-no" class="neumorphic-input" placeholder="เช่น 99/9 หรือ 99/9-8"></div>
-                    <div class="input-group half"><label>หมู่ที่</label><select id="search-village-no" class="neumorphic-input"><option value="" selected>เลือก</option></select></div>
-                </div>
-                <button id="btn-search-house" class="neumorphic-btn gold-btn" style="width: 100%;">🔍 ค้นหาข้อมูล</button>
+    <!-- ================= 1. หน้า Check-in ================= -->
+    <div id="admin-container" class="container admin-view" style="display: none;">
+        <div class="project-header" style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
+            <div>
+                <h3 style="font-size: 16px;">ระบบหน้างาน (Check-in)</h3>
+                <p style="font-size: 12px;">เทศบาลเมืองบางแก้ว</p>
             </div>
+            <button class="hamburger-btn" onclick="document.getElementById('admin-sidebar').style.right = '0'">☰</button>
+        </div>
+        
+        <h2 class="title" style="color: #50E3C2; text-align: left;">🛡️ ตรวจสอบสิทธิ์ & รับบริการ</h2>
+        
+        <button type="button" id="btn-print-all-consents" class="neumorphic-btn outline-btn" style="color: #50E3C2; border-color: #50E3C2; margin-bottom: 20px; width: 100%;">
+            🖨️ พิมพ์ใบยินยอมแบบชุด (เรียงตามเลขคิว)
+        </button>
 
-            <div id="checkin-results-container" style="display: none;">
-                <div class="project-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); margin-bottom: 15px;">
-                    <div><h4 style="color: #D4AF37; margin: 0; font-size: 16px;">ข้อมูลสัตว์เลี้ยง</h4><p id="checkin-house-title" style="color: #A0B0C0; font-size: 12px; margin-top: 2px;">บ้านเลขที่ -</p></div>
-                    <button id="btn-proxy-add-pet" class="neumorphic-btn outline-btn" style="padding: 6px 12px; font-size: 12px; color: #50E3C2; border-color: #50E3C2;">+ ลงทะเบียนแทน</button>
-                </div>
-                
-                <div id="proxy-add-form" class="card neumorphic" style="display: none; margin-bottom: 15px; border: 1px solid #50E3C2; background: rgba(80, 227, 194, 0.05);">
-                    <h4 style="color: #50E3C2; margin-bottom: 15px;">📝 ลงทะเบียนสัตว์ตัวใหม่เข้าบ้านนี้</h4>
-                    <div class="row" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed rgba(80, 227, 194, 0.3);">
-                        <div class="input-group half"><label>ชื่อ-สกุล เจ้าของสัตว์</label><input type="text" id="px-owner-name" class="neumorphic-input"></div>
-                        <div class="input-group half"><label>เบอร์โทรศัพท์</label><input type="tel" id="px-phone" class="neumorphic-input"></div>
-                    </div>
-                    <div class="input-group"><label>ชื่อสัตว์เลี้ยง</label><input type="text" id="px-name" class="neumorphic-input"></div>
-                    <div class="row"><div class="input-group half"><label>ประเภท</label><select id="px-type" class="neumorphic-input"><option value="สุนัข">สุนัข</option><option value="แมว">แมว</option></select></div><div class="input-group half"><label>เพศ</label><select id="px-gender" class="neumorphic-input"><option value="ตัวผู้">ตัวผู้</option><option value="ตัวเมีย">ตัวเมีย</option></select></div></div>
-                    <div class="row"><div class="input-group half"><label>สายพันธุ์</label><input type="text" id="px-breed" class="neumorphic-input"></div><div class="input-group half"><label>สี/ตำหนิ</label><input type="text" id="px-color" class="neumorphic-input"></div></div>
-                    <div class="row"><div class="input-group half"><label>อายุ (ปี)</label><input type="number" id="px-age-year" class="neumorphic-input" value="0"></div><div class="input-group half"><label>อายุ (เดือน)</label><input type="number" id="px-age-month" class="neumorphic-input" value="0" max="11"></div></div>
-                    <div class="input-group"><label>รูปแบบการเลี้ยง</label><select id="px-rearing" class="neumorphic-input"><option value="เลี้ยงระบบปิด (ในบ้านตลอด)">เลี้ยงระบบปิด</option><option value="เลี้ยงระบบเปิด (ปล่อยอิสระ)">เลี้ยงระบบเปิด</option><option value="ปล่อยบางเวลา">ปล่อยบางเวลา</option></select></div>
-                    <div class="row"><div class="input-group half"><label>วัคซีน</label><select id="px-vac-status" class="neumorphic-input"><option value="ยังไม่เคยฉีด">ยังไม่เคยฉีด</option><option value="ฉีดแล้ว">ฉีดแล้ว</option></select></div><div class="input-group half"><label>ทำหมัน</label><select id="px-neuter-status" class="neumorphic-input"><option value="ยังไม่ทำหมัน">ยังไม่ทำหมัน</option><option value="ทำหมันแล้ว">ทำหมันแล้ว</option></select></div></div>
-                    <div class="row" style="margin-top: 10px;">
-                        <button id="btn-cancel-proxy" class="neumorphic-btn outline-btn half">ยกเลิก</button><button id="btn-save-proxy" class="neumorphic-btn gold-btn half" style="background: #50E3C2; border-color: #50E3C2; color: #141E30;">💾 บันทึก</button>
-                    </div>
-                </div>
-                <div id="checkin-pet-list"></div>
+        <div class="card neumorphic">
+            <h3 class="section-title">ค้นหาบ้าน (เช่น 12/3-16)</h3>
+            <div class="input-group row" style="align-items: center;">
+                <input type="text" id="admin-search-input" class="neumorphic-input" placeholder="พิมพ์ บ้านเลขที่-หมู่">
+                <button type="button" id="btn-admin-search" class="neumorphic-btn gold-btn" style="width: 80px; padding: 12px;">ค้นหา</button>
             </div>
         </div>
+        <div id="admin-result-container">
+            <p style="text-align:center; color:#A0B0C0; padding: 20px;">พิมพ์บ้านเลขที่เพื่อค้นหาคิวที่จองไว้</p>
+        </div>
+    </div>
 
-        <!-- หน้า 2: จัดการข้อมูล (Master Data) -->
-        <div id="view-data" style="display: none;">
-            <div class="card neumorphic" style="margin-bottom: 20px;">
-                <h3 class="section-title">📊 จัดการข้อมูล (Master Data)</h3>
-                <div class="row">
-                    <div class="input-group half"><label>กรองตามหมู่บ้าน</label><select id="filter-moo" class="neumorphic-input"><option value="ALL">ทั้งหมด</option></select></div>
-                    <div class="input-group half"><label>ประเภทสัตว์</label><select id="filter-type" class="neumorphic-input"><option value="ALL">ทั้งหมด</option><option value="สุนัข">สุนัข</option><option value="แมว">แมว</option></select></div>
-                </div>
-                <div class="row">
-                    <div class="input-group half"><label>สถานะวัคซีน</label><select id="filter-vac" class="neumorphic-input"><option value="ALL">ทั้งหมด</option><option value="ฉีดแล้ว">ฉีดแล้ว</option><option value="ยังไม่เคยฉีด">ยังไม่เคยฉีด</option></select></div>
-                    <div class="input-group half"><label>สถานะทำหมัน</label><select id="filter-neuter" class="neumorphic-input"><option value="ALL">ทั้งหมด</option><option value="ทำหมันแล้ว">ทำหมันแล้ว</option><option value="ยังไม่ทำหมัน">ยังไม่ทำหมัน</option></select></div>
-                </div>
-                <button id="btn-load-data" class="neumorphic-btn gold-btn" style="width: 100%; margin-top: 10px;">🔄 โหลดข้อมูล</button>
-                
-                <!-- ปุ่มส่งออก และ พิมพ์รายงาน -->
-                <div class="row" style="margin-top: 15px;">
-                    <button onclick="exportCSV()" class="neumorphic-btn outline-btn half" style="color: #50E3C2; border-color: #50E3C2;">📥 ส่งออก Excel (ROD)</button>
-                    <button onclick="printReport()" class="neumorphic-btn outline-btn half" style="color: #D4AF37; border-color: #D4AF37;">🖨️ พิมพ์รายงานส่งผู้บริหาร</button>
-                </div>
-            </div>
+    <!-- ================= 2. หน้ารายงานสรุป ================= -->
+    <div id="report-container" class="container admin-view" style="display: none; max-width: 800px;">
+        <div class="project-header no-print" style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
+            <div><h3 style="font-size: 16px;">รายงานสรุปโครงการ</h3><p style="font-size: 12px;">เทศบาลเมืองบางแก้ว</p></div>
+            <button class="hamburger-btn" onclick="document.getElementById('admin-sidebar').style.right = '0'">☰</button>
+        </div>
 
-            <div class="row" style="margin-bottom: 20px;">
-                <div class="half" style="background: rgba(80, 227, 194, 0.1); border: 1px solid #50E3C2; padding: 15px; border-radius: 8px; text-align: center;"><h4 style="color: #50E3C2; margin-bottom: 5px; font-size: 14px;">รวมทั้งหมด</h4><h2 id="stat-total" style="color: white; margin: 0;">0</h2></div>
-                <div class="half" style="background: rgba(245, 166, 35, 0.1); border: 1px solid #F5A623; padding: 15px; border-radius: 8px; text-align: center;"><h4 style="color: #F5A623; margin-bottom: 5px; font-size: 14px;">ฉีดวัคซีนแล้ว</h4><h2 id="stat-vac" style="color: white; margin: 0;">0</h2></div>
-            </div>
+        <div id="print-header" class="print-only">
+            <h2 style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 5px;">รายงานสรุปผล โครงการทำหมันและฉีดวัคซีน</h2>
+            <h3 style="text-align: center; font-size: 16px; margin-bottom: 20px; font-weight: normal;">เทศบาลเมืองบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ</h3>
+        </div>
 
-            <div class="data-table-wrapper">
-                <table class="master-table">
-                    <thead><tr><th style="min-width: 90px;">บ้านเลขที่</th><th style="min-width: 120px;">ชื่อเจ้าของ</th><th style="min-width: 100px;">ชื่อสัตว์</th><th style="min-width: 60px;">ชนิด</th><th style="min-width: 80px;">วัคซีน</th><th style="min-width: 80px;">ทำหมัน</th><th style="min-width: 80px; text-align: center;">จัดการ</th></tr></thead>
-                    <tbody id="master-data-tbody"><tr><td colspan="7" style="text-align: center; padding: 25px; color: #A0B0C0;">กดปุ่ม "โหลดข้อมูล" เพื่อแสดงตาราง</td></tr></tbody>
+        <div class="row no-print" style="margin-bottom: 20px;">
+            <button type="button" class="neumorphic-btn half outline-btn" onclick="window.switchAdminView('admin-container')">⬅ กลับ</button>
+            <button type="button" id="btn-print-report" class="neumorphic-btn gold-btn half">🖨️ พิมพ์ใบสรุป (PDF)</button>
+        </div>
+
+        <div class="card neumorphic">
+            <h3 class="section-title">📊 1. ยอดผู้ลงทะเบียนจองคิว</h3>
+            <div class="table-responsive">
+                <table class="neumorphic-table" id="table-registered">
+                    <thead>
+                        <tr><th rowspan="2">ประเภทบริการ</th><th colspan="2">สุนัข (ตัว)</th><th colspan="2">แมว (ตัว)</th><th rowspan="2" style="color: #D4AF37;">รวมทั้งหมด</th></tr>
+                        <tr><th>ตัวผู้</th><th>ตัวเมีย</th><th>ตัวผู้</th><th>ตัวเมีย</th></tr>
+                    </thead>
+                    <tbody></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- หน้า 3: ตั้งค่า (Settings) -->
-        <div id="view-settings" style="display: none;">
-            <div class="card neumorphic">
-                <h3 class="section-title">ตั้งค่าระบบ (White-Label)</h3>
-                
-                <div class="settings-section">
-                    <h4>🏢 1. ข้อมูลหน่วยงาน</h4>
-                    <div class="input-group"><label>ชื่อองค์กร</label><input type="text" id="cfg-agency-name" class="neumorphic-input"></div>
-                    <div class="row"><div class="input-group half"><label>ตำบล</label><input type="text" id="cfg-tambon" class="neumorphic-input"></div><div class="input-group half"><label>อำเภอ</label><input type="text" id="cfg-amphoe" class="neumorphic-input"></div></div>
-                    <div class="row"><div class="input-group half"><label>จังหวัด</label><input type="text" id="cfg-province" class="neumorphic-input"></div><div class="input-group half"><label>เบอร์โทรศัพท์ติดต่อ</label><input type="text" id="cfg-phone" class="neumorphic-input"></div></div>
-                </div>
+        <div class="card neumorphic" style="margin-top: 20px;">
+            <h3 class="section-title">✅ 2. ยอดการเข้ารับบริการจริง (Check-in)</h3>
+            <div class="table-responsive">
+                <table class="neumorphic-table" id="table-checked-in">
+                    <thead>
+                        <tr><th rowspan="2">ประเภทบริการ</th><th colspan="2">สุนัข (ตัว)</th><th colspan="2">แมว (ตัว)</th><th rowspan="2" style="color: #50E3C2;">รวมทั้งหมด</th></tr>
+                        <tr><th>ตัวผู้</th><th>ตัวเมีย</th><th>ตัวผู้</th><th>ตัวเมีย</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
 
-                <div class="settings-section">
-                    <h4>📍 2. โครงสร้างพื้นที่</h4>
-                    <div class="input-group"><label>จำนวนหมู่บ้านทั้งหมด</label><input type="number" id="cfg-moo-count" class="neumorphic-input" value="16" min="1" max="50"></div>
-                </div>
+        <div id="print-signatures" class="print-only">
+            <div class="sig-box"><p>ลงชื่อ......................................................ผู้รายงาน</p><p>(นายอรรคพล กางทอง)</p><p>ผู้ช่วยเจ้าพนักงานธุรการ</p></div>
+            <div class="sig-box"><p>ลงชื่อ......................................................ผู้ตรวจสอบ</p><p>(นายศุภวุธ อสุนี)</p><p>นักวิชาการสาธารณสุขปฏิบัติการ</p></div>
+            <div class="sig-box"><p>ลงชื่อ......................................................ผู้เห็นชอบ</p><p>(นายนริศ นิลประสิทธิ์)</p><p>ผู้อำนวยการกองสาธารณสุขและสิ่งแวดล้อม</p></div>
+        </div>
+    </div>
 
-                <div class="settings-section">
-                    <h4>💉 3. ข้อมูลวัคซีนประจำปี</h4>
-                    <div class="row"><div class="input-group half"><label>ปีงบประมาณ (พ.ศ.)</label><input type="number" id="cfg-vac-year" class="neumorphic-input" value="2569"></div><div class="input-group half"><label>ยี่ห้อวัคซีน</label><input type="text" id="cfg-vac-brand" class="neumorphic-input"></div></div>
-                    <div class="row"><div class="input-group half"><label>Lot Number</label><input type="text" id="cfg-vac-lot" class="neumorphic-input"></div><div class="input-group half"><label>วันหมดอายุ (EXP)</label><input type="date" id="cfg-vac-exp" class="neumorphic-input"></div></div>
-                </div>
+    <!-- ================= 3. หน้ารายชื่อผู้ลงทะเบียน ================= -->
+    <div id="user-list-container" class="container admin-view" style="display: none; max-width: 900px;">
+        <div class="project-header no-print" style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
+            <div><h3 style="font-size: 16px;">รายชื่อผู้ลงทะเบียน</h3><p style="font-size: 12px;">เทศบาลเมืองบางแก้ว</p></div>
+            <button class="hamburger-btn" onclick="document.getElementById('admin-sidebar').style.right = '0'">☰</button>
+        </div>
 
-                <div class="settings-section">
-                    <h4>✂️ 4. โครงการทำหมัน (Neuter Campaign)</h4>
-                    <div class="row"><div class="input-group half"><label>เริ่มเปิดลงทะเบียน</label><input type="date" id="cfg-nt-start-reg" class="neumorphic-input"></div><div class="input-group half"><label>ปิดรับลงทะเบียน</label><input type="date" id="cfg-nt-end-reg" class="neumorphic-input"></div></div>
-                    <div class="row"><div class="input-group half"><label>วันที่ดำเนินการทำหมัน</label><input type="date" id="cfg-nt-date" class="neumorphic-input"></div><div class="input-group half"><label>สถานที่ให้บริการ</label><input type="text" id="cfg-nt-location" class="neumorphic-input"></div></div>
-                </div>
+        <div class="row no-print" style="margin-bottom: 20px;">
+            <button type="button" class="neumorphic-btn half outline-btn" onclick="window.switchAdminView('admin-container')">⬅ กลับ</button>
+            <button type="button" class="neumorphic-btn gold-btn half" onclick="window.print()">🖨️ พิมพ์รายชื่อ (PDF)</button>
+        </div>
+        
+        <div class="card neumorphic no-print" style="margin-bottom: 20px;">
+            <div class="input-group">
+                <label>ตัวกรองสถานะคิว</label>
+                <select id="filter-user-status" class="neumorphic-input" onchange="window.renderUserTable()">
+                    <option value="all">แสดงทั้งหมด</option>
+                    <option value="pending">⏳ ยังไม่มารับบริการ</option>
+                    <option value="completed">✅ มารับบริการแล้ว</option>
+                </select>
+            </div>
+        </div>
 
-                <div class="settings-section">
-                    <h4>📝 5. สายการบังคับบัญชา (สำหรับออกรายงาน)</h4>
-                    <div class="row"><div class="input-group half"><label>ผู้รายงาน (ชื่อ)</label><input type="text" id="cfg-rep-name" class="neumorphic-input"></div><div class="input-group half"><label>ตำแหน่ง</label><input type="text" id="cfg-rep-pos" class="neumorphic-input"></div></div>
-                    <div class="row"><div class="input-group half"><label>ผู้ตรวจสอบ (ชื่อ)</label><input type="text" id="cfg-rev-name" class="neumorphic-input"></div><div class="input-group half"><label>ตำแหน่ง</label><input type="text" id="cfg-rev-pos" class="neumorphic-input"></div></div>
-                    <div class="row"><div class="input-group half"><label>ผู้เห็นชอบ (ชื่อ)</label><input type="text" id="cfg-app-name" class="neumorphic-input"></div><div class="input-group half"><label>ตำแหน่ง</label><input type="text" id="cfg-app-pos" class="neumorphic-input"></div></div>
-                </div>
-
-                <div class="settings-section" style="border-color: rgba(245, 166, 35, 0.4);">
-                    <h4 style="color: #F5A623; border-bottom-color: rgba(245, 166, 35, 0.3);">🔑 6. ความปลอดภัย</h4>
-                    <div class="input-group"><label>รหัสลับ แอดมิน</label><input type="text" id="cfg-sec-admin" class="neumorphic-input"></div>
-                    <div class="input-group"><label style="color: #F5A623;">รหัสลับ อาสาปศุสัตว์ (แยกตามหมู่)</label><div id="volunteer-secrets-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div></div>
-                </div>
-
-                <button type="button" id="btn-save-settings" class="neumorphic-btn gold-btn" style="width: 100%;">💾 บันทึกการตั้งค่าทั้งหมด</button>
+        <div class="card neumorphic">
+            <div class="table-responsive">
+                <table class="neumorphic-table" id="table-user-list">
+                    <thead>
+                        <tr>
+                            <th>เลขคิว</th>
+                            <th>บ้านเลขที่</th>
+                            <th>ชื่อเจ้าของ</th>
+                            <th>เบอร์โทรศัพท์</th>
+                            <th>สัตว์ที่จอง</th>
+                            <th>สถานะ / บริการ</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <!-- Modal สำหรับ Edit ข้อมูลจากตาราง Master Data -->
-    <div id="admin-edit-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center; padding:20px;">
-        <div class="card neumorphic" style="width:100%; max-width:500px;">
-            <h4 style="color:#50E3C2; margin-bottom:15px;">✏️ แก้ไขข้อมูล (Admin)</h4>
-            <div class="input-group"><label>ชื่อ-สกุล เจ้าของ</label><input type="text" id="edit-owner-name" class="neumorphic-input"></div>
-            <div class="input-group"><label>ชื่อสัตว์เลี้ยง</label><input type="text" id="edit-pet-name" class="neumorphic-input"></div>
-            <div class="row">
-                <div class="input-group half"><label>วัคซีน</label><select id="edit-vac-status" class="neumorphic-input"><option value="ยังไม่เคยฉีด">ยังไม่เคยฉีด</option><option value="ฉีดแล้ว">ฉีดแล้ว</option></select></div>
-                <div class="input-group half"><label>ทำหมัน</label><select id="edit-neuter-status" class="neumorphic-input"><option value="ยังไม่ทำหมัน">ยังไม่ทำหมัน</option><option value="ทำหมันแล้ว">ทำหมันแล้ว</option></select></div>
-            </div>
-            <div class="row" style="margin-top:15px;">
-                <button onclick="document.getElementById('admin-edit-modal').style.display='none'" class="neumorphic-btn outline-btn half">ยกเลิก</button>
-                <button onclick="saveAdminEdit()" class="neumorphic-btn gold-btn half">💾 บันทึกแก้ไข</button>
-            </div>
+    <!-- ================= 4. หน้าตั้งค่าโครงการ ================= -->
+    <div id="settings-container" class="container admin-view" style="display: none;">
+        <div class="project-header" style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
+            <div><h3 style="font-size: 16px;">ตั้งค่าโครงการ</h3><p style="font-size: 12px;">เทศบาลเมืองบางแก้ว</p></div>
+            <button class="hamburger-btn" onclick="document.getElementById('admin-sidebar').style.right = '0'">☰</button>
+        </div>
+
+        <h2 class="title" style="text-align: left;">⚙️ ตั้งค่าระบบจองคิว</h2>
+        <div class="card neumorphic">
+            <h3 class="section-title">กำหนดวันเปิด-ปิดจองคิวออนไลน์</h3>
+            <div class="input-group"><label>วันที่เริ่มเปิดรับจอง</label><input type="date" id="setting-start-date" class="neumorphic-input"></div>
+            <div class="input-group"><label>วันที่ปิดรับจอง</label><input type="date" id="setting-end-date" class="neumorphic-input"></div>
+            
+            <h3 class="section-title" style="margin-top: 20px;">ข้อมูลหน้าบัตรคิวดิจิทัล</h3>
+            <div class="input-group"><label>วันที่ให้บริการหน้างาน (ข้อความ)</label><input type="text" id="setting-date" class="neumorphic-input" placeholder="เช่น 25 สิงหาคม 2569"></div>
+            <div class="input-group"><label>สถานที่ให้บริการ (ข้อความ)</label><input type="text" id="setting-location" class="neumorphic-input" placeholder="เช่น ศาลาการเปรียญ วัดบางแก้ว"></div>
+            
+            <h3 class="section-title" style="margin-top: 20px;">กำหนดโควตาโครงการ</h3>
+            <div class="input-group"><label>จำนวนโควตา "ทำหมัน" (ตัว)</label><input type="number" id="setting-quota-neuter" class="neumorphic-input"></div>
+            <div class="input-group"><label>จำนวนโควตา "ฉีดวัคซีนอย่างเดียว" (ตัว)</label><input type="number" id="setting-quota-vaccine" class="neumorphic-input"></div>
+        </div>
+        <div class="row">
+            <button type="button" class="neumorphic-btn half outline-btn" onclick="window.switchAdminView('admin-container')">⬅ กลับ</button>
+            <button type="button" id="btn-save-settings" class="neumorphic-btn gold-btn half">💾 บันทึกการตั้งค่า</button>
         </div>
     </div>
 
-    <!-- พื้นที่ซ่อนไว้สำหรับดึงไปพิมพ์ (Print View) -->
-    <div id="print-area" style="display: none;"></div>
+    <!-- ================= Modal แสดงลายเซ็น (สำหรับหน้า Check-in) ================= -->
+    <div id="consent-modal" class="modal-overlay" style="display: none;">
+        <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
+            <h3 class="section-title">ลายมือชื่อผู้ยินยอม</h3>
+            <p id="consent-pet-name" style="color: #D4AF37; font-weight: bold; margin-bottom: 15px; font-size: 18px;"></p>
+            <div style="background: #FFF; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
+                <img id="consent-signature-img" src="" alt="ไม่มีลายเซ็น" style="width: 100%; max-height: 150px; object-fit: contain;">
+            </div>
+            <button type="button" class="neumorphic-btn outline-btn" onclick="document.getElementById('consent-modal').style.display='none'">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <!-- ================= แบบฟอร์ม A4 สำหรับพิมพ์ใบยินยอม (แบบทีละใบ) ================= -->
+    <div id="print-consent-form" style="display: none; position: relative; color: #000; font-family: 'Sarabun', sans-serif;">
+        <div class="queue-badge" id="p-queue-no"></div>
+        <h2 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 5px;">ใบยินยอมรับบริการ</h2>
+        <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px; font-weight: normal;">โครงการทำหมันสุนัขและแมว เทศบาลเมืองบางแก้ว</h3>
+        
+        <div style="font-size: 16px; line-height: 2;">
+            <p><strong>ข้าพเจ้า (ชื่อเจ้าของ):</strong> <span id="p-owner-name"></span></p>
+            <p><strong>เบอร์โทรศัพท์:</strong> <span id="p-phone"></span></p>
+            <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ <span id="p-house"></span> หมู่ที่ <span id="p-village"></span> ตำบลบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ</p>
+            <p style="margin-top: 15px;"><strong>มีความประสงค์ขอรับบริการ (<span id="p-service-type"></span>) ให้แก่สัตว์เลี้ยงดังนี้:</strong></p>
+            <p><strong>ชื่อสัตว์เลี้ยง:</strong> <span id="p-pet-name"></span> &nbsp;&nbsp;&nbsp; <strong>ประเภท:</strong> <span id="p-pet-type"></span> &nbsp;&nbsp;&nbsp; <strong>เพศ:</strong> <span id="p-pet-gender"></span></p>
+
+            <p style="margin-top: 30px; text-indent: 40px; text-align: justify;" id="p-consent-text">
+                <!-- ข้อความจะเปลี่ยนไปตามประเภทของการจอง (ทำหมัน หรือ วัคซีนอย่างเดียว) -->
+            </p>
+        </div>
+        <div style="margin-top: 50px; text-align: center;">
+            <img id="p-signature" src="" style="max-height: 100px; display: block; margin: 0 auto; border-bottom: 1px dotted #000;">
+            <p style="margin-top: 10px;">(ลงชื่อ) .............................................................. ผู้รับบริการ/ผู้ยินยอม</p>
+            <p style="margin-top: 5px;">(<span id="p-owner-name-sig"></span>)</p>
+        </div>
+    </div>
+
+    <!-- ================= กล่องเก็บฟอร์ม A4 สำหรับพิมพ์แบบชุด ================= -->
+    <div id="print-all-consents-container" style="display: none;"></div>
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script type="module" src="admin.js"></script>
