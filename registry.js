@@ -71,21 +71,31 @@ function setupEventListeners() {
 }
 
 // ==========================================
-// 3. LIFF & โหลดข้อมูลเบื้องต้น
+// 3. LIFF & โหลดข้อมูลเบื้องต้น (โหมดตรวจสอบ Error)
 // ==========================================
 async function initializeLiff() {
     try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) liff.login();
-        else {
+        if (!liff.isLoggedIn()) {
+            liff.login();
+        } else {
             userProfileData = await liff.getProfile();
             const img = document.getElementById("user-profile-img");
             if(img) { img.src = userProfileData.pictureUrl; img.style.display = "block"; }
             
             await loadSystemConfig();
-            checkUserData();
+            await checkUserData();
         }
-    } catch (err) { console.error("LIFF Init Error", err); }
+    } catch (err) { 
+        console.error("LIFF Init Error", err); 
+        // ถ้าพังตรงนี้ จะเปลี่ยนข้อความโหลด เป็นข้อความแจ้ง Error สีแดง
+        document.getElementById("loading").innerHTML = `
+            <div style="text-align:center; padding: 20px;">
+                <span style="color:#ff6b6b; font-size: 18px;">❌ เชื่อมต่อ LINE ไม่สำเร็จ</span><br><br>
+                <span style="color:#A0B0C0; font-size: 14px;">สาเหตุ: ${err.message}</span>
+            </div>
+        `;
+    }
 }
 
 async function loadSystemConfig() {
@@ -96,7 +106,10 @@ async function loadSystemConfig() {
             document.getElementById("txt-agency-name").textContent = sysConfig.agency_name || "สมุดประจำตัวสัตว์เลี้ยง";
             document.getElementById("cert-back-agency").textContent = sysConfig.agency_name || "หน่วยงาน";
         }
-    } catch(e) { console.error("Error loading config:", e); }
+    } catch(e) { 
+        console.error("Error loading config:", e); 
+        throw new Error("โหลดการตั้งค่าระบบไม่สำเร็จ: " + e.message); // โยน Error ออกไปให้ระบบรับรู้
+    }
 }
 
 async function checkUserData() {
@@ -108,7 +121,6 @@ async function checkUserData() {
             const u = userSnap.data();
             currentHouseholdKey = u.house_village_search || `${u.house_no}-${u.village_no}`;
             
-            // แสดงข้อมูลบนหน้า Dashboard ให้รองรับกรณีบ้านเช่าด้วย
             let displayAddress = `บ้านเลขที่ ${u.house_no} หมู่ ${u.village_no}`;
             if(u.is_rental && u.room_no) displayAddress += ` (ห้อง ${u.room_no})`;
             document.getElementById("display-household-info").textContent = displayAddress;
@@ -116,12 +128,22 @@ async function checkUserData() {
             document.getElementById("dashboard-container").style.display = "block";
             
             await loadQuotaAndDashboard(); 
-            loadMyPets();
+            await loadMyPets();
         } else {
             document.getElementById("household-setup-container").style.display = "block";
         }
-    } catch (error) { console.error("Error", error); }
+    } catch (error) { 
+        console.error("Error", error); 
+        // ถ้าฐานข้อมูลดึงไม่ได้ จะโชว์ Error สีแดง
+        document.getElementById("loading").innerHTML = `
+            <div style="text-align:center; padding: 20px;">
+                <span style="color:#ff6b6b; font-size: 18px;">❌ โหลดข้อมูลฐานข้อมูลไม่สำเร็จ</span><br><br>
+                <span style="color:#A0B0C0; font-size: 14px;">โปรดตรวจสอบไฟล์ firebase-config.js<br>สาเหตุ: ${error.message}</span>
+            </div>
+        `;
+    }
 }
+
 
 // ==========================================
 // 4. ระบบขึ้นทะเบียนบ้านและสัตว์เลี้ยง
