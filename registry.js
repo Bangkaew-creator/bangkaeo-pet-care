@@ -460,7 +460,9 @@ window.viewCertificate = function(docId) {
         document.getElementById("cert-vac-detail").textContent = "-";
     }
     
-    document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "-";
+    // ดึงชื่อทางการจากตั้งค่าระบบมาแสดงทับเสมอ เพื่อความเป็นทางการ
+document.getElementById("cert-admin-name").textContent = (sysConfig && sysConfig.admin_real_name) ? sysConfig.admin_real_name : (pet.vaccinated_by_admin || "-");
+
     
     if (sysConfig && sysConfig.admin_sig_base64) {
         document.getElementById("cert-admin-sig").src = sysConfig.admin_sig_base64;
