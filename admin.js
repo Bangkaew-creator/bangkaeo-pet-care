@@ -9,12 +9,30 @@ let currentUser = null;
 let sysConfig = null;
 let secretsConfig = null;
 let adminName = "เจ้าหน้าที่";
-let proxyPetsBatch = []; 
+let adminSignaturePad = null; 
+
+// กำหนดให้เป็น Global Variable เพื่อให้ HTML onclick เรียกใช้ได้
+window.proxyPetsBatch = []; 
 
 let adminRole = localStorage.getItem("adminRole"); 
 let adminMoo = localStorage.getItem("adminMoo");   
 
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
+
+// 🧠 ฟังก์ชันตัวช่วย: แปลงวันที่ YYYY-MM-DD เป็นภาษาไทยเต็มรูปแบบ
+function formatThaiDate(dateStr) {
+    if (!dateStr) return "-";
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (regex.test(dateStr)) {
+        const parts = dateStr.split("-");
+        const year = parseInt(parts[0]) + 543;
+        const month = parseInt(parts[1]);
+        const day = parseInt(parts[2]);
+        const thaiMonths = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        return `วันที่ ${day} ${thaiMonths[month]} ${year}`;
+    }
+    return dateStr;
+}
 
 // ==========================================
 // 2. เริ่มทำงาน & ตรวจสอบสิทธิ์
@@ -108,6 +126,23 @@ window.switchView = function(viewId) {
     document.querySelectorAll(".admin-view").forEach(el => el.style.display = "none");
     document.getElementById(viewId).style.display = "block";
     document.getElementById("admin-sidebar").style.right = "-250px";
+    
+    // Resize canvas เมื่อเปิดหน้าตั้งค่า (แก้ปัญหาวาดไม่ติด)
+    if(viewId === 'view-settings' && adminSignaturePad) {
+        setTimeout(() => {
+            const canvas = document.getElementById('admin-signature-pad');
+            const ratio =  Math.max(window.devicePixelRatio || 1, 1);
+            canvas.width = canvas.offsetWidth * ratio;
+            canvas.height = canvas.offsetHeight * ratio;
+            canvas.getContext("2d").scale(ratio, ratio);
+            // ดึงข้อมูลเดิมมาวาดใหม่ถ้ามี
+            if(sysConfig && sysConfig.admin_sig_base64) {
+                adminSignaturePad.fromDataURL(sysConfig.admin_sig_base64);
+            } else {
+                adminSignaturePad.clear();
+            }
+        }, 200);
+    }
 }
 
 function setupNavigation() {
@@ -144,18 +179,15 @@ function setupSearchLogic() {
         resContainer.innerHTML = "<p style='color:#D4AF37; text-align:center;'>กำลังค้นหา...</p>";
 
         try {
-            // 1. หาข้อมูลเจ้าบ้านก่อน
             let houseKey = `${houseNo}-${targetMoo}`;
             let userSnap = await getDocs(query(collection(db, "users"), where("house_village_search", ">=", houseKey), where("house_village_search", "<=", houseKey + '\uf8ff')));
             let householdOwner = null;
             if(!userSnap.empty) householdOwner = userSnap.docs[0].data();
 
-            // 2. หาสัตว์เลี้ยง
             const petSnap = await getDocs(query(collection(db, "pets"), where("house_no", "==", houseNo), where("village_no", "==", targetMoo.toString())));
 
             resContainer.innerHTML = "";
 
-            // แสดง Header บ้าน
             if(householdOwner || !petSnap.empty) {
                 let ownerName = householdOwner ? householdOwner.owner_name : (petSnap.empty ? "ไม่ทราบชื่อ" : petSnap.docs[0].data().owner_name);
                 let phone = householdOwner ? householdOwner.phone_number : (petSnap.empty ? "-" : petSnap.docs[0].data().phone_number);
@@ -215,6 +247,7 @@ function renderAdminCard(docId, pet, container) {
     const isCheckedIn = pet.status === "checked_in";
     const cardClass = isCheckedIn ? "admin-card checked" : "admin-card";
     
+    let roomText = pet.room_no ? `<span style="color:#50E3C2; font-size:12px;">(ห้อง ${pet.room_no})</span>` : "";
     let vacStr = pet.vaccine_status === "ฉีดแล้ว" ? `<span class="badge-green">วัคซีนแล้ว</span>` : `<span class="badge-red">ยังไม่วัคซีน</span>`;
     let neuterStr = pet.neuter_status === "ทำหมันแล้ว" ? `<span class="badge-green">ทำหมันแล้ว</span>` : `<span class="badge-red">ยังไม่ทำหมัน</span>`;
 
@@ -232,7 +265,7 @@ function renderAdminCard(docId, pet, container) {
             <div style="display: flex; gap: 12px; flex-grow: 1;">
                 <img src="${pet.pet_photo_base64 || defaultPlaceholder}" class="pet-photo">
                 <div class="pet-info">
-                    <div class="pet-name">${pet.pet_name}</div>
+                    <div class="pet-name">${pet.pet_name} ${roomText}</div>
                     <div style="color: #A0B0C0; margin-bottom: 5px;">${pet.pet_type} ${pet.pet_gender} | จอง: <span style="color:#D4AF37;">${pet.service_type || 'ไม่มี'}</span></div>
                     <div>${vacStr} | ${neuterStr}</div>
                 </div>
@@ -257,7 +290,7 @@ window.toggleCheckin = async function(docId, serviceType, isCheckingIn) {
                 updates.vaccine_brand = sysConfig.vaccine_brand || ""; updates.vaccine_lot = sysConfig.vaccine_lot || ""; updates.vaccine_exp = sysConfig.vaccine_exp || "";
             }
             const dateStr = new Date().toLocaleDateString('th-TH', { year:'numeric', month:'2-digit', day:'2-digit' });
-            updates.vaccinated_by_admin = adminName;
+            updates.vaccinated_by_admin = (sysConfig && sysConfig.admin_real_name) ? sysConfig.admin_real_name : adminName;
             updates.vaccine_date = dateStr;
         }
         await updateDoc(doc(db, "pets", docId), updates);
@@ -271,7 +304,8 @@ window.walkinVaccine = async function(docId) {
             const dateStr = new Date().toLocaleDateString('th-TH', { year:'numeric', month:'2-digit', day:'2-digit' });
             let updates = { 
                 status: "checked_in", service_type: "วัคซีนอย่างเดียว (Walk-in)", vaccine_status: "ฉีดแล้ว", updated_at: serverTimestamp(),
-                vaccinated_by_admin: adminName, vaccine_date: dateStr
+                vaccinated_by_admin: (sysConfig && sysConfig.admin_real_name) ? sysConfig.admin_real_name : adminName, 
+                vaccine_date: dateStr
             };
             if (sysConfig) {
                 updates.vaccine_year = sysConfig.current_vaccine_year || new Date().getFullYear() + 543;
@@ -298,7 +332,9 @@ window.viewCertificateAdmin = function(docId) {
     document.getElementById("cert-pet-name").textContent = pet.pet_name;
     document.getElementById("cert-pet-detail").textContent = `${pet.pet_type} | ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี`;
     document.getElementById("cert-owner").textContent = pet.owner_name;
-    document.getElementById("cert-address").textContent = `${pet.house_no} ม.${pet.village_no}`;
+    let certAddress = `${pet.house_no} ม.${pet.village_no}`;
+    if(pet.room_no) certAddress += ` (ห้อง ${pet.room_no})`;
+    document.getElementById("cert-address").textContent = certAddress;
     
     if (pet.vaccine_status === "ฉีดแล้ว") {
         document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
@@ -309,7 +345,9 @@ window.viewCertificateAdmin = function(docId) {
         document.getElementById("cert-vac-detail").textContent = "-";
     }
     
-    document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "-";
+    // ดึงชื่อทางการจาก Setting ทับเสมอ
+    document.getElementById("cert-admin-name").textContent = (sysConfig && sysConfig.admin_real_name) ? sysConfig.admin_real_name : (pet.vaccinated_by_admin || "-");
+    
     if (sysConfig && sysConfig.admin_sig_base64) {
         document.getElementById("cert-admin-sig").src = sysConfig.admin_sig_base64;
         document.getElementById("cert-admin-sig").style.display = "block";
@@ -323,22 +361,44 @@ window.viewCertificateAdmin = function(docId) {
 // 5. ระบบลงทะเบียนแทน (Batch Proxy)
 // ==========================================
 function setupProxyBatchLogic() {
-    proxyPetsBatch = [];
+    let currentProxyBase64 = "";
+
+    document.getElementById("px-img-upload").addEventListener("change", (e) => {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement("canvas");
+                const MAX_WIDTH = 400; let width = img.width; let height = img.height;
+                if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+                else { if (height > MAX_WIDTH) { width *= MAX_WIDTH / height; height = MAX_WIDTH; } }
+                canvas.width = width; canvas.height = height;
+                canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+                currentProxyBase64 = canvas.toDataURL("image/jpeg", 0.7);
+                document.getElementById("px-img-preview").src = currentProxyBase64;
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
     document.getElementById("btn-add-proxy-pet").addEventListener("click", () => {
         const pName = document.getElementById("px-pet-name").value.trim();
         if(!pName) return alert("กรุณาใส่ชื่อสัตว์เลี้ยง");
         
-        proxyPetsBatch.push({
+        window.proxyPetsBatch.push({
             pet_name: pName, pet_type: document.getElementById("px-type").value, pet_gender: document.getElementById("px-gender").value,
-            breed: document.getElementById("px-breed").value.trim(), color: document.getElementById("px-color").value.trim(),
+            breed: document.getElementById("px-breed").value.trim() || "ไม่ระบุ", color: document.getElementById("px-color").value.trim() || "ไม่ระบุ",
             age_year: parseInt(document.getElementById("px-age-y").value) || 0, age_month: parseInt(document.getElementById("px-age-m").value) || 0,
             rearing_style: document.getElementById("px-rearing").value, service: document.getElementById("px-service").value,
-            photo: document.getElementById("px-img-preview").src
+            photo: currentProxyBase64 || defaultPlaceholder
         });
         
         document.getElementById("px-pet-name").value = ""; document.getElementById("px-breed").value = ""; document.getElementById("px-color").value = "";
         document.getElementById("px-img-preview").src = defaultPlaceholder;
-        renderProxyBatchList();
+        currentProxyBase64 = "";
+        window.renderProxyBatchList();
     });
 
     document.getElementById("btn-submit-proxy-batch").addEventListener("click", async () => {
@@ -349,7 +409,7 @@ function setupProxyBatchLogic() {
         const room = document.getElementById("px-room").value.trim();
 
         if(!owner || !house || !moo) return alert("กรุณากรอกชื่อเจ้าของ บ้านเลขที่ และหมู่");
-        if(proxyPetsBatch.length === 0) return alert("กรุณาเพิ่มสัตว์เลี้ยงลงตะกร้าอย่างน้อย 1 ตัว");
+        if(window.proxyPetsBatch.length === 0) return alert("กรุณาเพิ่มสัตว์เลี้ยงลงตะกร้าอย่างน้อย 1 ตัว");
 
         const btn = document.getElementById("btn-submit-proxy-batch");
         btn.disabled = true; btn.textContent = "กำลังบันทึก...";
@@ -370,7 +430,7 @@ function setupProxyBatchLogic() {
             }
 
             // เพิ่มสัตว์เลี้ยงเป็น Loop
-            for(let p of proxyPetsBatch) {
+            for(let p of window.proxyPetsBatch) {
                 let petData = {
                     owner_uid: ownerUid, proxy_by: adminName, owner_name: owner, phone_number: phone, house_no: house, village_no: moo, room_no: room,
                     house_village_search: searchKey, pet_name: p.pet_name, pet_type: p.pet_type, pet_gender: p.pet_gender,
@@ -384,33 +444,36 @@ function setupProxyBatchLogic() {
                     petData.status = "booked"; petData.service_type = p.service; petData.neuter_status = "ยังไม่ทำหมัน"; petData.vaccine_status = "ยังไม่เคยฉีด"; petData.consent_agreed = false;
                 } else if (p.service === "checked_in_vaccine") {
                     const dateStr = new Date().toLocaleDateString('th-TH', { year:'numeric', month:'2-digit', day:'2-digit' });
-                    petData.status = "checked_in"; petData.service_type = "วัคซีนอย่างเดียว"; petData.neuter_status = "ยังไม่ทำหมัน"; petData.vaccine_status = "ฉีดแล้ว";
+                    petData.status = "checked_in"; petData.service_type = "วัคซีนอย่างเดียว (Walk-in)"; petData.neuter_status = "ยังไม่ทำหมัน"; petData.vaccine_status = "ฉีดแล้ว";
                     petData.vaccine_year = sysConfig ? sysConfig.current_vaccine_year : new Date().getFullYear()+543;
-                    petData.vaccine_date = dateStr; petData.vaccinated_by_admin = adminName;
+                    petData.vaccine_brand = sysConfig ? sysConfig.vaccine_brand : "";
+                    petData.vaccine_lot = sysConfig ? sysConfig.vaccine_lot : "";
+                    petData.vaccine_exp = sysConfig ? sysConfig.vaccine_exp : "";
+                    petData.vaccine_date = dateStr; petData.vaccinated_by_admin = (sysConfig && sysConfig.admin_real_name) ? sysConfig.admin_real_name : adminName;
                 }
                 await addDoc(collection(db, "pets"), petData);
             }
-            alert(`🎉 บันทึกบ้าน ${house} ม.${moo} และสัตว์เลี้ยง ${proxyPetsBatch.length} ตัว สำเร็จ!`);
-            proxyPetsBatch = []; renderProxyBatchList();
+            alert(`🎉 บันทึกบ้าน ${house} ม.${moo} และสัตว์เลี้ยง ${window.proxyPetsBatch.length} ตัว สำเร็จ!`);
+            window.proxyPetsBatch = []; window.renderProxyBatchList();
         } catch(e) { alert("Error: " + e.message); }
         finally { btn.disabled = false; btn.textContent = "💾 บันทึกข้อมูลครัวเรือน + สัตว์เลี้ยงทั้งหมด"; }
     });
 }
 
-function renderProxyBatchList() {
+window.renderProxyBatchList = function() {
     const list = document.getElementById("proxy-pet-list");
     list.innerHTML = "";
-    proxyPetsBatch.forEach((p, i) => {
-        list.insertAdjacentHTML('beforeend', `<div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-bottom: 5px; display:flex; justify-content:space-between;">
-            <div><strong style="color:#D4AF37;">${i+1}. ${p.pet_name}</strong> (${p.pet_type}) - ${p.service}</div>
-            <button onclick="proxyPetsBatch.splice(${i},1); renderProxyBatchList()" style="background:none; border:none; color:#ff6b6b; cursor:pointer;">❌ ลบ</button>
+    window.proxyPetsBatch.forEach((p, i) => {
+        list.insertAdjacentHTML('beforeend', `<div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-bottom: 5px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size: 13px; color:#E0E5EC;"><strong style="color:#D4AF37;">${i+1}. ${p.pet_name}</strong> (${p.pet_type} ${p.pet_gender})<br><span style="color:#A0B0C0; font-size:11px;">ทำ: ${p.service}</span></div>
+            <button onclick="window.proxyPetsBatch.splice(${i},1); window.renderProxyBatchList()" style="background:none; border:none; color:#ff6b6b; cursor:pointer; font-size:12px;">❌ ลบ</button>
         </div>`);
     });
-    document.getElementById("btn-submit-proxy-batch").style.display = proxyPetsBatch.length > 0 ? "block" : "none";
+    document.getElementById("btn-submit-proxy-batch").style.display = window.proxyPetsBatch.length > 0 ? "block" : "none";
 }
 
 // ==========================================
-// 6. ระบบตารางข้อมูลดิบ (Raw Data Menu)
+// 6. ระบบตารางข้อมูลดิบ (Raw Data Menu) & MAPPING
 // ==========================================
 window.switchRawTab = async function(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -421,32 +484,31 @@ window.switchRawTab = async function(tabName) {
 
     try {
         if(tabName === 'users') {
-            thead.innerHTML = "<tr><th>ID</th><th>ชื่อเจ้าบ้าน</th><th>โทรศัพท์</th><th>บ้านเลขที่</th><th>หมู่</th><th>ห้องเช่า</th><th>อัปเดตล่าสุด</th></tr>";
+            // จับคู่กับไฟล์ ROD Sheet: Household_Data
+            thead.innerHTML = "<tr><th>หมู่ที่</th><th>บ้านเลขที่</th><th>ผู้ให้ข้อมูล</th><th>หมายเลขบัตร</th><th>เบอร์โทรศัพท์</th><th>สถานที่อาศัย</th><th>Line_ID</th></tr>";
             const snap = await getDocs(collection(db, "users"));
             let html = "";
             snap.forEach(d => {
                 const u = d.data();
-                html += `<tr><td>${d.id}</td><td>${u.owner_name||'-'}</td><td>${u.phone_number||'-'}</td><td>${u.house_no||'-'}</td><td>${u.village_no||'-'}</td><td>${u.room_no||'-'}</td><td>${u.updated_at ? u.updated_at.toDate().toLocaleDateString() : '-'}</td></tr>`;
+                html += `<tr><td>${u.village_no||'-'}</td><td>${u.house_no||'-'}${u.room_no ? ` (ห้อง ${u.room_no})` : ''}</td><td>${u.owner_name||'-'}</td><td>-</td><td>${u.phone_number||'-'}</td><td>บริเวณบ้าน</td><td>-</td></tr>`;
             });
             tbody.innerHTML = html || "<tr><td colspan='7'>ไม่มีข้อมูล</td></tr>";
         } else if (tabName === 'pets') {
-            thead.innerHTML = "<tr><th>ID</th><th>ชื่อสัตว์</th><th>ชนิด</th><th>เพศ</th><th>อายุ</th><th>เจ้าของ</th><th>สถานะคิว</th><th>วัคซีน</th><th>ทำหมัน</th></tr>";
+            // จับคู่กับไฟล์ ROD Sheet: Pets_Individual
+            thead.innerHTML = "<tr><th>PetID</th><th>HouseholdKey</th><th>PetName</th><th>PetType</th><th>Sex</th><th>Breed</th><th>ColorMark</th><th>AgeYear</th><th>AgeMonth</th><th>VaccineStatus</th><th>VaccineYear</th><th>NeuteredStatus</th><th>RearingStyle</th><th>Location</th></tr>";
             const snap = await getDocs(collection(db, "pets"));
             let html = "";
             snap.forEach(d => {
                 const p = d.data();
-                html += `<tr><td>${d.id}</td><td>${p.pet_name||'-'}</td><td>${p.pet_type||'-'}</td><td>${p.pet_gender||'-'}</td><td>${p.age_year||0}ปี</td><td>${p.owner_name||'-'}</td><td>${p.status||'-'}</td><td>${p.vaccine_status||'-'}</td><td>${p.neuter_status||'-'}</td></tr>`;
+                html += `<tr><td>${d.id}</td><td>${p.house_village_search||'-'}</td><td>${p.pet_name||'-'}</td><td>${p.pet_type||'-'}</td><td>${p.pet_gender||'-'}</td><td>${p.breed||'-'}</td><td>${p.color||'-'}</td><td>${p.age_year||0}</td><td>${p.age_month||0}</td><td>${p.vaccine_status||'-'}</td><td>${p.vaccine_year||'-'}</td><td>${p.neuter_status||'-'}</td><td>${p.rearing_style||'-'}</td><td>-</td></tr>`;
             });
-            tbody.innerHTML = html || "<tr><td colspan='9'>ไม่มีข้อมูล</td></tr>";
-        } else if (tabName === 'stray') {
-            thead.innerHTML = "<tr><th>ระบบจรจัดกำลังพัฒนาในเฟส 3 ครับ</th></tr>";
-            tbody.innerHTML = "";
+            tbody.innerHTML = html || "<tr><td colspan='14'>ไม่มีข้อมูล</td></tr>";
         }
-    } catch(e) { tbody.innerHTML = `<tr><td colspan='10' style='color:#ff6b6b;'>Error: ${e.message}</td></tr>`; }
+    } catch(e) { tbody.innerHTML = `<tr><td colspan='14' style='color:#ff6b6b;'>Error: ${e.message}</td></tr>`; }
 }
 
 // ==========================================
-// 7. ตั้งค่าระบบ 
+// 7. ตั้งค่าระบบ (Settings & Canvas Signature)
 // ==========================================
 function loadSettingsToForm() {
     if(sysConfig) {
@@ -457,8 +519,10 @@ function loadSettingsToForm() {
         document.getElementById("st-start").value = sysConfig.nt_start_reg || ""; document.getElementById("st-end").value = sysConfig.nt_end_reg || ""; document.getElementById("st-nt-date").value = sysConfig.nt_date || ""; document.getElementById("st-nt-loc").value = sysConfig.nt_location || "";
         document.getElementById("st-q-neuter").value = sysConfig.quota_neuter || 100; document.getElementById("st-q-vac").value = sysConfig.quota_vaccine || 300;
         document.getElementById("st-vac-year").value = sysConfig.current_vaccine_year || 2569; document.getElementById("st-vac-brand").value = sysConfig.vaccine_brand || ""; document.getElementById("st-vac-lot").value = sysConfig.vaccine_lot || ""; document.getElementById("st-vac-exp").value = sysConfig.vaccine_exp || "";
+        
+        document.getElementById("st-admin-realname").value = sysConfig.admin_real_name || ""; // โหลดชื่อทางการ
+        
         document.getElementById("st-rep-name").value = sysConfig.rep_name || ""; document.getElementById("st-rep-pos").value = sysConfig.rep_pos || ""; document.getElementById("st-rev-name").value = sysConfig.rev_name || ""; document.getElementById("st-rev-pos").value = sysConfig.rev_pos || ""; document.getElementById("st-app-name").value = sysConfig.app_name || ""; document.getElementById("st-app-pos").value = sysConfig.app_pos || "";
-        if(sysConfig.admin_sig_base64) { document.getElementById("st-admin-sig-preview").src = sysConfig.admin_sig_base64; document.getElementById("st-admin-sig-preview").style.display = "block"; }
     }
     if(secretsConfig) {
         document.getElementById("st-admin-secret").value = secretsConfig.admin_secret || "";
@@ -478,43 +542,130 @@ function renderVolunteerSecretInputs() {
 }
 document.getElementById("st-moo-count").addEventListener("change", renderVolunteerSecretInputs);
 
-let pendingSigBase64 = null;
-document.getElementById("st-admin-sig-upload").addEventListener("change", (e) => {
-    const file = e.target.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        pendingSigBase64 = event.target.result;
-        document.getElementById("st-admin-sig-preview").src = pendingSigBase64; document.getElementById("st-admin-sig-preview").style.display = "block";
-    };
-    reader.readAsDataURL(file);
-});
+// เตรียม Canvas ลายเซ็นให้พร้อม
+const canvasSig = document.getElementById('admin-signature-pad');
+if(canvasSig) {
+    adminSignaturePad = new SignaturePad(canvasSig, { backgroundColor: 'rgb(224, 229, 236)' });
+    document.getElementById("btn-clear-admin-sig").addEventListener("click", () => { adminSignaturePad.clear(); });
+}
 
 function setupSettingsForm() {
     document.getElementById("btn-save-settings").addEventListener("click", async () => {
         const btn = document.getElementById("btn-save-settings"); btn.disabled = true; btn.textContent = "กำลังบันทึก...";
         try {
-            // Save main config
             const updates = {
-                moo_count: parseInt(document.getElementById("st-moo-count").value) || 16,
-                max_neuter_per_house: parseInt(document.getElementById("st-max-neuter").value) || 2,
+                moo_count: parseInt(document.getElementById("st-moo-count").value) || 16, max_neuter_per_house: parseInt(document.getElementById("st-max-neuter").value) || 2,
                 agency_name: document.getElementById("st-agency").value, tambon: document.getElementById("st-tambon").value, amphoe: document.getElementById("st-amphoe").value, province: document.getElementById("st-province").value, phone: document.getElementById("st-phone").value,
                 nt_start_reg: document.getElementById("st-start").value, nt_end_reg: document.getElementById("st-end").value, nt_date: document.getElementById("st-nt-date").value, nt_location: document.getElementById("st-nt-loc").value,
                 quota_neuter: parseInt(document.getElementById("st-q-neuter").value) || 100, quota_vaccine: parseInt(document.getElementById("st-q-vac").value) || 300,
                 current_vaccine_year: parseInt(document.getElementById("st-vac-year").value) || 2569, vaccine_brand: document.getElementById("st-vac-brand").value, vaccine_lot: document.getElementById("st-vac-lot").value, vaccine_exp: document.getElementById("st-vac-exp").value,
+                admin_real_name: document.getElementById("st-admin-realname").value, // เซฟชื่อทางการ
                 rep_name: document.getElementById("st-rep-name").value, rep_pos: document.getElementById("st-rep-pos").value, rev_name: document.getElementById("st-rev-name").value, rev_pos: document.getElementById("st-rev-pos").value, app_name: document.getElementById("st-app-name").value, app_pos: document.getElementById("st-app-pos").value
             };
-            if(pendingSigBase64) updates.admin_sig_base64 = pendingSigBase64;
+            
+            // ดึงข้อมูลการวาดจาก Canvas ไปบันทึกเป็น Base64
+            if(adminSignaturePad && !adminSignaturePad.isEmpty()) {
+                updates.admin_sig_base64 = adminSignaturePad.toDataURL("image/png");
+            }
+
             await updateDoc(doc(db, "system_config", "main_config"), updates);
             
-            // Save secrets
             let volSecrets = {};
             let mCount = updates.moo_count;
             for(let i=1; i<=mCount; i++) { volSecrets[i] = document.getElementById(`st-vol-${i}`).value; }
             await setDoc(doc(db, "system_config", "secrets"), { admin_secret: document.getElementById("st-admin-secret").value, volunteer_secrets: volSecrets });
             
-            alert("บันทึกสำเร็จ กรุณารีเฟรชหน้าเว็บเพื่อให้การตั้งค่าใหม่ (เช่น จำนวนหมู่) มีผลครับ"); location.reload();
+            alert("บันทึกสำเร็จ กรุณารีเฟรชหน้าเว็บเพื่อให้การตั้งค่าใหม่มีผลครับ"); location.reload();
         } catch(e) { alert("Error: " + e.message); } finally { btn.disabled = false; btn.textContent = "💾 บันทึกการตั้งค่า"; }
     });
 }
 
-function setupReportAndPrint() { /* คงไว้ตามเดิมของ Report Function */ }
+// ==========================================
+// 8. ระบบรายงาน & พิมพ์ใบยินยอม
+// ==========================================
+function setupReportAndPrint() {
+    document.getElementById("btn-print-report").addEventListener("click", () => { document.body.classList.add('print-report-mode'); window.print(); document.body.classList.remove('print-report-mode'); });
+
+    // แก้ไขบั๊กรายงาน: กรองสัตว์ที่ "ยังไม่ได้จองคิว" ออก
+    window.generateReport = async function() {
+        if(sysConfig) {
+            document.getElementById("pdf-agency-name").textContent = sysConfig.agency_name || "หน่วยงาน";
+            document.getElementById("sig-rep-name").textContent = `(${sysConfig.rep_name || '...'})`; document.getElementById("sig-rep-pos").textContent = sysConfig.rep_pos || '-';
+            document.getElementById("sig-rev-name").textContent = `(${sysConfig.rev_name || '...'})`; document.getElementById("sig-rev-pos").textContent = sysConfig.rev_pos || '-';
+            document.getElementById("sig-app-name").textContent = `(${sysConfig.app_name || '...'})`; document.getElementById("sig-app-pos").textContent = sysConfig.app_pos || '-';
+        }
+        try {
+            const snap = await getDocs(collection(db, "pets"));
+            const stats = {
+                r: { n: { d: { m:0, f:0 }, c: { m:0, f:0 } }, v: { d: { m:0, f:0 }, c: { m:0, f:0 } } },
+                c: { n: { d: { m:0, f:0 }, c: { m:0, f:0 } }, v: { d: { m:0, f:0 }, c: { m:0, f:0 } } }
+            };
+
+            snap.forEach((d) => {
+                const p = d.data();
+                // ข้ามตัวที่ยกเลิกตายย้าย หรือ ตัวที่แค่ลงประวัติเฉยๆ(ไม่ได้จอง)
+                if (p.status === "cancelled" || p.status === "deceased" || p.status === "moved") return;
+                if (!p.service_type || p.service_type === "none" || p.status === "registered") return;
+
+                const s = (p.service_type === "ทำหมันและวัคซีน") ? "n" : "v";
+                const t = (p.pet_type === "สุนัข") ? "d" : "c";
+                const g = (p.pet_gender === "ตัวผู้") ? "m" : "f";
+
+                stats.r[s][t][g]++;
+                if (p.status === "checked_in") stats.c[s][t][g]++;
+            });
+
+            renderTable("table-registered", stats.r);
+            renderTable("table-checked-in", stats.c);
+        } catch (e) { alert("ดึงข้อมูลรายงานไม่สำเร็จ: " + e.message); }
+    }
+
+    document.getElementById("btn-print-all-consents").addEventListener("click", async () => {
+        const btn = document.getElementById("btn-print-all-consents"); btn.textContent = "กำลังประมวลผล..."; btn.disabled = true;
+        try {
+            const snap = await getDocs(collection(db, "pets")); let validPets = [];
+            snap.forEach(d => { const p = d.data(); if(p.status !== "cancelled" && p.signature_base64 && p.consent_agreed) validPets.push({ id: d.id, ...p }); });
+            validPets.sort((a, b) => (a.signed_timestamp?.toMillis() || 0) - (b.signed_timestamp?.toMillis() || 0));
+            if(validPets.length === 0) return alert("ไม่มีข้อมูลการเซ็นใบยินยอมในระบบ");
+
+            const container = document.getElementById("print-all-consents-container"); container.innerHTML = "";
+            const agency = sysConfig ? sysConfig.agency_name : "เทศบาล...";
+            
+            validPets.forEach((pet, index) => {
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="consent-page">
+                        <div class="queue-badge">คิวที่: ${index + 1}</div>
+                        <h2 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 5px;">ใบยินยอมรับบริการ</h2>
+                        <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px;">${agency}</h3>
+                        <div style="font-size: 16px; line-height: 2;">
+                            <p><strong>ข้าพเจ้า (ชื่อเจ้าของ):</strong> ${pet.owner_name}</p>
+                            <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ ${pet.house_no} หมู่ที่ ${pet.village_no} ${pet.room_no ? '(ห้อง '+pet.room_no+')' : ''}</p>
+                            <p style="margin-top: 15px;"><strong>สัตว์เลี้ยงที่เข้ารับบริการ:</strong></p>
+                            <p>ชื่อ: ${pet.pet_name} | ประเภท: ${pet.pet_type} | เพศ: ${pet.pet_gender} | บริการที่จอง: ${pet.service_type}</p>
+                            <p style="margin-top: 30px; text-indent: 40px; text-align: justify;">ข้าพเจ้ายินยอมให้เจ้าหน้าที่ทำการวางยาสลบเพื่อผ่าตัด/ฉีดวัคซีน และข้าพเจ้าได้อ่านเงื่อนไขเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน</p>
+                        </div>
+                        <div style="margin-top: 50px; text-align: center;">
+                            <img src="${pet.signature_base64}" style="max-height: 100px; display: block; margin: 0 auto; border-bottom: 1px dotted #000;">
+                            <p style="margin-top: 10px;">(ลงชื่อ) .............................................................. ผู้ยินยอม</p>
+                            <p style="margin-top: 5px;">(${pet.owner_name})</p>
+                        </div>
+                    </div>
+                `);
+            });
+            document.body.classList.add('print-all-consents-mode'); window.print(); document.body.classList.remove('print-all-consents-mode');
+        } catch(e) { alert("เกิดข้อผิดพลาด"); } finally { btn.textContent = "🖨️ พิมพ์ใบยินยอมทั้งหมด"; btn.disabled = false; }
+    });
+}
+
+function renderTable(tableId, data) {
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    const tot = (o) => o.d.m + o.d.f + o.c.m + o.c.f;
+    const n = data.n, v = data.v;
+    const tn = tot(n), tv = tot(v);
+
+    tbody.innerHTML = `
+        <tr><td style="text-align: left;">ทำหมัน + วัคซีน</td><td>${n.d.m}</td><td>${n.d.f}</td><td>${n.c.m}</td><td>${n.c.f}</td><td style="font-weight: bold;">${tn}</td></tr>
+        <tr><td style="text-align: left;">วัคซีนอย่างเดียว</td><td>${v.d.m}</td><td>${v.d.f}</td><td>${v.c.m}</td><td>${v.c.f}</td><td style="font-weight: bold;">${tv}</td></tr>
+        <tr style="background: rgba(212, 175, 55, 0.1); font-weight: bold;"><td>รวมสุทธิ</td><td>${n.d.m + v.d.m}</td><td>${n.d.f + v.d.f}</td><td>${n.c.m + v.c.m}</td><td>${n.c.f + v.c.f}</td><td style="color: #D4AF37; font-size: 16px;">${tn + tv}</td></tr>
+    `;
+}
