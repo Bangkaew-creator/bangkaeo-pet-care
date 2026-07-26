@@ -18,9 +18,9 @@
         .pet-name { color: #D4AF37; font-size: 18px; font-weight: 600; margin-bottom: 3px; }
         
         /* ป้ายสถานะ (แบบไม่มีกรอบ บังคับทับ style.css) */
-.vaccine-badge { font-size: 12px; font-weight: bold; display: inline-block; margin-top: 6px; }
-.vaccine-badge.badge-green { color: #50E3C2; background: transparent !important; border: none !important; padding: 0 !important; }
-.vaccine-badge.badge-red { color: #ff6b6b; background: transparent !important; border: none !important; padding: 0 !important; }
+        .vaccine-badge { font-size: 12px; font-weight: bold; display: inline-block; margin-top: 6px; }
+        .vaccine-badge.badge-green { color: #50E3C2; background: transparent !important; border: none !important; padding: 0 !important; }
+        .vaccine-badge.badge-red { color: #ff6b6b; background: transparent !important; border: none !important; padding: 0 !important; }
         
         /* ปุ่มในการ์ดสัตว์เลี้ยง (เรียงแนวตั้ง) */
         .card-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; width: 110px; }
@@ -109,14 +109,12 @@
 
         <button type="button" id="btn-show-add-pet" class="neumorphic-btn gold-btn" style="margin-bottom: 20px; width: 100%;">+ เพิ่มสัตว์เลี้ยงใหม่ในบ้าน</button>
         <div id="pet-cards-container"></div>
-    </div>
-            <div id="pet-cards-container"></div>
         
         <!-- เพิ่มปุ่มทางเข้าแอดมินตรงนี้ -->
         <div style="text-align: center; margin-top: 30px;">
             <a href="admin.html" style="color: #6A7A8A; font-size: 12px; text-decoration: underline; cursor: pointer;">สำหรับเจ้าหน้าที่เทศบาล / อสม.</a>
         </div>
-
+    </div>
 
     <!-- ================= ส่วนที่ 3: ฟอร์มเพิ่ม/แก้ไขสัตว์เลี้ยง ================= -->
     <div id="add-pet-container" class="container" style="display: none;">
@@ -237,16 +235,13 @@
                     <div><b style="color: #D4AF37;">👤 เจ้าของ:</b> <span id="tk-owner">-</span></div>
                 </div>
                 <div id="tk-warning-box" style="background: rgba(255, 107, 107, 0.1); border-left: 3px solid #ff6b6b; padding: 12px; border-radius: 4px; font-size: 11px; color: #ff6b6b; max-height: 160px; overflow-y: auto;">
-    <b style="font-size: 12px; display: block; margin-bottom: 5px;">⚠️ ข้อปฏิบัติและการเตรียมตัวก่อนทำหมัน:</b>
-    1. งดน้ำ-งดอาหารสัตว์อย่างน้อย 12 ชั่วโมง (ก่อนทำหมัน) และขังสัตว์ไว้ในพื้นที่มิดชิดไม่สามารถออกมากินอาหารได้<br>
-    2. สัตว์ที่มาทำหมันต้องสุขภาพดี ไม่ผอม ไม่ป่วย<br>
-    3. อายุสัตว์ที่มาทำหมันต้องอายุตั้งแต่ 6-8 เดือนขึ้นไป<br>
-    4. สุนัขเพศเมียที่มาทำหมัน ไม่ควรเป็นสัด (อวัยวะเพศบวมแดง) และมีประจำเดือน เพราะจะทำให้เสียเลือดมาก<br>
-    5. สุนัขและแมวที่เพิ่งคลอดลูก ควรพักมดลูก 2 เดือน เพราะถ้ามาทำหมันหลังคลอดเลยจะทำให้มดลูกเปื่อยและขาดได้<br>
-    6. ถ้ารู้ว่าสัตว์ท้องไม่ควรนำมาทำหมัน หรือถ้าหมอผ่าแล้วเจอจะเย็บปิดทันที<br>
-    7. ⚠️ ลำดับคิวที่ท่านได้รับนี้ เป็นเพียง "คิวการจองสิทธิ์" เท่านั้น ท่านจะต้องมาติดต่อรับ "บัตรคิวผ่าตัดทำหมัน" ที่หน้างานก่อนเวลา 10.00 น. ของวันเข้ารับบริการ<br>
-    8. กรุณาแสดงข้อความนี้แก่เจ้าหน้าที่ในวันรับบริการ (เจ้าหน้าที่จะตรวจสอบข้อมูลและลายเซ็นจากระบบ)
-</div>
+                    <b style="font-size: 12px; display: block; margin-bottom: 5px;">⚠️ ข้อปฏิบัติและการเตรียมตัว:</b>
+                    1. งดน้ำ-อาหารอย่างน้อย 12 ชม.<br>
+                    2. สัตว์ต้องมีสุขภาพดี ไม่ผอม ไม่ป่วย<br>
+                    3. อายุสัตว์ต้อง 6-8 เดือนขึ้นไป<br>
+                    4. ตัวเมียต้องไม่เป็นสัด/มีประจำเดือน<br>
+                    5. มารับบัตรคิวหน้างานก่อนเวลา 10.00 น.
+                </div>
             </div>
             <div style="padding: 0 15px 15px;">
                 <button type="button" onclick="document.getElementById('ticket-modal').style.display='none'" class="neumorphic-btn gold-btn" style="width: 100%;">ตกลง / ปิดหน้าต่าง</button>
@@ -254,7 +249,8 @@
         </div>
     </div>
     
-    <div id="cert-modal" class="modal-overlay" style="display: none;">
+    <!-- Modal ใบรับรอง (ปรับปรุงให้เหมือน Admin) -->
+    <div id="cert-modal" class="modal-overlay" style="display: none; z-index: 2000;">
         <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
             <div class="flip-card" id="pet-cert-card" onclick="this.classList.toggle('flipped')">
                 <div class="flip-card-inner">
@@ -268,20 +264,21 @@
                             <div><b style="color: #D4AF37;">ที่อยู่:</b> <span id="cert-address"></span></div>
                             <hr style="border-color: rgba(255,255,255,0.05); margin: 10px 0;">
                             <div><b style="color: #50E3C2;">สถานะวัคซีน:</b> <span id="cert-vac-status"></span></div>
-                            <div style="color: #A0B0C0; font-size: 11px; margin-top: 3px;" id="cert-vac-detail">รออัปเดตยี่ห้อ/Lot จากหน้างาน</div>
+                            <div style="color: #A0B0C0; font-size: 11px; margin-top: 3px;" id="cert-vac-detail">รออัปเดตจากหน้างาน</div>
                         </div>
                         <p style="font-size: 12px; color: #A0B0C0; margin-top: auto;">👉 แตะที่บัตรเพื่อพลิกดูด้านหลัง</p>
                     </div>
                     <div class="flip-card-back">
                         <h4 style="text-align: center; margin-bottom: 15px; color: #141E30; border-bottom: 2px solid #D4AF37; padding-bottom: 10px;">ข้อกำหนดและเงื่อนไข</h4>
                         <ul style="font-size: 12px; padding-left: 18px; line-height: 1.6; text-align: left; margin-bottom: 15px; color: #333;">
-                            <li>ใบรับรองดิจิทัลนี้ออกโดย <span id="cert-back-agency">หน่วยงาน</span> เพื่อใช้ยืนยันประวัติทางปศุสัตว์ของสัตว์เลี้ยง</li>
-                            <li>เจ้าของสัตว์มีหน้าที่ต้องนำสัตว์เลี้ยงมารับการฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าเป็นประจำทุกปี</li>
-                            <li>หากสัตว์เลี้ยงเสียชีวิต สูญหาย หรือย้ายที่อยู่ กรุณาแจ้งผ่านระบบเพื่อปรับปรุงฐานข้อมูล</li>
+                            <li>ใบรับรองนี้ออกโดย <span id="cert-back-agency">หน่วยงาน</span> เพื่อยืนยันประวัติปศุสัตว์</li>
+                            <li>เจ้าของสัตว์มีหน้าที่ต้องนำสัตว์เลี้ยงมารับวัคซีนพิษสุนัขบ้าเป็นประจำทุกปี</li>
+                            <li>หากสัตว์เสียชีวิต สูญหาย หรือย้าย กรุณาแจ้งเพื่อปรับปรุงฐานข้อมูล</li>
                         </ul>
                         <div style="margin-top: auto; text-align: center; background: rgba(0,0,0,0.05); padding: 15px 10px; border-radius: 8px;">
                             <p style="font-size: 11px; color: #666;">เจ้าหน้าที่ผู้บันทึกข้อมูล/ฉีดวัคซีน</p>
-                            <p id="cert-admin-name" style="font-weight: bold; font-size: 14px; margin-top: 5px; color: #141E30;">(รอการยืนยันจากหน้างาน)</p>
+                            <img id="cert-admin-sig" src="" style="height: 40px; margin: 5px auto; display: none;">
+                            <p id="cert-admin-name" style="font-weight: bold; font-size: 14px; color: #141E30;">-</p>
                         </div>
                     </div>
                 </div>
