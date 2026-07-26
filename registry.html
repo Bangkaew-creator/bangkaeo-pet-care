@@ -17,10 +17,10 @@
         .pet-info { color: #E0E5EC; font-size: 13px; line-height: 1.5; }
         .pet-name { color: #D4AF37; font-size: 18px; font-weight: 600; margin-bottom: 3px; }
         
-        /* ป้ายสถานะ (แบบไม่มีกรอบ) */
-        .vaccine-badge { font-size: 12px; font-weight: bold; display: inline-block; margin-top: 6px; }
-        .badge-green { color: #50E3C2; }
-        .badge-red { color: #ff6b6b; }
+        /* ป้ายสถานะ (แบบไม่มีกรอบ บังคับทับ style.css) */
+.vaccine-badge { font-size: 12px; font-weight: bold; display: inline-block; margin-top: 6px; }
+.vaccine-badge.badge-green { color: #50E3C2; background: transparent !important; border: none !important; padding: 0 !important; }
+.vaccine-badge.badge-red { color: #ff6b6b; background: transparent !important; border: none !important; padding: 0 !important; }
         
         /* ปุ่มในการ์ดสัตว์เลี้ยง (เรียงแนวตั้ง) */
         .card-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; width: 110px; }
