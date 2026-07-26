@@ -26,6 +26,21 @@ const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http:
 const neuterConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)";
 const vaccineConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ทำการฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าให้แก่สัตว์เลี้ยงของข้าพเจ้า และข้าพเจ้าจะรับผิดชอบดูแลสัตว์เลี้ยงอย่างใกล้ชิดภายหลังการรับวัคซีนตามคำแนะนำ หากเกิดอาการแพ้ ข้าพเจ้าจะไม่เรียกร้องดำเนินคดีใดๆ";
 
+// 🧠 ฟังก์ชันตัวช่วย: แปลงวันที่ YYYY-MM-DD เป็นภาษาไทย
+function formatThaiDate(dateStr) {
+    if (!dateStr) return "-";
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (regex.test(dateStr)) {
+        const parts = dateStr.split("-");
+        const year = parseInt(parts[0]) + 543;
+        const month = parseInt(parts[1]);
+        const day = parseInt(parts[2]);
+        const thaiMonths = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        return `วันที่ ${day} ${thaiMonths[month]} ${year}`;
+    }
+    return dateStr; 
+}
+
 // ==========================================
 // 2. เริ่มทำงานเมื่อโหลดหน้าเว็บ
 // ==========================================
@@ -71,31 +86,21 @@ function setupEventListeners() {
 }
 
 // ==========================================
-// 3. LIFF & โหลดข้อมูลเบื้องต้น (โหมดตรวจสอบ Error)
+// 3. LIFF & โหลดข้อมูลเบื้องต้น
 // ==========================================
 async function initializeLiff() {
     try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) {
-            liff.login();
-        } else {
+        if (!liff.isLoggedIn()) liff.login();
+        else {
             userProfileData = await liff.getProfile();
             const img = document.getElementById("user-profile-img");
             if(img) { img.src = userProfileData.pictureUrl; img.style.display = "block"; }
             
             await loadSystemConfig();
-            await checkUserData();
+            checkUserData();
         }
-    } catch (err) { 
-        console.error("LIFF Init Error", err); 
-        // ถ้าพังตรงนี้ จะเปลี่ยนข้อความโหลด เป็นข้อความแจ้ง Error สีแดง
-        document.getElementById("loading").innerHTML = `
-            <div style="text-align:center; padding: 20px;">
-                <span style="color:#ff6b6b; font-size: 18px;">❌ เชื่อมต่อ LINE ไม่สำเร็จ</span><br><br>
-                <span style="color:#A0B0C0; font-size: 14px;">สาเหตุ: ${err.message}</span>
-            </div>
-        `;
-    }
+    } catch (err) { console.error("LIFF Init Error", err); }
 }
 
 async function loadSystemConfig() {
@@ -106,10 +111,7 @@ async function loadSystemConfig() {
             document.getElementById("txt-agency-name").textContent = sysConfig.agency_name || "สมุดประจำตัวสัตว์เลี้ยง";
             document.getElementById("cert-back-agency").textContent = sysConfig.agency_name || "หน่วยงาน";
         }
-    } catch(e) { 
-        console.error("Error loading config:", e); 
-        throw new Error("โหลดการตั้งค่าระบบไม่สำเร็จ: " + e.message); // โยน Error ออกไปให้ระบบรับรู้
-    }
+    } catch(e) { console.error("Error loading config:", e); }
 }
 
 async function checkUserData() {
@@ -128,28 +130,17 @@ async function checkUserData() {
             document.getElementById("dashboard-container").style.display = "block";
             
             await loadQuotaAndDashboard(); 
-            await loadMyPets();
+            loadMyPets();
         } else {
             document.getElementById("household-setup-container").style.display = "block";
         }
-    } catch (error) { 
-        console.error("Error", error); 
-        // ถ้าฐานข้อมูลดึงไม่ได้ จะโชว์ Error สีแดง
-        document.getElementById("loading").innerHTML = `
-            <div style="text-align:center; padding: 20px;">
-                <span style="color:#ff6b6b; font-size: 18px;">❌ โหลดข้อมูลฐานข้อมูลไม่สำเร็จ</span><br><br>
-                <span style="color:#A0B0C0; font-size: 14px;">โปรดตรวจสอบไฟล์ firebase-config.js<br>สาเหตุ: ${error.message}</span>
-            </div>
-        `;
-    }
+    } catch (error) { console.error("Error", error); }
 }
-
 
 // ==========================================
 // 4. ระบบขึ้นทะเบียนบ้านและสัตว์เลี้ยง
 // ==========================================
 function setupHouseholdForm() {
-    // ซ่อน/แสดงช่องกรอกห้องเช่า
     document.getElementById("hh-is-rental")?.addEventListener("change", (e) => {
         document.getElementById("hh-room-group").style.display = e.target.checked ? "block" : "none";
     });
@@ -169,7 +160,6 @@ function setupHouseholdForm() {
 
             btnRegHouse.disabled = true; btnRegHouse.textContent = "กำลังบันทึก...";
 
-            // สร้างคีย์ค้นหา ถ้าเป็นบ้านเช่าจะพ่วงห้องเข้าไปด้วยเพื่อให้ลูกบ้านเห็นเฉพาะห้องตัวเอง
             let searchKey = `${hNo}-${vNo}`;
             if(isRental && roomNo) searchKey = `${hNo}-${vNo}-${roomNo}`;
 
@@ -216,7 +206,6 @@ function setupPetForm() {
         document.getElementById("vac-year-group").style.display = e.target.value === "ฉีดแล้ว" ? "block" : "none";
     });
 
-    // บีบอัดและแปลงรูปภาพเป็น Base64
     document.getElementById("pet-image-upload")?.addEventListener("change", (e) => {
         const file = e.target.files[0]; if(!file) return;
         const reader = new FileReader();
@@ -274,7 +263,7 @@ function setupPetForm() {
                 const u = userSnap.data();
                 petData.owner_uid = userProfileData.userId; petData.owner_name = u.owner_name; petData.phone_number = u.phone_number;
                 petData.house_no = u.house_no; petData.village_no = u.village_no; petData.room_no = u.room_no || "";
-                petData.house_village_search = u.house_village_search; // ใช้คีย์ตรงกับเจ้าของบ้าน (รองรับบ้านเช่า)
+                petData.house_village_search = u.house_village_search; 
                 petData.status = "registered"; petData.registered_timestamp = serverTimestamp();
                 await addDoc(collection(db, "pets"), petData);
             }
@@ -318,7 +307,9 @@ async function loadQuotaAndDashboard() {
 
     if(isWithinDate || (currentBookedNeuter > 0 || currentBookedVaccine > 0)) {
         document.getElementById("campaign-banner-container").style.display = "block";
-        document.getElementById("txt-service-date").textContent = sysConfig.nt_date || sysConfig.service_date || "-";
+        
+        // ใช้ formatThaiDate แปลงวันที่อัตโนมัติ
+        document.getElementById("txt-service-date").textContent = formatThaiDate(sysConfig.nt_date || sysConfig.service_date);
         document.getElementById("txt-service-location").textContent = sysConfig.nt_location || sysConfig.service_location || "-";
         
         document.getElementById("txt-neuter-quota").textContent = `${currentBookedNeuter} / ${currentTotalNeuterQuota} คิว`;
@@ -354,7 +345,6 @@ async function loadMyPets() {
 
         snap.forEach(d => {
             const pet = d.data();
-            // นำระบบ Soft Delete มาใช้ (ซ่อนข้อมูลสถานะ deceased หรือ moved ออกจากหน้าจอ)
             if(pet.status === "cancelled" || pet.status === "deceased" || pet.status === "moved") return;
             count++; window.myPetsData[d.id] = pet; 
 
@@ -382,7 +372,6 @@ async function loadMyPets() {
                 actionBtn = `<div style="font-size:12px; color:#50E3C2; text-align:center; padding: 5px; font-weight: bold;">✅ ประวัติครบถ้วน</div>`;
             }
 
-            // HTML Layout: ซ้าย = รูป+ข้อมูล, ขวา = ปุ่ม 4 ปุ่มแนวตั้ง
             container.insertAdjacentHTML('beforeend', `
                 <div class="pet-card">
                     <div class="pet-card-left">
@@ -428,7 +417,6 @@ window.editPet = function(docId) {
     document.getElementById("dashboard-container").style.display = "none"; document.getElementById("add-pet-container").style.display = "block";
 }
 
-// ฟังก์ชันแจ้งตาย/ย้าย (Soft Delete)
 window.softDeletePet = async function(docId) {
     const pet = window.myPetsData[docId];
     if(!pet) return;
@@ -443,11 +431,12 @@ window.softDeletePet = async function(docId) {
                 updated_at: serverTimestamp() 
             });
             alert("บันทึกการแจ้งสถานะเรียบร้อยแล้ว ข้อมูลจะถูกเก็บไว้ในประวัติของระบบครับ");
-            loadMyPets(); // โหลดใหม่เพื่อซ่อนการ์ด
+            loadMyPets(); 
         } catch(e) { alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ"); }
     }
 }
 
+// 📄 อัปเกรดใบรับรอง (Flip Card) ให้เหมือนหน้าแอดมิน
 window.viewCertificate = function(docId) {
     const pet = window.myPetsData[docId];
     if(!pet) return;
@@ -462,16 +451,24 @@ window.viewCertificate = function(docId) {
     document.getElementById("cert-address").textContent = certAddress;
     
     if (pet.vaccine_status === "ฉีดแล้ว") {
-        document.getElementById("cert-vac-status").textContent = `ฉีดแล้ว (ปี ${pet.vaccine_year})`;
+        document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
         document.getElementById("cert-vac-status").style.color = "#50E3C2";
-        document.getElementById("cert-vac-detail").textContent = pet.vaccine_brand ? `ยี่ห้อ: ${pet.vaccine_brand} (Lot: ${pet.vaccine_lot || '-'})` : "ข้อมูลวัคซีนบันทึกโดยเจ้าของสัตว์";
+        document.getElementById("cert-vac-detail").innerHTML = `ยี่ห้อ: ${pet.vaccine_brand || '-'} (Lot: ${pet.vaccine_lot || '-'})<br>EXP: ${pet.vaccine_exp || '-'}`;
     } else {
         document.getElementById("cert-vac-status").textContent = "ยังไม่เคยฉีดวัคซีน";
         document.getElementById("cert-vac-status").style.color = "#ff6b6b";
         document.getElementById("cert-vac-detail").textContent = "-";
     }
     
-    document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "(รอประทับตราจากหน้างาน)";
+    document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "-";
+    
+    if (sysConfig && sysConfig.admin_sig_base64) {
+        document.getElementById("cert-admin-sig").src = sysConfig.admin_sig_base64;
+        document.getElementById("cert-admin-sig").style.display = "block";
+    } else { 
+        document.getElementById("cert-admin-sig").style.display = "none"; 
+    }
+
     document.getElementById("pet-cert-card").classList.remove("flipped");
     document.getElementById("cert-modal").style.display = "flex";
 }
@@ -527,7 +524,6 @@ async function submitBooking() {
             signed_timestamp: serverTimestamp()
         });
 
-        // ส่งข้อความ LINE ตามรูปแบบใหม่
         let lineMsg = `✅ ยืนยันการลงทะเบียน (จองสิทธิ์สำเร็จ)\nลำดับคิวจองสิทธิ์ที่: ${nextQueueNo}\n🏠 บ้านเลขที่: ${pet.house_no} หมู่ ${pet.village_no}\n🐾 ชื่อสัตว์เลี้ยง: น้อง${pet.pet_name}\n(ระบบได้บันทึกใบยินยอมและลายเซ็นของท่านเรียบร้อยแล้ว)\n\n`;
         
         if (serviceType === "ทำหมันและวัคซีน") {
@@ -557,14 +553,15 @@ window.viewNeuterTicket = function(docId) {
     document.getElementById("tk-agency-name").textContent = sysConfig ? sysConfig.agency_name : "เทศบาล...";
     document.getElementById("tk-queue-no").textContent = `#${String(pet.queue_no || 0).padStart(2, '0')}`;
     document.getElementById("tk-pet-name").textContent = `${pet.pet_name} (${pet.pet_type} ${pet.pet_gender})`;
-    document.getElementById("tk-date").textContent = sysConfig ? (sysConfig.nt_date || sysConfig.service_date) : "-";
+    
+    // ใช้ formatThaiDate แปลงวันที่อัตโนมัติ
+    document.getElementById("tk-date").textContent = formatThaiDate(sysConfig.nt_date || sysConfig.service_date);
     document.getElementById("tk-location").textContent = sysConfig ? (sysConfig.nt_location || sysConfig.service_location) : "-";
     
     let tkAddress = `${pet.house_no} ม.${pet.village_no}`;
     if(pet.room_no) tkAddress += ` (ห้อง ${pet.room_no})`;
     document.getElementById("tk-owner").textContent = `${pet.owner_name} (บ้าน ${tkAddress})`;
 
-    // อัปเดตข้อความ 8 ข้อ ให้ตรงกับที่ส่งใน LINE
     if (pet.service_type === "วัคซีนอย่างเดียว") {
         document.getElementById("tk-warning-box").innerHTML = `<b style="font-size: 12px; display: block; margin-bottom: 5px;">⚠️ ข้อปฏิบัติและการเตรียมตัวรับวัคซีน:</b> สัตว์ต้องมีสุขภาพแข็งแรง ไม่ป่วย และควรนำสัตว์ใส่ตะกร้าหรือกระเป๋าที่มิดชิดเพื่อความปลอดภัย`;
     } else {
@@ -590,7 +587,6 @@ window.cancelBooking = async function(docId) {
         try {
             await updateDoc(doc(db, "pets", docId), { status: "registered", service_type: null, queue_no: null, consent_agreed: false });
             
-            // ส่งข้อความ LINE แจ้งยกเลิก
             if (liff.isInClient()) {
                 await liff.sendMessages([{ type: "text", text: `❌ ท่านได้ยกเลิกคิวจองสิทธิ์ของน้อง${pet.pet_name} และคืนสิทธิ์เข้าสู่ระบบเรียบร้อยแล้วครับ` }]);
             }
