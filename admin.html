@@ -26,7 +26,7 @@
         body.role-volunteer #menu-raw-data { display: none !important; }
         body.role-volunteer .admin-only { display: none !important; }
 
-        .raw-table-wrapper { width: 100%; overflow-x: auto; max-height: 600px; overflow-y: auto; background: #0d131f; border-radius: 10px; }
+        .raw-table-wrapper { width: 100%; overflow-x: auto; max-height: 500px; overflow-y: auto; background: #0d131f; border-radius: 10px; }
         .raw-table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
         .raw-table th, .raw-table td { padding: 10px 15px; border: 1px solid rgba(255,255,255,0.05); text-align: left; }
         .raw-table th { background: #1b2941; color: #D4AF37; position: sticky; top: 0; z-index: 10; font-weight: 600; }
@@ -180,14 +180,62 @@
             </div>
         </div>
 
-        <!-- 4. ตารางข้อมูลดิบ (Data) อิงตามตาราง ROD -->
+        <!-- 4. ตารางข้อมูลดิบ (Data) อิงตามตาราง ROD พร้อมระบบ Filter -->
         <div id="view-raw-data" class="container admin-view" style="max-width: 100%;">
-            <h2 class="title" style="text-align: left; font-size: 18px;">🗄️ ตารางข้อมูลดิบ (อิงตาม ROD)</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 class="title" style="text-align: left; font-size: 18px; margin: 0;">🗄️ ตารางข้อมูลดิบ (อิงตาม ROD)</h2>
+                <button type="button" id="btn-export-excel" class="neumorphic-btn gold-btn" style="width: auto; padding: 8px 15px; font-size: 13px;">📥 ส่งออก Excel</button>
+            </div>
+            
             <div style="margin-bottom: 15px;">
                 <button class="tab-btn active" onclick="window.switchRawTab('household')">รายงานบ้าน (Household)</button>
                 <button class="tab-btn" onclick="window.switchRawTab('pets')">รายงานตัว (Pets Individual)</button>
                 <button class="tab-btn" onclick="window.switchRawTab('stray')">รายงานจร (Stray)</button>
             </div>
+
+            <!-- กล่องควบคุมการค้นหาและฟิลเตอร์ -->
+            <div class="card neumorphic" style="margin-bottom: 15px; padding: 15px;">
+                <div class="row" style="flex-wrap: wrap; gap: 10px;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <input type="text" id="raw-search" class="neumorphic-input" placeholder="🔍 ค้นหา (เช่น บ้านเลขที่, ชื่อ)" oninput="window.renderRawTable()">
+                    </div>
+                    <div style="flex: 1; min-width: 120px;">
+                        <select id="raw-filter-moo" class="neumorphic-input" onchange="window.renderRawTable()">
+                            <option value="">ทุกหมู่</option>
+                            <script>for(let i=1; i<=16; i++) document.write(`<option value="${i}">หมู่ ${i}</option>`);</script>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width: 120px;">
+                        <select id="raw-filter-type" class="neumorphic-input" onchange="window.renderRawTable()">
+                            <option value="">ทุกประเภท</option>
+                            <option value="สุนัข">สุนัข</option>
+                            <option value="แมว">แมว</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width: 120px;">
+                        <select id="raw-filter-gender" class="neumorphic-input" onchange="window.renderRawTable()">
+                            <option value="">ทุกเพศ</option>
+                            <option value="ตัวผู้">ตัวผู้</option>
+                            <option value="ตัวเมีย">ตัวเมีย</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width: 120px;" id="filter-vac-group">
+                        <select id="raw-filter-vac" class="neumorphic-input" onchange="window.renderRawTable()">
+                            <option value="">สถานะวัคซีน (ทั้งหมด)</option>
+                            <option value="ฉีดแล้ว">ฉีดแล้ว</option>
+                            <option value="ยังไม่เคยฉีด">ยังไม่เคยฉีด</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width: 120px;" id="filter-neu-group">
+                        <select id="raw-filter-neu" class="neumorphic-input" onchange="window.renderRawTable()">
+                            <option value="">สถานะทำหมัน (ทั้งหมด)</option>
+                            <option value="ทำหมันแล้ว">ทำหมันแล้ว</option>
+                            <option value="ยังไม่ทำหมัน">ยังไม่ทำหมัน</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div class="card neumorphic" style="padding: 0; overflow: hidden;">
                 <div class="raw-table-wrapper"><table class="raw-table" id="raw-table-content"><thead></thead><tbody></tbody></table></div>
             </div>
@@ -211,10 +259,7 @@
                 <div class="row"><div class="input-group half"><label>จังหวัด</label><input type="text" id="st-province" class="neumorphic-input"></div><div class="input-group half"><label>เบอร์โทร</label><input type="text" id="st-phone" class="neumorphic-input"></div></div>
 
                 <h3 class="section-title" style="margin-top: 25px;">3. กำหนดการและโควตา</h3>
-                
-                <!-- 🎯 คืนค่าช่องจำนวนทำหมันสูงสุดต่อบ้านตรงนี้ครับ! -->
                 <div class="input-group"><label>จำนวนทำหมันสูงสุดต่อบ้าน</label><input type="number" id="st-max-neuter" class="neumorphic-input" value="2"></div>
-                
                 <div class="row"><div class="input-group half"><label>เริ่มลงทะเบียน</label><input type="date" id="st-start" class="neumorphic-input"></div><div class="input-group half"><label>สิ้นสุด</label><input type="date" id="st-end" class="neumorphic-input"></div></div>
                 <div class="input-group"><label>วันให้บริการ (ข้อความ)</label><input type="text" id="st-nt-date" class="neumorphic-input" placeholder="เช่น 2026-08-05"></div>
                 <div class="input-group"><label>สถานที่ให้บริการ</label><input type="text" id="st-nt-loc" class="neumorphic-input"></div>
@@ -226,7 +271,6 @@
                 <div class="input-group"><label>วันหมดอายุ (EXP)</label><input type="text" id="st-vac-exp" class="neumorphic-input" placeholder="เช่น 2027-12-31"></div>
 
                 <h3 class="section-title" style="margin-top: 25px;">5. ลายเซ็นและผู้ลงนาม</h3>
-                
                 <div style="margin-bottom: 20px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
                         <label style="font-size: 13px; color: #A0B0C0;">ลายเซ็นผู้อนุมัติ/สัตวแพทย์ (แสดงหลังใบรับรอง)</label>
@@ -244,7 +288,6 @@
         </div>
     </div>
 
-    <!-- นำ Modal ใบรับรองกลับมา -->
     <div id="cert-modal" class="modal-overlay" style="display: none; z-index: 2000;">
         <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
             <div class="flip-card" id="pet-cert-card" onclick="this.classList.toggle('flipped')">
@@ -287,6 +330,8 @@
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <!-- เพิ่มไลบรารี SheetJS สำหรับส่งออก Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script type="module" src="admin.js"></script>
 </body>
 </html>
