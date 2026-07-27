@@ -9,7 +9,7 @@ let currentUser = null;
 let sysConfig = null;
 let secretsConfig = null;
 let adminName = "เจ้าหน้าที่";
-let adminRealName = "เจ้าหน้าที่"; // ชื่อจริงที่ดึงจากตาราง users
+let adminRealName = "เจ้าหน้าที่"; 
 let adminSignaturePad = null; 
 
 window.proxyPetsBatch = []; 
@@ -40,7 +40,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupNavigation();
     setupLoginLogic();
     
-    // ตั้งค่า Canvas ลายเซ็นสำหรับหน้า Settings
     const canvasSig = document.getElementById('admin-signature-pad');
     if(canvasSig && typeof SignaturePad !== 'undefined') {
         adminSignaturePad = new SignaturePad(canvasSig, { backgroundColor: 'rgb(224, 229, 236)' });
@@ -54,9 +53,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             currentUser = await liff.getProfile();
             adminName = currentUser.displayName;
-            adminRealName = adminName; // Default เป็นชื่อ LINE ไว้ก่อน
+            adminRealName = adminName; 
 
-            // 🧠 ดึงชื่อจริงจากตาราง users อัตโนมัติ
             try {
                 const uSnap = await getDoc(doc(db, "users", currentUser.userId));
                 if(uSnap.exists() && uSnap.data().owner_name) {
@@ -144,7 +142,6 @@ window.switchView = function(viewId) {
     document.getElementById(viewId).style.display = "block";
     document.getElementById("admin-sidebar").style.right = "-250px";
     
-    // แก้บั๊ก Canvas หน้าตั้งค่า ให้ Resize ได้ถูกต้อง
     if(viewId === 'view-settings' && adminSignaturePad) {
         setTimeout(() => {
             try {
@@ -166,7 +163,10 @@ function setupNavigation() {
     document.getElementById("menu-checkin").addEventListener("click", () => switchView('view-checkin'));
     document.getElementById("menu-proxy").addEventListener("click", () => switchView('view-proxy'));
     document.getElementById("menu-settings").addEventListener("click", () => { loadSettingsToForm(); switchView('view-settings'); });
-    document.getElementById("menu-report").addEventListener("click", () => { generateReport(); switchView('view-report'); });
+    
+    // แก้บั๊กเมนูรายงานตรงนี้: เติม window.
+    document.getElementById("menu-report").addEventListener("click", () => { window.generateReport(); switchView('view-report'); });
+    
     document.getElementById("menu-raw-data").addEventListener("click", () => { window.switchRawTab('household'); switchView('view-raw-data'); });
     document.getElementById("menu-logout").addEventListener("click", () => {
         if(confirm("ออกจากโหมดเจ้าหน้าที่?")) { localStorage.clear(); window.location.href = "registry.html"; }
@@ -307,7 +307,7 @@ window.toggleCheckin = async function(docId, serviceType, isCheckingIn) {
                 updates.vaccine_brand = sysConfig.vaccine_brand || ""; updates.vaccine_lot = sysConfig.vaccine_lot || ""; updates.vaccine_exp = sysConfig.vaccine_exp || "";
             }
             const dateStr = new Date().toLocaleDateString('th-TH', { year:'numeric', month:'2-digit', day:'2-digit' });
-            updates.vaccinated_by_admin = adminRealName; // ใช้ชื่อจริงที่ดึงมา
+            updates.vaccinated_by_admin = adminRealName; 
             updates.vaccine_date = dateStr;
         }
         await updateDoc(doc(db, "pets", docId), updates);
@@ -321,7 +321,7 @@ window.walkinVaccine = async function(docId) {
             const dateStr = new Date().toLocaleDateString('th-TH', { year:'numeric', month:'2-digit', day:'2-digit' });
             let updates = { 
                 status: "checked_in", service_type: "วัคซีนอย่างเดียว (Walk-in)", vaccine_status: "ฉีดแล้ว", updated_at: serverTimestamp(),
-                vaccinated_by_admin: adminRealName, // ใช้ชื่อจริงที่ดึงมา
+                vaccinated_by_admin: adminRealName, 
                 vaccine_date: dateStr
             };
             if (sysConfig) {
@@ -364,7 +364,6 @@ window.viewCertificateAdmin = function(docId) {
             document.getElementById("cert-vac-detail").textContent = "-";
         }
         
-        // ดึงชื่อที่บันทึกไว้ในฐานข้อมูล ถ้าไม่มีให้โชว์ขีด
         document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "-";
         
         if (sysConfig && sysConfig.admin_sig_base64) {
@@ -440,7 +439,6 @@ function setupProxyBatchLogic() {
         try {
             let searchKey = room ? `${house}-${moo}-${room}` : `${house}-${moo}`;
             
-            // สร้าง/อัปเดต Users
             const userQ = query(collection(db, "users"), where("house_village_search", "==", searchKey));
             const userSnap = await getDocs(userQ);
             let ownerUid = "proxy_" + new Date().getTime();
@@ -452,7 +450,6 @@ function setupProxyBatchLogic() {
                 });
             }
 
-            // เพิ่มสัตว์เลี้ยงเป็น Loop
             for(let p of window.proxyPetsBatch) {
                 let petData = {
                     owner_uid: ownerUid, proxy_by: adminRealName, owner_name: owner, phone_number: phone, house_no: house, village_no: moo, room_no: room,
@@ -472,7 +469,7 @@ function setupProxyBatchLogic() {
                     petData.vaccine_brand = sysConfig ? sysConfig.vaccine_brand : "";
                     petData.vaccine_lot = sysConfig ? sysConfig.vaccine_lot : "";
                     petData.vaccine_exp = sysConfig ? sysConfig.vaccine_exp : "";
-                    petData.vaccine_date = dateStr; petData.vaccinated_by_admin = adminRealName; // ใช้ชื่อจริง
+                    petData.vaccine_date = dateStr; petData.vaccinated_by_admin = adminRealName;
                 }
                 await addDoc(collection(db, "pets"), petData);
             }
@@ -507,14 +504,12 @@ window.switchRawTab = async function(tabName) {
 
     try {
         if(tabName === 'household') {
-            // MAPPING: รายงาน-บ้าน 69-1 (24 คอลัมน์)
             thead.innerHTML = "<tr><th>อำเภอ</th><th>แขวง</th><th>หมู่ที่</th><th>สถานที่อาศัย</th><th>บ้านเลขที่</th><th>ผู้ให้ข้อมูล</th><th>หมายเลขบัตร</th><th>เบอร์โทรศัพท์</th><th>สุุนัข-ผู้ ยอดจริง</th><th>สุนัข-ผู้-วัคซีน ยอดจริง</th><th>สุนัข-ผู้-ทำหมัน ยอดจริง</th><th>ลูกผู้</th><th>สุุนัข-เมีย ยอดจริง</th><th>สุนัข-เมีย-วัคซีน ยอดจริง</th><th>สุนัข-เมีย-ทำหมัน ยอดจริง</th><th>ลูกเมีย</th><th>แมว-ผู้ ยอดจริง</th><th>แมว-ผู้-วัคซีน ยอดจริง</th><th>แมว-ผู้-ทำหมัน ยอดจริง</th><th>ลูกแมวผู้</th><th>แมว-เมีย ยอดจริง</th><th>แมว-เมีย-วัคซีน ยอดจริง</th><th>แมว-เมีย-ทำหมัน ยอดจริง</th><th>ลูกแมวเมีย</th></tr>";
             
             const usersSnap = await getDocs(collection(db, "users"));
             const petsSnap = await getDocs(collection(db, "pets"));
             
             let hhStats = {};
-            // 1. เตรียมข้อมูลบ้าน
             usersSnap.forEach(d => {
                 const u = d.data();
                 const key = u.house_village_search || `${u.house_no}-${u.village_no}`;
@@ -526,13 +521,11 @@ window.switchRawTab = async function(tabName) {
                 };
             });
 
-            // 2. นับยอดสัตว์เลี้ยงใส่บ้าน
             petsSnap.forEach(d => {
                 const p = d.data();
                 if(p.status === "cancelled" || p.status === "deceased" || p.status === "moved") return;
                 const key = p.house_village_search || `${p.house_no}-${p.village_no}`;
                 if(!hhStats[key]) {
-                    // กรณีสัตว์เลี้ยงไม่มีบ้านในตาราง user ให้สร้างจำลองขึ้นมา
                     hhStats[key] = {
                         amphoe: sysConfig?.amphoe || "-", tambon: sysConfig?.tambon || "-", moo: p.village_no || "-", loc: "บริเวณบ้าน",
                         house: p.house_no || "-", owner: p.owner_name || "-", card: "-", phone: p.phone_number || "-",
@@ -558,7 +551,6 @@ window.switchRawTab = async function(tabName) {
             tbody.innerHTML = html || "<tr><td colspan='24'>ไม่มีข้อมูล</td></tr>";
             
         } else if (tabName === 'pets') {
-            // MAPPING: รายงาน-ตัว 69-1 (19 คอลัมน์)
             thead.innerHTML = "<tr><th>OwnerName</th><th>เลขบัตรประชาชน</th><th>Tel</th><th>HouseholdKey</th><th>หมู่</th><th>ตำบล</th><th>อำเภอ</th><th>ซอย</th><th>ถนน</th><th>PetType</th><th>PetName</th><th>Sex</th><th>VaccineStatus</th><th>VaccineYear</th><th>NeuteredStatus</th><th>AgeYear</th><th>AgeMonth</th><th>RearingStyle</th><th>Location</th></tr>";
             
             const snap = await getDocs(collection(db, "pets"));
@@ -571,7 +563,6 @@ window.switchRawTab = async function(tabName) {
             tbody.innerHTML = html || "<tr><td colspan='19'>ไม่มีข้อมูล</td></tr>";
             
         } else if (tabName === 'stray') {
-            // MAPPING: รายงานจร-69-1 (14 คอลัมน์) เฟส 3
             thead.innerHTML = "<tr><th>อำเภอ</th><th>ตำบล</th><th>หมู่</th><th>สถานที่อาศัย</th><th>LocationDesc</th><th>FeederName</th><th>เลขบัตร</th><th>FeederPhone</th><th>จำนวนหมา</th><th>วัคซีน</th><th>ทำหมัน</th><th>จำนวนแมว</th><th>วัคซีน.1</th><th>ทำหมัน.1</th></tr>";
             tbody.innerHTML = "<tr><td colspan='14' style='text-align:center; color:#A0B0C0;'>ระบบข้อมูลสัตว์จรจัด จะเปิดให้ใช้งานในเฟสที่ 3 ครับ</td></tr>";
         }
@@ -624,7 +615,6 @@ function setupSettingsForm() {
                 rep_name: document.getElementById("st-rep-name").value, rep_pos: document.getElementById("st-rep-pos").value, rev_name: document.getElementById("st-rev-name").value, rev_pos: document.getElementById("st-rev-pos").value, app_name: document.getElementById("st-app-name").value, app_pos: document.getElementById("st-app-pos").value
             };
             
-            // ดึงข้อมูลการวาดจาก Canvas ไปบันทึกเป็น Base64
             if(adminSignaturePad && !adminSignaturePad.isEmpty()) {
                 updates.admin_sig_base64 = adminSignaturePad.toDataURL("image/png");
             }
@@ -647,7 +637,6 @@ function setupSettingsForm() {
 function setupReportAndPrint() {
     document.getElementById("btn-print-report").addEventListener("click", () => { document.body.classList.add('print-report-mode'); window.print(); document.body.classList.remove('print-report-mode'); });
 
-    // แก้ไขบั๊กรายงาน: กรองสัตว์ที่ "ยังไม่ได้จองคิว" ออก
     window.generateReport = async function() {
         if(sysConfig) {
             document.getElementById("pdf-agency-name").textContent = sysConfig.agency_name || "หน่วยงาน";
@@ -664,7 +653,6 @@ function setupReportAndPrint() {
 
             snap.forEach((d) => {
                 const p = d.data();
-                // ข้ามตัวที่ยกเลิกตายย้าย หรือ ตัวที่แค่ลงประวัติเฉยๆ(ไม่ได้จอง)
                 if (p.status === "cancelled" || p.status === "deceased" || p.status === "moved") return;
                 if (!p.service_type || p.service_type === "none" || p.status === "registered") return;
 
