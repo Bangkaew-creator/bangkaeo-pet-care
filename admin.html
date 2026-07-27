@@ -108,6 +108,14 @@
 
             <div class="card neumorphic" id="proxy-pet-form">
                 <h3 class="section-title">2. เพิ่มสัตว์เลี้ยง (เพิ่มได้หลายตัว)</h3>
+                
+                <!-- นำปุ่มอัปโหลดรูปในตะกร้ากลับมา -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img id="px-img-preview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #D4AF37; cursor: pointer; background: #1b2941;" onclick="document.getElementById('px-img-upload').click()">
+                    <input type="file" id="px-img-upload" accept="image/*" style="display: none;">
+                    <div style="font-size: 11px; color: #6A7A8A; margin-top: 5px;">(ถ้ามี) แตะเพื่ออัปโหลดรูป</div>
+                </div>
+
                 <div class="input-group"><label>ชื่อสัตว์เลี้ยง <span style="color:#ff6b6b">*</span></label><input type="text" id="px-pet-name" class="neumorphic-input"></div>
                 <div class="row">
                     <div class="input-group half"><label>ประเภท <span style="color:#ff6b6b">*</span></label><select id="px-type" class="neumorphic-input"><option value="สุนัข">สุนัข</option><option value="แมว">แมว</option></select></div>
@@ -197,7 +205,6 @@
 
                 <h3 class="section-title" style="margin-top: 25px;">5. ลายเซ็นและผู้ลงนาม</h3>
                 
-                <!-- เปลี่ยนช่องอัปโหลดเป็น Canvas วาดลายเซ็นแทน -->
                 <div style="margin-bottom: 20px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
                         <label style="font-size: 13px; color: #A0B0C0;">ลายเซ็นผู้อนุมัติ/สัตวแพทย์ (แสดงหลังใบรับรอง)</label>
@@ -212,6 +219,44 @@
 
                 <button type="button" id="btn-save-settings" class="neumorphic-btn gold-btn" style="margin-top: 20px;">💾 บันทึกการตั้งค่า</button>
             </div>
+        </div>
+    </div>
+
+    <!-- นำ Modal ใบรับรองกลับมา -->
+    <div id="cert-modal" class="modal-overlay" style="display: none; z-index: 2000;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
+            <div class="flip-card" id="pet-cert-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <h3 style="color: #D4AF37; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 10px; margin-bottom: 15px;">สมุดประจำตัวสัตว์เลี้ยง</h3>
+                        <img id="cert-img" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #D4AF37; margin: 0 auto 15px; background: #1b2941;">
+                        <h2 id="cert-pet-name" style="margin-bottom: 5px; color: #50E3C2;">-</h2>
+                        <p id="cert-pet-detail" style="font-size: 14px; margin-bottom: 20px; color: #A0B0C0;">-</p>
+                        <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; text-align: left; font-size: 13px; line-height: 1.6;">
+                            <div><b style="color: #D4AF37;">เจ้าของ:</b> <span id="cert-owner"></span></div>
+                            <div><b style="color: #D4AF37;">ที่อยู่:</b> <span id="cert-address"></span></div>
+                            <hr style="border-color: rgba(255,255,255,0.05); margin: 10px 0;">
+                            <div><b style="color: #50E3C2;">สถานะวัคซีน:</b> <span id="cert-vac-status"></span></div>
+                            <div style="color: #A0B0C0; font-size: 11px; margin-top: 3px;" id="cert-vac-detail">รออัปเดตจากหน้างาน</div>
+                        </div>
+                        <p style="font-size: 12px; color: #A0B0C0; margin-top: auto;">👉 แตะที่บัตรเพื่อพลิกดูด้านหลัง</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <h4 style="text-align: center; margin-bottom: 15px; color: #141E30; border-bottom: 2px solid #D4AF37; padding-bottom: 10px;">ข้อกำหนดและเงื่อนไข</h4>
+                        <ul style="font-size: 12px; padding-left: 18px; line-height: 1.6; text-align: left; margin-bottom: 15px; color: #333;">
+                            <li>ใบรับรองนี้ออกโดย <span id="cert-back-agency">หน่วยงาน</span> เพื่อยืนยันประวัติปศุสัตว์</li>
+                            <li>เจ้าของสัตว์มีหน้าที่ต้องนำสัตว์เลี้ยงมารับวัคซีนพิษสุนัขบ้าเป็นประจำทุกปี</li>
+                            <li>หากสัตว์เสียชีวิต สูญหาย หรือย้าย กรุณาแจ้งเพื่อปรับปรุงฐานข้อมูล</li>
+                        </ul>
+                        <div style="margin-top: auto; text-align: center; background: rgba(0,0,0,0.05); padding: 15px 10px; border-radius: 8px;">
+                            <p style="font-size: 11px; color: #666;">เจ้าหน้าที่ผู้บันทึกข้อมูล/ฉีดวัคซีน</p>
+                            <img id="cert-admin-sig" src="" style="height: 40px; margin: 5px auto; display: none;">
+                            <p id="cert-admin-name" style="font-weight: bold; font-size: 14px; color: #141E30;">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="document.getElementById('cert-modal').style.display='none'" class="neumorphic-btn outline-btn" style="width: 200px; color: white;">✖ ปิดหน้าต่าง</button>
         </div>
     </div>
 
