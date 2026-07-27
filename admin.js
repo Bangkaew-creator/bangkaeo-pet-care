@@ -19,6 +19,8 @@ let adminMoo = localStorage.getItem("adminMoo");
 
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
 
+const legalConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)";
+
 function formatThaiDate(dateStr) {
     if (!dateStr) return "-";
     const regex = /^\d{4}-\d{2}-\d{2}$/;
@@ -163,10 +165,7 @@ function setupNavigation() {
     document.getElementById("menu-checkin").addEventListener("click", () => switchView('view-checkin'));
     document.getElementById("menu-proxy").addEventListener("click", () => switchView('view-proxy'));
     document.getElementById("menu-settings").addEventListener("click", () => { loadSettingsToForm(); switchView('view-settings'); });
-    
-    // แก้บั๊กเมนูรายงานตรงนี้: เติม window.
     document.getElementById("menu-report").addEventListener("click", () => { window.generateReport(); switchView('view-report'); });
-    
     document.getElementById("menu-raw-data").addEventListener("click", () => { window.switchRawTab('household'); switchView('view-raw-data'); });
     document.getElementById("menu-logout").addEventListener("click", () => {
         if(confirm("ออกจากโหมดเจ้าหน้าที่?")) { localStorage.clear(); window.location.href = "registry.html"; }
@@ -355,7 +354,6 @@ window.viewCertificateAdmin = function(docId) {
         if(pet.room_no) certAddress += ` (ห้อง ${pet.room_no})`;
         document.getElementById("cert-address").textContent = certAddress;
         
-        // --- ส่วนด้านหน้าบัตร (สถานะวัคซีน) ---
         if (pet.vaccine_status === "ฉีดแล้ว") {
             document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
             document.getElementById("cert-vac-status").style.color = "#50E3C2";
@@ -365,14 +363,13 @@ window.viewCertificateAdmin = function(docId) {
             document.getElementById("cert-vac-detail").textContent = "-";
         }
         
-        // --- ส่วนด้านหลังบัตร (ลายเซ็นและชื่อ) ตรรกะใหม่ ---
         const sigElement = document.getElementById("cert-admin-sig");
         const nameElement = document.getElementById("cert-admin-name");
 
         if (pet.vaccine_status === "ฉีดแล้ว") {
             if (pet.vaccinated_by_admin) {
-                // กรณี 1: เทศบาลฉีดให้ (มีชื่อคนฉีดในระบบ)
                 nameElement.textContent = pet.vaccinated_by_admin;
+                nameElement.style.color = "#141E30";
                 if (sysConfig && sysConfig.admin_sig_base64) {
                     sigElement.src = sysConfig.admin_sig_base64;
                     sigElement.style.display = "block";
@@ -380,13 +377,11 @@ window.viewCertificateAdmin = function(docId) {
                     sigElement.style.display = "none";
                 }
             } else {
-                // กรณี 2: ประชาชนกรอกมาเองว่าเคยฉีดจากที่อื่น
                 nameElement.textContent = "ประวัติเดิม (ระบุโดยเจ้าของ)";
-                nameElement.style.color = "#A0B0C0";
+                nameElement.style.color = "#81A1C1";
                 sigElement.style.display = "none";
             }
         } else {
-            // กรณี 3: ยังไม่เคยฉีด
             nameElement.textContent = "-";
             sigElement.style.display = "none";
         }
@@ -652,7 +647,7 @@ function setupSettingsForm() {
 }
 
 // ==========================================
-// 8. ระบบรายงาน & พิมพ์ใบยินยอม
+// 8. ระบบรายงาน & พิมพ์ใบยินยอม (A4 รูปแบบคลาสสิค)
 // ==========================================
 function setupReportAndPrint() {
     document.getElementById("btn-print-report").addEventListener("click", () => { document.body.classList.add('print-report-mode'); window.print(); document.body.classList.remove('print-report-mode'); });
@@ -704,14 +699,15 @@ function setupReportAndPrint() {
                 container.insertAdjacentHTML('beforeend', `
                     <div class="consent-page">
                         <div class="queue-badge">คิวที่: ${index + 1}</div>
-                        <h2 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 5px;">ใบยินยอมรับบริการ</h2>
-                        <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px;">${agency}</h3>
+                        <h2 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 5px;">ใบยินยอมผ่าตัดทำหมัน</h2>
+                        <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px;">กับ${agency} ร่วมกับปศุสัตว์จังหวัดสมุทรปราการ</h3>
                         <div style="font-size: 16px; line-height: 2;">
                             <p><strong>ข้าพเจ้า (ชื่อเจ้าของ):</strong> ${pet.owner_name}</p>
-                            <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ ${pet.house_no} หมู่ที่ ${pet.village_no} ${pet.room_no ? '(ห้อง '+pet.room_no+')' : ''}</p>
-                            <p style="margin-top: 15px;"><strong>สัตว์เลี้ยงที่เข้ารับบริการ:</strong></p>
-                            <p>ชื่อ: ${pet.pet_name} | ประเภท: ${pet.pet_type} | เพศ: ${pet.pet_gender} | บริการที่จอง: ${pet.service_type}</p>
-                            <p style="margin-top: 30px; text-indent: 40px; text-align: justify;">ข้าพเจ้ายินยอมให้เจ้าหน้าที่ทำการวางยาสลบเพื่อผ่าตัด/ฉีดวัคซีน และข้าพเจ้าได้อ่านเงื่อนไขเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน</p>
+                            <p><strong>เบอร์โทรศัพท์:</strong> ${pet.phone_number || "-"}</p>
+                            <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ ${pet.house_no} หมู่ที่ ${pet.village_no} ตำบลบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ</p>
+                            <p style="margin-top: 15px;"><strong>มีความประสงค์ขอรับบริการทำหมัน/ฉีดวัคซีน ให้แก่สัตว์เลี้ยงดังนี้:</strong></p>
+                            <p>ชื่อสัตว์เลี้ยง: ${pet.pet_name} &nbsp;&nbsp; ประเภท: ${pet.pet_type} &nbsp;&nbsp; เพศ: ${pet.pet_gender}</p>
+                            <p style="margin-top: 30px; text-indent: 40px; text-align: justify;">${legalConsentText}</p>
                         </div>
                         <div style="margin-top: 50px; text-align: center;">
                             <img src="${pet.signature_base64}" style="max-height: 100px; display: block; margin: 0 auto; border-bottom: 1px dotted #000;">
@@ -722,7 +718,7 @@ function setupReportAndPrint() {
                 `);
             });
             document.body.classList.add('print-all-consents-mode'); window.print(); document.body.classList.remove('print-all-consents-mode');
-        } catch(e) { alert("เกิดข้อผิดพลาด"); } finally { btn.textContent = "🖨️ พิมพ์ใบยินยอมทั้งหมด"; btn.disabled = false; }
+        } catch(e) { alert("เกิดข้อผิดพลาด"); } finally { btn.textContent = "🖨️ พิมพ์ใบยินยอมทั้งหมด (Batch Print)"; btn.disabled = false; }
     });
 }
 
