@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initSignaturePad() {
     const canvas = document.getElementById('signature-pad');
-    if(canvas) {
+    if(canvas && typeof SignaturePad !== 'undefined') {
         signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(224, 229, 236)' });
         window.resizeSignatureCanvas = function() {
             const ratio =  Math.max(window.devicePixelRatio || 1, 1);
@@ -438,41 +438,45 @@ window.softDeletePet = async function(docId) {
 
 // 📄 อัปเกรดใบรับรอง (Flip Card) ให้เหมือนหน้าแอดมิน
 window.viewCertificate = function(docId) {
-    const pet = window.myPetsData[docId];
-    if(!pet) return;
+    try {
+        const pet = window.myPetsData[docId];
+        if(!pet) return;
 
-    document.getElementById("cert-img").src = pet.pet_photo_base64 || defaultPlaceholder;
-    document.getElementById("cert-pet-name").textContent = pet.pet_name;
-    document.getElementById("cert-pet-detail").textContent = `${pet.pet_type} | ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี`;
-    document.getElementById("cert-owner").textContent = pet.owner_name;
-    
-    let certAddress = `${pet.house_no} ม.${pet.village_no}`;
-    if(pet.room_no) certAddress += ` (ห้อง ${pet.room_no})`;
-    document.getElementById("cert-address").textContent = certAddress;
-    
-    if (pet.vaccine_status === "ฉีดแล้ว") {
-        document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
-        document.getElementById("cert-vac-status").style.color = "#50E3C2";
-        document.getElementById("cert-vac-detail").innerHTML = `ยี่ห้อ: ${pet.vaccine_brand || '-'} (Lot: ${pet.vaccine_lot || '-'})<br>EXP: ${pet.vaccine_exp || '-'}`;
-    } else {
-        document.getElementById("cert-vac-status").textContent = "ยังไม่เคยฉีดวัคซีน";
-        document.getElementById("cert-vac-status").style.color = "#ff6b6b";
-        document.getElementById("cert-vac-detail").textContent = "-";
+        document.getElementById("cert-img").src = pet.pet_photo_base64 || defaultPlaceholder;
+        document.getElementById("cert-pet-name").textContent = pet.pet_name;
+        document.getElementById("cert-pet-detail").textContent = `${pet.pet_type} | ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี`;
+        document.getElementById("cert-owner").textContent = pet.owner_name || "-";
+        
+        let certAddress = `${pet.house_no || '-'} ม.${pet.village_no || '-'}`;
+        if(pet.room_no) certAddress += ` (ห้อง ${pet.room_no})`;
+        document.getElementById("cert-address").textContent = certAddress;
+        
+        if (pet.vaccine_status === "ฉีดแล้ว") {
+            document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
+            document.getElementById("cert-vac-status").style.color = "#50E3C2";
+            document.getElementById("cert-vac-detail").innerHTML = `ยี่ห้อ: ${pet.vaccine_brand || '-'} (Lot: ${pet.vaccine_lot || '-'})<br>EXP: ${pet.vaccine_exp || '-'}`;
+        } else {
+            document.getElementById("cert-vac-status").textContent = "ยังไม่เคยฉีดวัคซีน";
+            document.getElementById("cert-vac-status").style.color = "#ff6b6b";
+            document.getElementById("cert-vac-detail").textContent = "-";
+        }
+        
+        // ดึงชื่อที่ประทับไว้ตอนรับบริการ (ซึ่งตอนนี้ admin.js จะส่งชื่อจริงมาให้แล้ว)
+        document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "-";
+        
+        if (sysConfig && sysConfig.admin_sig_base64) {
+            document.getElementById("cert-admin-sig").src = sysConfig.admin_sig_base64;
+            document.getElementById("cert-admin-sig").style.display = "block";
+        } else { 
+            document.getElementById("cert-admin-sig").style.display = "none"; 
+        }
+
+        document.getElementById("pet-cert-card").classList.remove("flipped");
+        document.getElementById("cert-modal").style.display = "flex";
+    } catch(e) {
+        console.error("Certificate Error: ", e);
+        alert("ไม่สามารถเปิดใบรับรองได้เนื่องจากข้อมูลบางส่วนไม่สมบูรณ์");
     }
-    
-    // ดึงชื่อทางการจากตั้งค่าระบบมาแสดงทับเสมอ เพื่อความเป็นทางการ
-document.getElementById("cert-admin-name").textContent = (sysConfig && sysConfig.admin_real_name) ? sysConfig.admin_real_name : (pet.vaccinated_by_admin || "-");
-
-    
-    if (sysConfig && sysConfig.admin_sig_base64) {
-        document.getElementById("cert-admin-sig").src = sysConfig.admin_sig_base64;
-        document.getElementById("cert-admin-sig").style.display = "block";
-    } else { 
-        document.getElementById("cert-admin-sig").style.display = "none"; 
-    }
-
-    document.getElementById("pet-cert-card").classList.remove("flipped");
-    document.getElementById("cert-modal").style.display = "flex";
 }
 
 window.startBookingFlow = function(docId, serviceType) {
