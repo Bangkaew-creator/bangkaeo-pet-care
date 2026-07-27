@@ -9,9 +9,9 @@ let currentUser = null;
 let sysConfig = null;
 let secretsConfig = null;
 let adminName = "เจ้าหน้าที่";
+let adminRealName = "เจ้าหน้าที่"; // ชื่อจริงที่ดึงจากตาราง users
 let adminSignaturePad = null; 
 
-// กำหนดให้เป็น Global Variable เพื่อให้ HTML onclick เรียกใช้ได้
 window.proxyPetsBatch = []; 
 
 let adminRole = localStorage.getItem("adminRole"); 
@@ -19,7 +19,6 @@ let adminMoo = localStorage.getItem("adminMoo");
 
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
 
-// 🧠 ฟังก์ชันตัวช่วย: แปลงวันที่ YYYY-MM-DD เป็นภาษาไทยเต็มรูปแบบ
 function formatThaiDate(dateStr) {
     if (!dateStr) return "-";
     const regex = /^\d{4}-\d{2}-\d{2}$/;
@@ -41,6 +40,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupNavigation();
     setupLoginLogic();
     
+    // ตั้งค่า Canvas ลายเซ็นสำหรับหน้า Settings
+    const canvasSig = document.getElementById('admin-signature-pad');
+    if(canvasSig && typeof SignaturePad !== 'undefined') {
+        adminSignaturePad = new SignaturePad(canvasSig, { backgroundColor: 'rgb(224, 229, 236)' });
+        document.getElementById("btn-clear-admin-sig")?.addEventListener("click", () => { adminSignaturePad.clear(); });
+    }
+    
     try {
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) {
@@ -48,6 +54,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             currentUser = await liff.getProfile();
             adminName = currentUser.displayName;
+            adminRealName = adminName; // Default เป็นชื่อ LINE ไว้ก่อน
+
+            // 🧠 ดึงชื่อจริงจากตาราง users อัตโนมัติ
+            try {
+                const uSnap = await getDoc(doc(db, "users", currentUser.userId));
+                if(uSnap.exists() && uSnap.data().owner_name) {
+                    adminRealName = uSnap.data().owner_name; 
+                }
+            } catch(e) { console.error("Error fetching real name:", e); }
+
             await loadSystemConfig();
             populateMooDropdowns();
             
@@ -60,7 +76,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 setupProxyBatchLogic();
                 setupSettingsForm();
                 setupReportAndPrint();
-                setupRawDataMenu();
             } else {
                 document.getElementById("loading").style.display = "none";
                 document.getElementById("admin-login-modal").style.display = "flex";
@@ -116,10 +131,12 @@ function setupLoginLogic() {
 function applyRolePermissions() {
     if(adminRole === "volunteer") {
         document.body.classList.add("role-volunteer");
-        document.getElementById("txt-role-display").textContent = `🛡️ อสม. หมู่ ${adminMoo}`;
+        document.getElementById("txt-role-display").textContent = `🛡️ อสม. หมู่ ${adminMoo}\n(${adminRealName})`;
         document.getElementById("search-moo").value = adminMoo; document.getElementById("search-moo").disabled = true;
         document.getElementById("px-moo").value = adminMoo; document.getElementById("px-moo").disabled = true;
-    } else { document.getElementById("txt-role-display").textContent = "👑 แอดมินส่วนกลาง"; }
+    } else { 
+        document.getElementById("txt-role-display").textContent = `👑 แอดมินส่วนกลาง\n(${adminRealName})`; 
+    }
 }
 
 window.switchView = function(viewId) {
@@ -127,21 +144,21 @@ window.switchView = function(viewId) {
     document.getElementById(viewId).style.display = "block";
     document.getElementById("admin-sidebar").style.right = "-250px";
     
-    // Resize canvas เมื่อเปิดหน้าตั้งค่า (แก้ปัญหาวาดไม่ติด)
+    // แก้บั๊ก Canvas หน้าตั้งค่า ให้ Resize ได้ถูกต้อง
     if(viewId === 'view-settings' && adminSignaturePad) {
         setTimeout(() => {
-            const canvas = document.getElementById('admin-signature-pad');
-            const ratio =  Math.max(window.devicePixelRatio || 1, 1);
-            canvas.width = canvas.offsetWidth * ratio;
-            canvas.height = canvas.offsetHeight * ratio;
-            canvas.getContext("2d").scale(ratio, ratio);
-            // ดึงข้อมูลเดิมมาวาดใหม่ถ้ามี
-            if(sysConfig && sysConfig.admin_sig_base64) {
-                adminSignaturePad.fromDataURL(sysConfig.admin_sig_base64);
-            } else {
+            try {
+                const canvasSig = document.getElementById('admin-signature-pad');
+                const ratio =  Math.max(window.devicePixelRatio || 1, 1);
+                canvasSig.width = canvasSig.offsetWidth * ratio;
+                canvasSig.height = canvasSig.offsetHeight * ratio;
+                canvasSig.getContext("2d").scale(ratio, ratio);
                 adminSignaturePad.clear();
-            }
-        }, 200);
+                if(sysConfig && sysConfig.admin_sig_base64) {
+                    adminSignaturePad.fromDataURL(sysConfig.admin_sig_base64);
+                }
+            } catch(e) { console.error("Canvas resize error:", e); }
+        }, 300);
     }
 }
 
@@ -150,7 +167,7 @@ function setupNavigation() {
     document.getElementById("menu-proxy").addEventListener("click", () => switchView('view-proxy'));
     document.getElementById("menu-settings").addEventListener("click", () => { loadSettingsToForm(); switchView('view-settings'); });
     document.getElementById("menu-report").addEventListener("click", () => { generateReport(); switchView('view-report'); });
-    document.getElementById("menu-raw-data").addEventListener("click", () => { window.switchRawTab('users'); switchView('view-raw-data'); });
+    document.getElementById("menu-raw-data").addEventListener("click", () => { window.switchRawTab('household'); switchView('view-raw-data'); });
     document.getElementById("menu-logout").addEventListener("click", () => {
         if(confirm("ออกจากโหมดเจ้าหน้าที่?")) { localStorage.clear(); window.location.href = "registry.html"; }
     });
@@ -290,7 +307,7 @@ window.toggleCheckin = async function(docId, serviceType, isCheckingIn) {
                 updates.vaccine_brand = sysConfig.vaccine_brand || ""; updates.vaccine_lot = sysConfig.vaccine_lot || ""; updates.vaccine_exp = sysConfig.vaccine_exp || "";
             }
             const dateStr = new Date().toLocaleDateString('th-TH', { year:'numeric', month:'2-digit', day:'2-digit' });
-            updates.vaccinated_by_admin = (sysConfig && sysConfig.admin_real_name) ? sysConfig.admin_real_name : adminName;
+            updates.vaccinated_by_admin = adminRealName; // ใช้ชื่อจริงที่ดึงมา
             updates.vaccine_date = dateStr;
         }
         await updateDoc(doc(db, "pets", docId), updates);
@@ -304,7 +321,7 @@ window.walkinVaccine = async function(docId) {
             const dateStr = new Date().toLocaleDateString('th-TH', { year:'numeric', month:'2-digit', day:'2-digit' });
             let updates = { 
                 status: "checked_in", service_type: "วัคซีนอย่างเดียว (Walk-in)", vaccine_status: "ฉีดแล้ว", updated_at: serverTimestamp(),
-                vaccinated_by_admin: (sysConfig && sysConfig.admin_real_name) ? sysConfig.admin_real_name : adminName, 
+                vaccinated_by_admin: adminRealName, // ใช้ชื่อจริงที่ดึงมา
                 vaccine_date: dateStr
             };
             if (sysConfig) {
@@ -326,35 +343,41 @@ window.softDeleteAdmin = async function(docId) {
 }
 
 window.viewCertificateAdmin = function(docId) {
-    const pet = window.currentSearchPets[docId];
-    if(!pet) return;
-    document.getElementById("cert-img").src = pet.pet_photo_base64 || defaultPlaceholder;
-    document.getElementById("cert-pet-name").textContent = pet.pet_name;
-    document.getElementById("cert-pet-detail").textContent = `${pet.pet_type} | ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี`;
-    document.getElementById("cert-owner").textContent = pet.owner_name;
-    let certAddress = `${pet.house_no} ม.${pet.village_no}`;
-    if(pet.room_no) certAddress += ` (ห้อง ${pet.room_no})`;
-    document.getElementById("cert-address").textContent = certAddress;
-    
-    if (pet.vaccine_status === "ฉีดแล้ว") {
-        document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
-        document.getElementById("cert-vac-status").style.color = "#50E3C2";
-        document.getElementById("cert-vac-detail").innerHTML = `ยี่ห้อ: ${pet.vaccine_brand || '-'} (Lot: ${pet.vaccine_lot || '-'})<br>EXP: ${pet.vaccine_exp || '-'}`;
-    } else {
-        document.getElementById("cert-vac-status").textContent = "ยังไม่เคยฉีดวัคซีน"; document.getElementById("cert-vac-status").style.color = "#ff6b6b";
-        document.getElementById("cert-vac-detail").textContent = "-";
-    }
-    
-    // ดึงชื่อทางการจาก Setting ทับเสมอ
-    document.getElementById("cert-admin-name").textContent = (sysConfig && sysConfig.admin_real_name) ? sysConfig.admin_real_name : (pet.vaccinated_by_admin || "-");
-    
-    if (sysConfig && sysConfig.admin_sig_base64) {
-        document.getElementById("cert-admin-sig").src = sysConfig.admin_sig_base64;
-        document.getElementById("cert-admin-sig").style.display = "block";
-    } else { document.getElementById("cert-admin-sig").style.display = "none"; }
+    try {
+        const pet = window.currentSearchPets[docId];
+        if(!pet) return;
+        document.getElementById("cert-img").src = pet.pet_photo_base64 || defaultPlaceholder;
+        document.getElementById("cert-pet-name").textContent = pet.pet_name;
+        document.getElementById("cert-pet-detail").textContent = `${pet.pet_type} | ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี`;
+        document.getElementById("cert-owner").textContent = pet.owner_name || "-";
+        
+        let certAddress = `${pet.house_no || '-'} ม.${pet.village_no || '-'}`;
+        if(pet.room_no) certAddress += ` (ห้อง ${pet.room_no})`;
+        document.getElementById("cert-address").textContent = certAddress;
+        
+        if (pet.vaccine_status === "ฉีดแล้ว") {
+            document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
+            document.getElementById("cert-vac-status").style.color = "#50E3C2";
+            document.getElementById("cert-vac-detail").innerHTML = `ยี่ห้อ: ${pet.vaccine_brand || '-'} (Lot: ${pet.vaccine_lot || '-'})<br>EXP: ${pet.vaccine_exp || '-'}`;
+        } else {
+            document.getElementById("cert-vac-status").textContent = "ยังไม่เคยฉีดวัคซีน"; document.getElementById("cert-vac-status").style.color = "#ff6b6b";
+            document.getElementById("cert-vac-detail").textContent = "-";
+        }
+        
+        // ดึงชื่อที่บันทึกไว้ในฐานข้อมูล ถ้าไม่มีให้โชว์ขีด
+        document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "-";
+        
+        if (sysConfig && sysConfig.admin_sig_base64) {
+            document.getElementById("cert-admin-sig").src = sysConfig.admin_sig_base64;
+            document.getElementById("cert-admin-sig").style.display = "block";
+        } else { document.getElementById("cert-admin-sig").style.display = "none"; }
 
-    document.getElementById("pet-cert-card").classList.remove("flipped");
-    document.getElementById("cert-modal").style.display = "flex";
+        document.getElementById("pet-cert-card").classList.remove("flipped");
+        document.getElementById("cert-modal").style.display = "flex";
+    } catch(e) {
+        console.error("View Cert Error:", e);
+        alert("ไม่สามารถเปิดใบรับรองได้เนื่องจากข้อมูลไม่สมบูรณ์");
+    }
 }
 
 // ==========================================
@@ -432,7 +455,7 @@ function setupProxyBatchLogic() {
             // เพิ่มสัตว์เลี้ยงเป็น Loop
             for(let p of window.proxyPetsBatch) {
                 let petData = {
-                    owner_uid: ownerUid, proxy_by: adminName, owner_name: owner, phone_number: phone, house_no: house, village_no: moo, room_no: room,
+                    owner_uid: ownerUid, proxy_by: adminRealName, owner_name: owner, phone_number: phone, house_no: house, village_no: moo, room_no: room,
                     house_village_search: searchKey, pet_name: p.pet_name, pet_type: p.pet_type, pet_gender: p.pet_gender,
                     breed: p.breed, color: p.color, age_year: p.age_year, age_month: p.age_month, rearing_style: p.rearing_style,
                     pet_photo_base64: p.photo === defaultPlaceholder ? "" : p.photo, registered_timestamp: serverTimestamp(), updated_at: serverTimestamp()
@@ -449,7 +472,7 @@ function setupProxyBatchLogic() {
                     petData.vaccine_brand = sysConfig ? sysConfig.vaccine_brand : "";
                     petData.vaccine_lot = sysConfig ? sysConfig.vaccine_lot : "";
                     petData.vaccine_exp = sysConfig ? sysConfig.vaccine_exp : "";
-                    petData.vaccine_date = dateStr; petData.vaccinated_by_admin = (sysConfig && sysConfig.admin_real_name) ? sysConfig.admin_real_name : adminName;
+                    petData.vaccine_date = dateStr; petData.vaccinated_by_admin = adminRealName; // ใช้ชื่อจริง
                 }
                 await addDoc(collection(db, "pets"), petData);
             }
@@ -473,38 +496,86 @@ window.renderProxyBatchList = function() {
 }
 
 // ==========================================
-// 6. ระบบตารางข้อมูลดิบ (Raw Data Menu) & MAPPING
+// 6. ระบบตารางข้อมูลดิบ (Raw Data Menu) & MAPPING ROD 100%
 // ==========================================
 window.switchRawTab = async function(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
     const tbody = document.querySelector("#raw-table-content tbody");
     const thead = document.querySelector("#raw-table-content thead");
-    tbody.innerHTML = "<tr><td colspan='10' style='text-align:center;'>กำลังโหลดข้อมูล...</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='24' style='text-align:center;'>กำลังประมวลผลข้อมูล...</td></tr>";
 
     try {
-        if(tabName === 'users') {
-            // จับคู่กับไฟล์ ROD Sheet: Household_Data
-            thead.innerHTML = "<tr><th>หมู่ที่</th><th>บ้านเลขที่</th><th>ผู้ให้ข้อมูล</th><th>หมายเลขบัตร</th><th>เบอร์โทรศัพท์</th><th>สถานที่อาศัย</th><th>Line_ID</th></tr>";
-            const snap = await getDocs(collection(db, "users"));
-            let html = "";
-            snap.forEach(d => {
+        if(tabName === 'household') {
+            // MAPPING: รายงาน-บ้าน 69-1 (24 คอลัมน์)
+            thead.innerHTML = "<tr><th>อำเภอ</th><th>แขวง</th><th>หมู่ที่</th><th>สถานที่อาศัย</th><th>บ้านเลขที่</th><th>ผู้ให้ข้อมูล</th><th>หมายเลขบัตร</th><th>เบอร์โทรศัพท์</th><th>สุุนัข-ผู้ ยอดจริง</th><th>สุนัข-ผู้-วัคซีน ยอดจริง</th><th>สุนัข-ผู้-ทำหมัน ยอดจริง</th><th>ลูกผู้</th><th>สุุนัข-เมีย ยอดจริง</th><th>สุนัข-เมีย-วัคซีน ยอดจริง</th><th>สุนัข-เมีย-ทำหมัน ยอดจริง</th><th>ลูกเมีย</th><th>แมว-ผู้ ยอดจริง</th><th>แมว-ผู้-วัคซีน ยอดจริง</th><th>แมว-ผู้-ทำหมัน ยอดจริง</th><th>ลูกแมวผู้</th><th>แมว-เมีย ยอดจริง</th><th>แมว-เมีย-วัคซีน ยอดจริง</th><th>แมว-เมีย-ทำหมัน ยอดจริง</th><th>ลูกแมวเมีย</th></tr>";
+            
+            const usersSnap = await getDocs(collection(db, "users"));
+            const petsSnap = await getDocs(collection(db, "pets"));
+            
+            let hhStats = {};
+            // 1. เตรียมข้อมูลบ้าน
+            usersSnap.forEach(d => {
                 const u = d.data();
-                html += `<tr><td>${u.village_no||'-'}</td><td>${u.house_no||'-'}${u.room_no ? ` (ห้อง ${u.room_no})` : ''}</td><td>${u.owner_name||'-'}</td><td>-</td><td>${u.phone_number||'-'}</td><td>บริเวณบ้าน</td><td>-</td></tr>`;
+                const key = u.house_village_search || `${u.house_no}-${u.village_no}`;
+                hhStats[key] = {
+                    amphoe: sysConfig?.amphoe || "-", tambon: sysConfig?.tambon || "-", moo: u.village_no || "-", loc: "บริเวณบ้าน",
+                    house: u.house_no || "-", owner: u.owner_name || "-", card: "-", phone: u.phone_number || "-",
+                    dm:0, dm_v:0, dm_n:0, pup_m:0, df:0, df_v:0, df_n:0, pup_f:0,
+                    cm:0, cm_v:0, cm_n:0, kit_m:0, cf:0, cf_v:0, cf_n:0, kit_f:0
+                };
             });
-            tbody.innerHTML = html || "<tr><td colspan='7'>ไม่มีข้อมูล</td></tr>";
+
+            // 2. นับยอดสัตว์เลี้ยงใส่บ้าน
+            petsSnap.forEach(d => {
+                const p = d.data();
+                if(p.status === "cancelled" || p.status === "deceased" || p.status === "moved") return;
+                const key = p.house_village_search || `${p.house_no}-${p.village_no}`;
+                if(!hhStats[key]) {
+                    // กรณีสัตว์เลี้ยงไม่มีบ้านในตาราง user ให้สร้างจำลองขึ้นมา
+                    hhStats[key] = {
+                        amphoe: sysConfig?.amphoe || "-", tambon: sysConfig?.tambon || "-", moo: p.village_no || "-", loc: "บริเวณบ้าน",
+                        house: p.house_no || "-", owner: p.owner_name || "-", card: "-", phone: p.phone_number || "-",
+                        dm:0, dm_v:0, dm_n:0, pup_m:0, df:0, df_v:0, df_n:0, pup_f:0, cm:0, cm_v:0, cm_n:0, kit_m:0, cf:0, cf_v:0, cf_n:0, kit_f:0
+                    };
+                }
+                
+                let s = hhStats[key];
+                let isVac = p.vaccine_status === "ฉีดแล้ว" ? 1 : 0;
+                let isNeu = p.neuter_status === "ทำหมันแล้ว" ? 1 : 0;
+
+                if (p.pet_type === "สุนัข" && p.pet_gender === "ตัวผู้") { s.dm++; s.dm_v += isVac; s.dm_n += isNeu; }
+                else if (p.pet_type === "สุนัข" && p.pet_gender === "ตัวเมีย") { s.df++; s.df_v += isVac; s.df_n += isNeu; }
+                else if (p.pet_type === "แมว" && p.pet_gender === "ตัวผู้") { s.cm++; s.cm_v += isVac; s.cm_n += isNeu; }
+                else if (p.pet_type === "แมว" && p.pet_gender === "ตัวเมีย") { s.cf++; s.cf_v += isVac; s.cf_n += isNeu; }
+            });
+
+            let html = "";
+            for(let k in hhStats) {
+                let s = hhStats[k];
+                html += `<tr><td>${s.amphoe}</td><td>${s.tambon}</td><td>${s.moo}</td><td>${s.loc}</td><td>${s.house}</td><td>${s.owner}</td><td>${s.card}</td><td>${s.phone}</td><td>${s.dm}</td><td>${s.dm_v}</td><td>${s.dm_n}</td><td>${s.pup_m}</td><td>${s.df}</td><td>${s.df_v}</td><td>${s.df_n}</td><td>${s.pup_f}</td><td>${s.cm}</td><td>${s.cm_v}</td><td>${s.cm_n}</td><td>${s.kit_m}</td><td>${s.cf}</td><td>${s.cf_v}</td><td>${s.cf_n}</td><td>${s.kit_f}</td></tr>`;
+            }
+            tbody.innerHTML = html || "<tr><td colspan='24'>ไม่มีข้อมูล</td></tr>";
+            
         } else if (tabName === 'pets') {
-            // จับคู่กับไฟล์ ROD Sheet: Pets_Individual
-            thead.innerHTML = "<tr><th>PetID</th><th>HouseholdKey</th><th>PetName</th><th>PetType</th><th>Sex</th><th>Breed</th><th>ColorMark</th><th>AgeYear</th><th>AgeMonth</th><th>VaccineStatus</th><th>VaccineYear</th><th>NeuteredStatus</th><th>RearingStyle</th><th>Location</th></tr>";
+            // MAPPING: รายงาน-ตัว 69-1 (19 คอลัมน์)
+            thead.innerHTML = "<tr><th>OwnerName</th><th>เลขบัตรประชาชน</th><th>Tel</th><th>HouseholdKey</th><th>หมู่</th><th>ตำบล</th><th>อำเภอ</th><th>ซอย</th><th>ถนน</th><th>PetType</th><th>PetName</th><th>Sex</th><th>VaccineStatus</th><th>VaccineYear</th><th>NeuteredStatus</th><th>AgeYear</th><th>AgeMonth</th><th>RearingStyle</th><th>Location</th></tr>";
+            
             const snap = await getDocs(collection(db, "pets"));
             let html = "";
             snap.forEach(d => {
                 const p = d.data();
-                html += `<tr><td>${d.id}</td><td>${p.house_village_search||'-'}</td><td>${p.pet_name||'-'}</td><td>${p.pet_type||'-'}</td><td>${p.pet_gender||'-'}</td><td>${p.breed||'-'}</td><td>${p.color||'-'}</td><td>${p.age_year||0}</td><td>${p.age_month||0}</td><td>${p.vaccine_status||'-'}</td><td>${p.vaccine_year||'-'}</td><td>${p.neuter_status||'-'}</td><td>${p.rearing_style||'-'}</td><td>-</td></tr>`;
+                if(p.status === "cancelled" || p.status === "deceased" || p.status === "moved") return;
+                html += `<tr><td>${p.owner_name||'-'}</td><td>-</td><td>${p.phone_number||'-'}</td><td>${p.house_village_search||'-'}</td><td>${p.village_no||'-'}</td><td>${sysConfig?.tambon||'-'}</td><td>${sysConfig?.amphoe||'-'}</td><td>-</td><td>-</td><td>${p.pet_type||'-'}</td><td>${p.pet_name||'-'}</td><td>${p.pet_gender||'-'}</td><td>${p.vaccine_status||'-'}</td><td>${p.vaccine_year||'-'}</td><td>${p.neuter_status||'-'}</td><td>${p.age_year||0}</td><td>${p.age_month||0}</td><td>${p.rearing_style||'-'}</td><td>-</td></tr>`;
             });
-            tbody.innerHTML = html || "<tr><td colspan='14'>ไม่มีข้อมูล</td></tr>";
+            tbody.innerHTML = html || "<tr><td colspan='19'>ไม่มีข้อมูล</td></tr>";
+            
+        } else if (tabName === 'stray') {
+            // MAPPING: รายงานจร-69-1 (14 คอลัมน์) เฟส 3
+            thead.innerHTML = "<tr><th>อำเภอ</th><th>ตำบล</th><th>หมู่</th><th>สถานที่อาศัย</th><th>LocationDesc</th><th>FeederName</th><th>เลขบัตร</th><th>FeederPhone</th><th>จำนวนหมา</th><th>วัคซีน</th><th>ทำหมัน</th><th>จำนวนแมว</th><th>วัคซีน.1</th><th>ทำหมัน.1</th></tr>";
+            tbody.innerHTML = "<tr><td colspan='14' style='text-align:center; color:#A0B0C0;'>ระบบข้อมูลสัตว์จรจัด จะเปิดให้ใช้งานในเฟสที่ 3 ครับ</td></tr>";
         }
-    } catch(e) { tbody.innerHTML = `<tr><td colspan='14' style='color:#ff6b6b;'>Error: ${e.message}</td></tr>`; }
+    } catch(e) { tbody.innerHTML = `<tr><td colspan='24' style='color:#ff6b6b;'>Error: ${e.message}</td></tr>`; }
 }
 
 // ==========================================
@@ -519,8 +590,6 @@ function loadSettingsToForm() {
         document.getElementById("st-start").value = sysConfig.nt_start_reg || ""; document.getElementById("st-end").value = sysConfig.nt_end_reg || ""; document.getElementById("st-nt-date").value = sysConfig.nt_date || ""; document.getElementById("st-nt-loc").value = sysConfig.nt_location || "";
         document.getElementById("st-q-neuter").value = sysConfig.quota_neuter || 100; document.getElementById("st-q-vac").value = sysConfig.quota_vaccine || 300;
         document.getElementById("st-vac-year").value = sysConfig.current_vaccine_year || 2569; document.getElementById("st-vac-brand").value = sysConfig.vaccine_brand || ""; document.getElementById("st-vac-lot").value = sysConfig.vaccine_lot || ""; document.getElementById("st-vac-exp").value = sysConfig.vaccine_exp || "";
-        
-        document.getElementById("st-admin-realname").value = sysConfig.admin_real_name || ""; // โหลดชื่อทางการ
         
         document.getElementById("st-rep-name").value = sysConfig.rep_name || ""; document.getElementById("st-rep-pos").value = sysConfig.rep_pos || ""; document.getElementById("st-rev-name").value = sysConfig.rev_name || ""; document.getElementById("st-rev-pos").value = sysConfig.rev_pos || ""; document.getElementById("st-app-name").value = sysConfig.app_name || ""; document.getElementById("st-app-pos").value = sysConfig.app_pos || "";
     }
@@ -542,13 +611,6 @@ function renderVolunteerSecretInputs() {
 }
 document.getElementById("st-moo-count").addEventListener("change", renderVolunteerSecretInputs);
 
-// เตรียม Canvas ลายเซ็นให้พร้อม
-const canvasSig = document.getElementById('admin-signature-pad');
-if(canvasSig) {
-    adminSignaturePad = new SignaturePad(canvasSig, { backgroundColor: 'rgb(224, 229, 236)' });
-    document.getElementById("btn-clear-admin-sig").addEventListener("click", () => { adminSignaturePad.clear(); });
-}
-
 function setupSettingsForm() {
     document.getElementById("btn-save-settings").addEventListener("click", async () => {
         const btn = document.getElementById("btn-save-settings"); btn.disabled = true; btn.textContent = "กำลังบันทึก...";
@@ -559,7 +621,6 @@ function setupSettingsForm() {
                 nt_start_reg: document.getElementById("st-start").value, nt_end_reg: document.getElementById("st-end").value, nt_date: document.getElementById("st-nt-date").value, nt_location: document.getElementById("st-nt-loc").value,
                 quota_neuter: parseInt(document.getElementById("st-q-neuter").value) || 100, quota_vaccine: parseInt(document.getElementById("st-q-vac").value) || 300,
                 current_vaccine_year: parseInt(document.getElementById("st-vac-year").value) || 2569, vaccine_brand: document.getElementById("st-vac-brand").value, vaccine_lot: document.getElementById("st-vac-lot").value, vaccine_exp: document.getElementById("st-vac-exp").value,
-                admin_real_name: document.getElementById("st-admin-realname").value, // เซฟชื่อทางการ
                 rep_name: document.getElementById("st-rep-name").value, rep_pos: document.getElementById("st-rep-pos").value, rev_name: document.getElementById("st-rev-name").value, rev_pos: document.getElementById("st-rev-pos").value, app_name: document.getElementById("st-app-name").value, app_pos: document.getElementById("st-app-pos").value
             };
             
