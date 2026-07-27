@@ -369,7 +369,6 @@ window.viewCertificateAdmin = function(docId) {
         if (pet.vaccine_status === "ฉีดแล้ว") {
             if (pet.vaccinated_by_admin) {
                 nameElement.textContent = pet.vaccinated_by_admin;
-                nameElement.style.color = "#141E30";
                 if (sysConfig && sysConfig.admin_sig_base64) {
                     sigElement.src = sysConfig.admin_sig_base64;
                     sigElement.style.display = "block";
@@ -378,7 +377,7 @@ window.viewCertificateAdmin = function(docId) {
                 }
             } else {
                 nameElement.textContent = "ประวัติเดิม (ระบุโดยเจ้าของ)";
-                nameElement.style.color = "#81A1C1";
+                nameElement.style.color = "#A0B0C0";
                 sigElement.style.display = "none";
             }
         } else {
@@ -654,10 +653,20 @@ function setupReportAndPrint() {
 
     window.generateReport = async function() {
         if(sysConfig) {
-            document.getElementById("pdf-agency-name").textContent = sysConfig.agency_name || "หน่วยงาน";
-            document.getElementById("sig-rep-name").textContent = `(${sysConfig.rep_name || '...'})`; document.getElementById("sig-rep-pos").textContent = sysConfig.rep_pos || '-';
-            document.getElementById("sig-rev-name").textContent = `(${sysConfig.rev_name || '...'})`; document.getElementById("sig-rev-pos").textContent = sysConfig.rev_pos || '-';
-            document.getElementById("sig-app-name").textContent = `(${sysConfig.app_name || '...'})`; document.getElementById("sig-app-pos").textContent = sysConfig.app_pos || '-';
+            let agencyText = sysConfig.agency_name || "";
+            if(sysConfig.tambon) agencyText += ` ต.${sysConfig.tambon}`;
+            if(sysConfig.amphoe) agencyText += ` อ.${sysConfig.amphoe}`;
+            if(sysConfig.province) agencyText += ` จ.${sysConfig.province}`;
+            if(sysConfig.phone) agencyText += ` โทร. ${sysConfig.phone}`;
+            
+            document.getElementById("pdf-agency-name").textContent = agencyText;
+            
+            document.getElementById("sig-rep-name").textContent = `(${sysConfig.rep_name || '...'})`; 
+            document.getElementById("sig-rep-pos").textContent = sysConfig.rep_pos || '-';
+            document.getElementById("sig-rev-name").textContent = `(${sysConfig.rev_name || '...'})`; 
+            document.getElementById("sig-rev-pos").textContent = sysConfig.rev_pos || '-';
+            document.getElementById("sig-app-name").textContent = `(${sysConfig.app_name || '...'})`; 
+            document.getElementById("sig-app-pos").textContent = sysConfig.app_pos || '-';
         }
         try {
             const snap = await getDocs(collection(db, "pets"));
