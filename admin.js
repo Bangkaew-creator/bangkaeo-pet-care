@@ -13,12 +13,13 @@ let adminRealName = "เจ้าหน้าที่";
 let adminSignaturePad = null; 
 
 window.proxyPetsBatch = []; 
+window.rawTableData = []; // เก็บ Data ดิบสำหรับ Filter
+window.currentRawTab = "household"; // แท็บตารางปัจจุบัน
 
 let adminRole = localStorage.getItem("adminRole"); 
 let adminMoo = localStorage.getItem("adminMoo");   
 
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
-
 const legalConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)";
 
 function formatThaiDate(dateStr) {
@@ -76,6 +77,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 setupProxyBatchLogic();
                 setupSettingsForm();
                 setupReportAndPrint();
+                setupExcelExport(); // เปิดใช้งานระบบ Export Excel
             } else {
                 document.getElementById("loading").style.display = "none";
                 document.getElementById("admin-login-modal").style.display = "flex";
@@ -288,7 +290,7 @@ function renderAdminCard(docId, pet, container) {
             </div>
             <div class="action-buttons">
                 ${actionBtn}
-                <button class="btn-action-small btn-print" onclick="window.viewCertificateAdmin('${docId}')">📄 ใบรับรอง</button>
+                <button class="btn-action-small btn-print" onclick="window.printConsentA4('${docId}')">🖨️ พิมพ์ใบยินยอม</button>
                 <button class="btn-action-small btn-uncheckin" style="color: #F5A623; border-color: rgba(245,166,35,0.4);" onclick="window.softDeleteAdmin('${docId}')">แจ้งตาย/ย้าย</button>
             </div>
         </div>
@@ -338,58 +340,6 @@ window.softDeleteAdmin = async function(docId) {
     if(action === "1" || action === "2") {
         try { await updateDoc(doc(db, "pets", docId), { status: action === "1" ? "deceased" : "moved", updated_at: serverTimestamp() }); document.getElementById("btn-search").click(); } 
         catch(e) { alert("เกิดข้อผิดพลาด"); }
-    }
-}
-
-window.viewCertificateAdmin = function(docId) {
-    try {
-        const pet = window.currentSearchPets[docId];
-        if(!pet) return;
-        document.getElementById("cert-img").src = pet.pet_photo_base64 || defaultPlaceholder;
-        document.getElementById("cert-pet-name").textContent = pet.pet_name;
-        document.getElementById("cert-pet-detail").textContent = `${pet.pet_type} | ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี`;
-        document.getElementById("cert-owner").textContent = pet.owner_name || "-";
-        
-        let certAddress = `${pet.house_no || '-'} ม.${pet.village_no || '-'}`;
-        if(pet.room_no) certAddress += ` (ห้อง ${pet.room_no})`;
-        document.getElementById("cert-address").textContent = certAddress;
-        
-        if (pet.vaccine_status === "ฉีดแล้ว") {
-            document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
-            document.getElementById("cert-vac-status").style.color = "#50E3C2";
-            document.getElementById("cert-vac-detail").innerHTML = `ยี่ห้อ: ${pet.vaccine_brand || '-'} (Lot: ${pet.vaccine_lot || '-'})<br>EXP: ${pet.vaccine_exp || '-'}`;
-        } else {
-            document.getElementById("cert-vac-status").textContent = "ยังไม่เคยฉีดวัคซีน"; document.getElementById("cert-vac-status").style.color = "#ff6b6b";
-            document.getElementById("cert-vac-detail").textContent = "-";
-        }
-        
-        const sigElement = document.getElementById("cert-admin-sig");
-        const nameElement = document.getElementById("cert-admin-name");
-
-        if (pet.vaccine_status === "ฉีดแล้ว") {
-            if (pet.vaccinated_by_admin) {
-                nameElement.textContent = pet.vaccinated_by_admin;
-                if (sysConfig && sysConfig.admin_sig_base64) {
-                    sigElement.src = sysConfig.admin_sig_base64;
-                    sigElement.style.display = "block";
-                } else {
-                    sigElement.style.display = "none";
-                }
-            } else {
-                nameElement.textContent = "ประวัติเดิม (ระบุโดยเจ้าของ)";
-                nameElement.style.color = "#A0B0C0";
-                sigElement.style.display = "none";
-            }
-        } else {
-            nameElement.textContent = "-";
-            sigElement.style.display = "none";
-        }
-
-        document.getElementById("pet-cert-card").classList.remove("flipped");
-        document.getElementById("cert-modal").style.display = "flex";
-    } catch(e) {
-        console.error("View Cert Error:", e);
-        alert("ไม่สามารถเปิดใบรับรองได้เนื่องจากข้อมูลไม่สมบูรณ์");
     }
 }
 
@@ -507,11 +457,31 @@ window.renderProxyBatchList = function() {
 }
 
 // ==========================================
-// 6. ระบบตารางข้อมูลดิบ (Raw Data Menu)
+// 6. ระบบตารางข้อมูลดิบ (Raw Data Menu) & Filter & Export
 // ==========================================
 window.switchRawTab = async function(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
+    
+    window.currentRawTab = tabName;
+    
+    // ตั้งค่าแสดง/ซ่อน Dropdown ตามแท็บ
+    if(tabName === 'household') {
+        document.getElementById('filter-vac-group').style.display = 'none';
+        document.getElementById('filter-neu-group').style.display = 'none';
+    } else {
+        document.getElementById('filter-vac-group').style.display = 'block';
+        document.getElementById('filter-neu-group').style.display = 'block';
+    }
+    
+    // รีเซ็ตค่าการค้นหาทุกครั้งที่สลับแท็บ
+    document.getElementById("raw-search").value = "";
+    document.getElementById("raw-filter-moo").value = "";
+    document.getElementById("raw-filter-type").value = "";
+    document.getElementById("raw-filter-gender").value = "";
+    document.getElementById("raw-filter-vac").value = "";
+    document.getElementById("raw-filter-neu").value = "";
+
     const tbody = document.querySelector("#raw-table-content tbody");
     const thead = document.querySelector("#raw-table-content thead");
     tbody.innerHTML = "<tr><td colspan='24' style='text-align:center;'>กำลังประมวลผลข้อมูล...</td></tr>";
@@ -557,30 +527,94 @@ window.switchRawTab = async function(tabName) {
                 else if (p.pet_type === "แมว" && p.pet_gender === "ตัวเมีย") { s.cf++; s.cf_v += isVac; s.cf_n += isNeu; }
             });
 
-            let html = "";
-            for(let k in hhStats) {
-                let s = hhStats[k];
-                html += `<tr><td>${s.amphoe}</td><td>${s.tambon}</td><td>${s.moo}</td><td>${s.loc}</td><td>${s.house}</td><td>${s.owner}</td><td>${s.card}</td><td>${s.phone}</td><td>${s.dm}</td><td>${s.dm_v}</td><td>${s.dm_n}</td><td>${s.pup_m}</td><td>${s.df}</td><td>${s.df_v}</td><td>${s.df_n}</td><td>${s.pup_f}</td><td>${s.cm}</td><td>${s.cm_v}</td><td>${s.cm_n}</td><td>${s.kit_m}</td><td>${s.cf}</td><td>${s.cf_v}</td><td>${s.cf_n}</td><td>${s.kit_f}</td></tr>`;
-            }
-            tbody.innerHTML = html || "<tr><td colspan='24'>ไม่มีข้อมูล</td></tr>";
+            window.rawTableData = Object.values(hhStats);
+            window.renderRawTable();
             
         } else if (tabName === 'pets') {
             thead.innerHTML = "<tr><th>OwnerName</th><th>เลขบัตรประชาชน</th><th>Tel</th><th>HouseholdKey</th><th>หมู่</th><th>ตำบล</th><th>อำเภอ</th><th>ซอย</th><th>ถนน</th><th>PetType</th><th>PetName</th><th>Sex</th><th>VaccineStatus</th><th>VaccineYear</th><th>NeuteredStatus</th><th>AgeYear</th><th>AgeMonth</th><th>RearingStyle</th><th>Location</th></tr>";
             
             const snap = await getDocs(collection(db, "pets"));
-            let html = "";
+            window.rawTableData = [];
             snap.forEach(d => {
                 const p = d.data();
                 if(p.status === "cancelled" || p.status === "deceased" || p.status === "moved") return;
-                html += `<tr><td>${p.owner_name||'-'}</td><td>-</td><td>${p.phone_number||'-'}</td><td>${p.house_village_search||'-'}</td><td>${p.village_no||'-'}</td><td>${sysConfig?.tambon||'-'}</td><td>${sysConfig?.amphoe||'-'}</td><td>-</td><td>-</td><td>${p.pet_type||'-'}</td><td>${p.pet_name||'-'}</td><td>${p.pet_gender||'-'}</td><td>${p.vaccine_status||'-'}</td><td>${p.vaccine_year||'-'}</td><td>${p.neuter_status||'-'}</td><td>${p.age_year||0}</td><td>${p.age_month||0}</td><td>${p.rearing_style||'-'}</td><td>-</td></tr>`;
+                window.rawTableData.push(p);
             });
-            tbody.innerHTML = html || "<tr><td colspan='19'>ไม่มีข้อมูล</td></tr>";
+            window.renderRawTable();
             
         } else if (tabName === 'stray') {
             thead.innerHTML = "<tr><th>อำเภอ</th><th>ตำบล</th><th>หมู่</th><th>สถานที่อาศัย</th><th>LocationDesc</th><th>FeederName</th><th>เลขบัตร</th><th>FeederPhone</th><th>จำนวนหมา</th><th>วัคซีน</th><th>ทำหมัน</th><th>จำนวนแมว</th><th>วัคซีน.1</th><th>ทำหมัน.1</th></tr>";
-            tbody.innerHTML = "<tr><td colspan='14' style='text-align:center; color:#A0B0C0;'>ระบบข้อมูลสัตว์จรจัด จะเปิดให้ใช้งานในเฟสที่ 3 ครับ</td></tr>";
+            window.rawTableData = []; 
+            window.renderRawTable();
         }
     } catch(e) { tbody.innerHTML = `<tr><td colspan='24' style='color:#ff6b6b;'>Error: ${e.message}</td></tr>`; }
+}
+
+window.renderRawTable = function() {
+    const tbody = document.querySelector("#raw-table-content tbody");
+    const searchText = document.getElementById("raw-search").value.toLowerCase();
+    const fMoo = document.getElementById("raw-filter-moo").value;
+    const fType = document.getElementById("raw-filter-type").value;
+    const fGender = document.getElementById("raw-filter-gender").value;
+    const fVac = document.getElementById("raw-filter-vac").value;
+    const fNeu = document.getElementById("raw-filter-neu").value;
+
+    let html = "";
+    let count = 0;
+
+    if (window.currentRawTab === 'household') {
+        window.rawTableData.forEach(s => {
+            // ระบบ Filter
+            if (fMoo && s.moo != fMoo) return;
+            if (fType === "สุนัข" && !(s.dm>0 || s.df>0 || s.pup_m>0 || s.pup_f>0)) return;
+            if (fType === "แมว" && !(s.cm>0 || s.cf>0 || s.kit_m>0 || s.kit_f>0)) return;
+            if (fGender === "ตัวผู้" && !(s.dm>0 || s.cm>0 || s.pup_m>0 || s.kit_m>0)) return;
+            if (fGender === "ตัวเมีย" && !(s.df>0 || s.cf>0 || s.pup_f>0 || s.kit_f>0)) return;
+            
+            // ระบบ Search (ค้นหาจาก บ้าน, หมู่, เจ้าของ, เบอร์)
+            const searchStr = `${s.house} ${s.moo} ${s.owner} ${s.phone}`.toLowerCase();
+            if (searchText && !searchStr.includes(searchText)) return;
+
+            count++;
+            html += `<tr><td>${s.amphoe}</td><td>${s.tambon}</td><td>${s.moo}</td><td>${s.loc}</td><td>${s.house}</td><td>${s.owner}</td><td>${s.card}</td><td>${s.phone}</td><td>${s.dm}</td><td>${s.dm_v}</td><td>${s.dm_n}</td><td>${s.pup_m}</td><td>${s.df}</td><td>${s.df_v}</td><td>${s.df_n}</td><td>${s.pup_f}</td><td>${s.cm}</td><td>${s.cm_v}</td><td>${s.cm_n}</td><td>${s.kit_m}</td><td>${s.cf}</td><td>${s.cf_v}</td><td>${s.cf_n}</td><td>${s.kit_f}</td></tr>`;
+        });
+    } else if (window.currentRawTab === 'pets') {
+        window.rawTableData.forEach(p => {
+            if (fMoo && p.village_no != fMoo) return;
+            if (fType && p.pet_type != fType) return;
+            if (fGender && p.pet_gender != fGender) return;
+            if (fVac && p.vaccine_status != fVac) return;
+            if (fNeu && p.neuter_status != fNeu) return;
+            
+            // ระบบ Search (ค้นหาจาก บ้าน, หมู่, เจ้าของ, ชื่อสัตว์, เบอร์)
+            const searchStr = `${p.house_no} ${p.village_no} ${p.owner_name} ${p.pet_name} ${p.phone_number}`.toLowerCase();
+            if (searchText && !searchStr.includes(searchText)) return;
+
+            count++;
+            html += `<tr><td>${p.owner_name||'-'}</td><td>-</td><td>${p.phone_number||'-'}</td><td>${p.house_village_search||'-'}</td><td>${p.village_no||'-'}</td><td>${sysConfig?.tambon||'-'}</td><td>${sysConfig?.amphoe||'-'}</td><td>-</td><td>-</td><td>${p.pet_type||'-'}</td><td>${p.pet_name||'-'}</td><td>${p.pet_gender||'-'}</td><td>${p.vaccine_status||'-'}</td><td>${p.vaccine_year||'-'}</td><td>${p.neuter_status||'-'}</td><td>${p.age_year||0}</td><td>${p.age_month||0}</td><td>${p.rearing_style||'-'}</td><td>-</td></tr>`;
+        });
+    } else if (window.currentRawTab === 'stray') {
+         html = "<tr><td colspan='14' style='text-align:center;'>ระบบข้อมูลสัตว์จรจัด จะเปิดให้ใช้งานในเฟสที่ 3 ครับ</td></tr>";
+         count = 1;
+    }
+
+    if(count === 0) html = `<tr><td colspan="24" style="text-align:center;">ไม่พบข้อมูลที่ค้นหา</td></tr>`;
+    tbody.innerHTML = html;
+}
+
+function setupExcelExport() {
+    document.getElementById("btn-export-excel").addEventListener("click", () => {
+        if(window.currentRawTab === 'stray') return alert("ไม่มีข้อมูลให้ส่งออก");
+        
+        const table = document.getElementById("raw-table-content");
+        const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1"});
+        
+        let tabTh = window.currentRawTab === 'household' ? 'รายงานบ้าน' : 'รายงานตัว';
+        const dateStr = new Date().toISOString().split('T')[0];
+        const fileName = `Export_${tabTh}_${dateStr}.xlsx`;
+        
+        XLSX.writeFile(wb, fileName);
+    });
 }
 
 // ==========================================
@@ -680,7 +714,6 @@ window.printConsentA4 = async function(docId) {
         document.getElementById("p-pet-gender").textContent = pet.pet_gender;
         document.getElementById("p-signature").src = pet.signature_base64;
 
-        // บังคับกระดาษเป็นแนวตั้ง
         const pageStyle = document.createElement('style');
         pageStyle.innerHTML = '@page { size: portrait; }';
         document.head.appendChild(pageStyle);
@@ -695,7 +728,6 @@ window.printConsentA4 = async function(docId) {
 
 function setupReportAndPrint() {
     document.getElementById("btn-print-report").addEventListener("click", () => { 
-        // บังคับกระดาษเป็นแนวนอน
         const pageStyle = document.createElement('style');
         pageStyle.innerHTML = '@page { size: landscape; }';
         document.head.appendChild(pageStyle);
@@ -783,7 +815,6 @@ function setupReportAndPrint() {
                 `);
             });
             
-            // บังคับกระดาษเป็นแนวตั้ง
             const pageStyle = document.createElement('style');
             pageStyle.innerHTML = '@page { size: portrait; }';
             document.head.appendChild(pageStyle);
