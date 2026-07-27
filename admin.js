@@ -507,7 +507,7 @@ window.renderProxyBatchList = function() {
 }
 
 // ==========================================
-// 6. ระบบตารางข้อมูลดิบ (Raw Data Menu) & MAPPING ROD 100%
+// 6. ระบบตารางข้อมูลดิบ (Raw Data Menu)
 // ==========================================
 window.switchRawTab = async function(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -646,10 +646,66 @@ function setupSettingsForm() {
 }
 
 // ==========================================
-// 8. ระบบรายงาน & พิมพ์ใบยินยอม (A4 รูปแบบคลาสสิค)
+// 8. ระบบรายงาน & พิมพ์ใบยินยอม (A4 จัดการหน้ากระดาษอัตโนมัติ)
 // ==========================================
+window.printConsentA4 = async function(docId) {
+    const pet = window.currentSearchPets[docId];
+    if(!pet || !pet.signature_base64) return alert("ไม่สามารถพิมพ์ได้ เนื่องจากยังไม่มีลายเซ็น");
+    try {
+        const snapAll = await getDocs(collection(db, "pets"));
+        let allPets = [];
+        snapAll.forEach(d => {
+            const p = d.data();
+            if(p.status !== "cancelled" && p.signature_base64 && p.consent_agreed) {
+                allPets.push({ id: d.id, time: p.signed_timestamp ? p.signed_timestamp.toMillis() : 0 });
+            }
+        });
+        allPets.sort((a,b) => a.time - b.time);
+        const qIndex = allPets.findIndex(p => p.id === docId);
+        const queueNo = qIndex !== -1 ? qIndex + 1 : "-";
+
+        const printName = pet.owner_name || "-";
+        const printPhone = pet.phone_number || "-";
+        const printHouse = pet.house_no || "-";
+        const printVillage = pet.village_no || "-";
+
+        document.getElementById("p-queue-no").textContent = `คิวที่: ${queueNo}`;
+        document.getElementById("p-owner-name").textContent = printName;
+        document.getElementById("p-owner-name-sig").textContent = printName;
+        document.getElementById("p-phone").textContent = printPhone;
+        document.getElementById("p-house").textContent = printHouse;
+        document.getElementById("p-village").textContent = printVillage;
+        document.getElementById("p-pet-name").textContent = pet.pet_name;
+        document.getElementById("p-pet-type").textContent = pet.pet_type;
+        document.getElementById("p-pet-gender").textContent = pet.pet_gender;
+        document.getElementById("p-signature").src = pet.signature_base64;
+
+        // บังคับกระดาษเป็นแนวตั้ง
+        const pageStyle = document.createElement('style');
+        pageStyle.innerHTML = '@page { size: portrait; }';
+        document.head.appendChild(pageStyle);
+
+        document.body.classList.add('print-consent-mode');
+        window.print();
+        document.body.classList.remove('print-consent-mode');
+        
+        document.head.removeChild(pageStyle);
+    } catch (e) { console.error(e); alert("เกิดข้อผิดพลาดในการดึงข้อมูล"); }
+}
+
 function setupReportAndPrint() {
-    document.getElementById("btn-print-report").addEventListener("click", () => { document.body.classList.add('print-report-mode'); window.print(); document.body.classList.remove('print-report-mode'); });
+    document.getElementById("btn-print-report").addEventListener("click", () => { 
+        // บังคับกระดาษเป็นแนวนอน
+        const pageStyle = document.createElement('style');
+        pageStyle.innerHTML = '@page { size: landscape; }';
+        document.head.appendChild(pageStyle);
+
+        document.body.classList.add('print-report-mode'); 
+        window.print(); 
+        document.body.classList.remove('print-report-mode'); 
+        
+        document.head.removeChild(pageStyle);
+    });
 
     window.generateReport = async function() {
         if(sysConfig) {
@@ -726,7 +782,17 @@ function setupReportAndPrint() {
                     </div>
                 `);
             });
-            document.body.classList.add('print-all-consents-mode'); window.print(); document.body.classList.remove('print-all-consents-mode');
+            
+            // บังคับกระดาษเป็นแนวตั้ง
+            const pageStyle = document.createElement('style');
+            pageStyle.innerHTML = '@page { size: portrait; }';
+            document.head.appendChild(pageStyle);
+
+            document.body.classList.add('print-all-consents-mode'); 
+            window.print(); 
+            document.body.classList.remove('print-all-consents-mode');
+            
+            document.head.removeChild(pageStyle);
         } catch(e) { alert("เกิดข้อผิดพลาด"); } finally { btn.textContent = "🖨️ พิมพ์ใบยินยอมทั้งหมด (Batch Print)"; btn.disabled = false; }
     });
 }
