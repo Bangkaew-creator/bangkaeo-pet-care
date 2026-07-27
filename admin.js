@@ -607,7 +607,10 @@ function setupExcelExport() {
         if(window.currentRawTab === 'stray') return alert("ไม่มีข้อมูลให้ส่งออก");
         
         const table = document.getElementById("raw-table-content");
-        const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1"});
+        
+        // --- ส่วนที่แก้ไข: บังคับให้เซลล์ทั้งหมดถูกอ่านเป็น String ---
+        // raw: true จะสั่งให้ SheetJS ไม่แอบแปลงข้อมูลอัตโนมัติ (ไม่ตัด 0, ไม่แปลงเป็นวันที่)
+        const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1", raw: true});
         
         let tabTh = window.currentRawTab === 'household' ? 'รายงานบ้าน' : 'รายงานตัว';
         const dateStr = new Date().toISOString().split('T')[0];
