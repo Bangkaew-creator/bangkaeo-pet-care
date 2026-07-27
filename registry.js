@@ -26,7 +26,6 @@ const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http:
 const neuterConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)";
 const vaccineConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ทำการฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าให้แก่สัตว์เลี้ยงของข้าพเจ้า และข้าพเจ้าจะรับผิดชอบดูแลสัตว์เลี้ยงอย่างใกล้ชิดภายหลังการรับวัคซีนตามคำแนะนำ หากเกิดอาการแพ้ ข้าพเจ้าจะไม่เรียกร้องดำเนินคดีใดๆ";
 
-// 🧠 ฟังก์ชันตัวช่วย: แปลงวันที่ YYYY-MM-DD เป็นภาษาไทย
 function formatThaiDate(dateStr) {
     if (!dateStr) return "-";
     const regex = /^\d{4}-\d{2}-\d{2}$/;
@@ -308,7 +307,6 @@ async function loadQuotaAndDashboard() {
     if(isWithinDate || (currentBookedNeuter > 0 || currentBookedVaccine > 0)) {
         document.getElementById("campaign-banner-container").style.display = "block";
         
-        // ใช้ formatThaiDate แปลงวันที่อัตโนมัติ
         document.getElementById("txt-service-date").textContent = formatThaiDate(sysConfig.nt_date || sysConfig.service_date);
         document.getElementById("txt-service-location").textContent = sysConfig.nt_location || sysConfig.service_location || "-";
         
@@ -436,7 +434,7 @@ window.softDeletePet = async function(docId) {
     }
 }
 
-// // 📄 อัปเกรดใบรับรอง (Flip Card) ให้เหมือนหน้าแอดมิน
+// 📄 อัปเกรดใบรับรอง (Flip Card) + ตรรกะลายเซ็น
 window.viewCertificate = function(docId) {
     try {
         const pet = window.myPetsData[docId];
@@ -451,7 +449,6 @@ window.viewCertificate = function(docId) {
         if(pet.room_no) certAddress += ` (ห้อง ${pet.room_no})`;
         document.getElementById("cert-address").textContent = certAddress;
         
-        // --- ส่วนด้านหน้าบัตร (สถานะวัคซีน) ---
         if (pet.vaccine_status === "ฉีดแล้ว") {
             document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
             document.getElementById("cert-vac-status").style.color = "#50E3C2";
@@ -462,15 +459,15 @@ window.viewCertificate = function(docId) {
             document.getElementById("cert-vac-detail").textContent = "-";
         }
         
-        // --- ส่วนด้านหลังบัตร (ลายเซ็นและชื่อ) ตรรกะใหม่ ---
+        // ตรรกะใหม่: ซ่อน/แสดง ลายเซ็นตามที่คุยกันไว้
         const sigElement = document.getElementById("cert-admin-sig");
         const nameElement = document.getElementById("cert-admin-name");
 
         if (pet.vaccine_status === "ฉีดแล้ว") {
             if (pet.vaccinated_by_admin) {
-                // กรณี 1: เทศบาลฉีดให้ (มีชื่อคนฉีดในระบบ)
+                // 1. เทศบาลฉีดให้ (โชว์รูป โชว์ชื่อคนฉีด)
                 nameElement.textContent = pet.vaccinated_by_admin;
-                nameElement.style.color = "#141E30"; // คืนสีตัวอักษรปกติ
+                nameElement.style.color = "#141E30"; 
                 if (sysConfig && sysConfig.admin_sig_base64) {
                     sigElement.src = sysConfig.admin_sig_base64;
                     sigElement.style.display = "block";
@@ -478,13 +475,13 @@ window.viewCertificate = function(docId) {
                     sigElement.style.display = "none";
                 }
             } else {
-                // กรณี 2: ประชาชนกรอกมาเองว่าเคยฉีดจากที่อื่น
+                // 2. ประชาชนแจ้งประวัติมาเอง (ซ่อนรูป โชว์ข้อความ)
                 nameElement.textContent = "ประวัติเดิม (ระบุโดยเจ้าของ)";
-                nameElement.style.color = "#81A1C1"; // เปลี่ยนสีให้ดูแตกต่าง
+                nameElement.style.color = "#81A1C1"; 
                 sigElement.style.display = "none";
             }
         } else {
-            // กรณี 3: ยังไม่เคยฉีด
+            // 3. ยังไม่เคยฉีด (ซ่อนรูป ขีดกลาง)
             nameElement.textContent = "-";
             sigElement.style.display = "none";
         }
@@ -495,7 +492,6 @@ window.viewCertificate = function(docId) {
         console.error("Certificate Error: ", e);
         alert("ไม่สามารถเปิดใบรับรองได้เนื่องจากข้อมูลบางส่วนไม่สมบูรณ์");
     }
-}
 }
 
 window.startBookingFlow = function(docId, serviceType) {
@@ -579,7 +575,6 @@ window.viewNeuterTicket = function(docId) {
     document.getElementById("tk-queue-no").textContent = `#${String(pet.queue_no || 0).padStart(2, '0')}`;
     document.getElementById("tk-pet-name").textContent = `${pet.pet_name} (${pet.pet_type} ${pet.pet_gender})`;
     
-    // ใช้ formatThaiDate แปลงวันที่อัตโนมัติ
     document.getElementById("tk-date").textContent = formatThaiDate(sysConfig.nt_date || sysConfig.service_date);
     document.getElementById("tk-location").textContent = sysConfig ? (sysConfig.nt_location || sysConfig.service_location) : "-";
     
