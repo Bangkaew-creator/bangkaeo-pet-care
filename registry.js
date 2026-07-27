@@ -436,7 +436,7 @@ window.softDeletePet = async function(docId) {
     }
 }
 
-// 📄 อัปเกรดใบรับรอง (Flip Card) ให้เหมือนหน้าแอดมิน
+// // 📄 อัปเกรดใบรับรอง (Flip Card) ให้เหมือนหน้าแอดมิน
 window.viewCertificate = function(docId) {
     try {
         const pet = window.myPetsData[docId];
@@ -451,6 +451,7 @@ window.viewCertificate = function(docId) {
         if(pet.room_no) certAddress += ` (ห้อง ${pet.room_no})`;
         document.getElementById("cert-address").textContent = certAddress;
         
+        // --- ส่วนด้านหน้าบัตร (สถานะวัคซีน) ---
         if (pet.vaccine_status === "ฉีดแล้ว") {
             document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
             document.getElementById("cert-vac-status").style.color = "#50E3C2";
@@ -461,14 +462,31 @@ window.viewCertificate = function(docId) {
             document.getElementById("cert-vac-detail").textContent = "-";
         }
         
-        // ดึงชื่อที่ประทับไว้ตอนรับบริการ (ซึ่งตอนนี้ admin.js จะส่งชื่อจริงมาให้แล้ว)
-        document.getElementById("cert-admin-name").textContent = pet.vaccinated_by_admin || "-";
-        
-        if (sysConfig && sysConfig.admin_sig_base64) {
-            document.getElementById("cert-admin-sig").src = sysConfig.admin_sig_base64;
-            document.getElementById("cert-admin-sig").style.display = "block";
-        } else { 
-            document.getElementById("cert-admin-sig").style.display = "none"; 
+        // --- ส่วนด้านหลังบัตร (ลายเซ็นและชื่อ) ตรรกะใหม่ ---
+        const sigElement = document.getElementById("cert-admin-sig");
+        const nameElement = document.getElementById("cert-admin-name");
+
+        if (pet.vaccine_status === "ฉีดแล้ว") {
+            if (pet.vaccinated_by_admin) {
+                // กรณี 1: เทศบาลฉีดให้ (มีชื่อคนฉีดในระบบ)
+                nameElement.textContent = pet.vaccinated_by_admin;
+                nameElement.style.color = "#141E30"; // คืนสีตัวอักษรปกติ
+                if (sysConfig && sysConfig.admin_sig_base64) {
+                    sigElement.src = sysConfig.admin_sig_base64;
+                    sigElement.style.display = "block";
+                } else {
+                    sigElement.style.display = "none";
+                }
+            } else {
+                // กรณี 2: ประชาชนกรอกมาเองว่าเคยฉีดจากที่อื่น
+                nameElement.textContent = "ประวัติเดิม (ระบุโดยเจ้าของ)";
+                nameElement.style.color = "#81A1C1"; // เปลี่ยนสีให้ดูแตกต่าง
+                sigElement.style.display = "none";
+            }
+        } else {
+            // กรณี 3: ยังไม่เคยฉีด
+            nameElement.textContent = "-";
+            sigElement.style.display = "none";
         }
 
         document.getElementById("pet-cert-card").classList.remove("flipped");
@@ -477,6 +495,7 @@ window.viewCertificate = function(docId) {
         console.error("Certificate Error: ", e);
         alert("ไม่สามารถเปิดใบรับรองได้เนื่องจากข้อมูลบางส่วนไม่สมบูรณ์");
     }
+}
 }
 
 window.startBookingFlow = function(docId, serviceType) {
