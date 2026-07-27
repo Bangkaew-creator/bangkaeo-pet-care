@@ -115,44 +115,51 @@ canvas.signature-pad { width: 100%; height: 150px; border-radius: 10px; backgrou
    CSS สำหรับการ Print หรือ Save as PDF
    ========================================== */
 @media print {
-    body { background: #FFF !important; color: #000 !important; padding: 0; }
-    .no-print, #btn-staff-login, .title, .loading-screen { display: none !important; }
+    body { background: #FFF !important; color: #000 !important; padding: 0 !important; margin: 0 !important; }
+    .no-print, #btn-staff-login, .title, .loading-screen, .project-header { display: none !important; }
     
-    /* โหมดพิมพ์รายงาน */
-    body.print-report-mode #app-container, body.print-report-mode #admin-container, body.print-report-mode #settings-container { display: none !important; }
-    body.print-report-mode #report-container { display: block !important; max-width: 100% !important; margin: 0 !important; }
-    body.print-report-mode .card.neumorphic { box-shadow: none !important; background: transparent !important; padding: 0 !important; margin-bottom: 30px !important; }
-    body.print-report-mode .section-title { color: #000 !important; border-bottom: 2px solid #000 !important; font-size: 16px !important; }
-    body.print-report-mode .neumorphic-table th, body.print-report-mode .neumorphic-table td { border: 1px solid #000 !important; color: #000 !important; padding: 8px !important; }
+    /* โหมดพิมพ์รายงานสรุป (แนวนอนปลดล็อกความกว้าง 100%) */
+    body.print-report-mode #main-wrapper { display: block !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    body.print-report-mode #view-checkin, body.print-report-mode #view-proxy, body.print-report-mode #view-raw-data, body.print-report-mode #view-settings { display: none !important; }
+    
+    body.print-report-mode #view-report { display: block !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    body.print-report-mode .container { max-width: 100% !important; } /* สำคัญมาก: ปลดล็อกกรอบของ .container เดิม */
+    body.print-report-mode .card.neumorphic { box-shadow: none !important; background: transparent !important; padding: 0 !important; margin-bottom: 25px !important; border: none !important; width: 100% !important; }
+    body.print-report-mode .section-title { color: #000 !important; border-bottom: 2px solid #000 !important; font-size: 16px !important; text-align: left; }
+    body.print-report-mode .neumorphic-table { width: 100% !important; }
+    body.print-report-mode .neumorphic-table th, body.print-report-mode .neumorphic-table td { border: 1px solid #000 !important; color: #000 !important; padding: 8px !important; font-size: 14px !important; }
     body.print-report-mode .neumorphic-table th { background: #f0f0f0 !important; font-weight: bold !important; }
     body.print-report-mode .print-only { display: block !important; }
-    body.print-report-mode #print-signatures { display: flex !important; justify-content: space-between !important; margin-top: 60px !important; page-break-inside: avoid; }
-    body.print-report-mode .sig-box { text-align: center; font-size: 14px; line-height: 1.8; width: 30%; }
+    body.print-report-mode #print-signatures { display: flex !important; justify-content: space-between !important; margin-top: 40px !important; page-break-inside: avoid; width: 100% !important; }
+    body.print-report-mode .sig-box { text-align: center; font-size: 14px; line-height: 1.6; width: 32%; }
+    body.print-report-mode #btn-print-report { display: none !important; }
 
-    /* โหมดพิมพ์ใบยินยอม A4 ใบเดียว */
+    /* โหมดพิมพ์ใบยินยอม A4 ใบเดียว (แนวตั้ง) */
     body.print-consent-mode #app-container, body.print-consent-mode #admin-container, body.print-consent-mode #report-container, body.print-consent-mode #settings-container { display: none !important; }
-    body.print-consent-mode #print-consent-form { display: block !important; padding: 20px; font-family: 'Sarabun', sans-serif; color: #000; }
+    body.print-consent-mode #print-consent-form { display: block !important; padding: 0; font-family: 'Sarabun', sans-serif; color: #000; width: 100%; max-width: 100%; }
 
-    /* โหมดพิมพ์ใบยินยอม Batch ทั้งหมด */
-    body.print-all-consents-mode #app-container, body.print-all-consents-mode #admin-container, body.print-all-consents-mode #report-container, body.print-all-consents-mode #settings-container, body.print-all-consents-mode #print-consent-form, body.print-all-consents-mode #view-checkin, body.print-all-consents-mode #view-proxy, body.print-all-consents-mode #view-report, body.print-all-consents-mode #view-raw-data, body.print-all-consents-mode #view-settings { display: none !important; }
-    body.print-all-consents-mode #print-all-consents-container { display: block !important; width: 100%; }
+    /* โหมดพิมพ์ใบยินยอม Batch ทั้งหมด (แนวตั้ง) */
+    body.print-all-consents-mode #app-container, body.print-all-consents-mode #main-wrapper, body.print-all-consents-mode #admin-container, body.print-all-consents-mode #report-container, body.print-all-consents-mode #settings-container, body.print-all-consents-mode #print-consent-form, body.print-all-consents-mode #view-checkin, body.print-all-consents-mode #view-proxy, body.print-all-consents-mode #view-report, body.print-all-consents-mode #view-raw-data, body.print-all-consents-mode #view-settings { display: none !important; }
+    body.print-all-consents-mode #print-all-consents-container { display: block !important; width: 100% !important; max-width: 100% !important; }
     
     /* CSS ควบคุมให้ขึ้นหน้าใหม่ในแต่ละใบยินยอม (โครงสร้างแบบคลาสสิค) */
     .consent-page {
         page-break-after: always;
-        padding: 20px;
+        padding: 0;
+        margin: 0;
         font-family: 'Sarabun', sans-serif;
         color: #000;
         position: relative;
         min-height: 95vh;
+        width: 100%;
     }
     .consent-page:last-child { page-break-after: auto; }
     
     /* กรอบคิวมุมขวาบน (แบบเก่า) */
     .queue-badge {
         position: absolute;
-        top: 20px;
-        right: 20px;
+        top: 0;
+        right: 0;
         font-size: 18px;
         font-weight: bold;
         border: 2px solid #000;
