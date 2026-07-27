@@ -22,7 +22,6 @@ let currentBookedNeuter = 0;
 let currentBookedVaccine = 0;
 
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
-
 const neuterConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)";
 const vaccineConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ทำการฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าให้แก่สัตว์เลี้ยงของข้าพเจ้า และข้าพเจ้าจะรับผิดชอบดูแลสัตว์เลี้ยงอย่างใกล้ชิดภายหลังการรับวัคซีนตามคำแนะนำ หากเกิดอาการแพ้ ข้าพเจ้าจะไม่เรียกร้องดำเนินคดีใดๆ";
 
@@ -186,8 +185,8 @@ function setupPetForm() {
         document.getElementById("p-color").value = ""; document.getElementById("p-age-year").value = "0";
         document.getElementById("p-age-month").value = "0"; document.getElementById("p-vac-year").value = "";
         document.getElementById("p-type").selectedIndex = 0; document.getElementById("p-gender").selectedIndex = 0;
-        document.getElementById("p-rearing").selectedIndex = 0; document.getElementById("p-vac-status").selectedIndex = 0;
-        document.getElementById("p-neuter-status").selectedIndex = 0;
+        document.getElementById("p-rearing").selectedIndex = 0; document.getElementById("p-location").selectedIndex = 0;
+        document.getElementById("p-vac-status").value = "ไม่เคยฉีด"; document.getElementById("p-neuter-status").value = "ยังไม่ทำหมัน";
         
         document.getElementById("vac-year-group").style.display = "none";
         currentPetBase64 = ""; document.getElementById("pet-image-preview").src = defaultPlaceholder;
@@ -202,7 +201,7 @@ function setupPetForm() {
     });
 
     document.getElementById("p-vac-status")?.addEventListener("change", (e) => {
-        document.getElementById("vac-year-group").style.display = e.target.value === "ฉีดแล้ว" ? "block" : "none";
+        document.getElementById("vac-year-group").style.display = e.target.value === "เคยฉีด" ? "block" : "none";
     });
 
     document.getElementById("pet-image-upload")?.addEventListener("change", (e) => {
@@ -230,13 +229,14 @@ function setupPetForm() {
         const pType = document.getElementById("p-type").value;
         const pGender = document.getElementById("p-gender").value;
         const pRearing = document.getElementById("p-rearing").value;
+        const pLocation = document.getElementById("p-location").value;
         const pVacStatus = document.getElementById("p-vac-status").value;
         const pNeuterStatus = document.getElementById("p-neuter-status").value;
 
-        if(!pName || !pType || !pGender || !pRearing || !pVacStatus || !pNeuterStatus) return alert("กรุณากรอกข้อมูลที่มีเครื่องหมาย * ให้ครบถ้วน");
+        if(!pName || !pType || !pGender || !pRearing || !pLocation || !pVacStatus || !pNeuterStatus) return alert("กรุณากรอกข้อมูลที่มีเครื่องหมาย * ให้ครบถ้วน");
 
         let pVacYear = 0;
-        if (pVacStatus === "ฉีดแล้ว") {
+        if (pVacStatus === "เคยฉีด") {
             pVacYear = parseInt(document.getElementById("p-vac-year").value);
             if(!pVacYear) return alert("กรุณาระบุปี พ.ศ. ที่ฉีดวัคซีนล่าสุด");
         }
@@ -251,7 +251,8 @@ function setupPetForm() {
                 color: document.getElementById("p-color").value.trim() || "ไม่ระบุ",
                 age_year: parseInt(document.getElementById("p-age-year").value) || 0,
                 age_month: parseInt(document.getElementById("p-age-month").value) || 0,
-                rearing_style: pRearing, vaccine_status: pVacStatus, vaccine_year: pVacYear, neuter_status: pNeuterStatus,
+                rearing_style: pRearing, location: pLocation, 
+                vaccine_status: pVacStatus, vaccine_year: pVacYear, neuter_status: pNeuterStatus,
                 pet_photo_base64: currentPetBase64, updated_at: serverTimestamp()
             };
 
@@ -276,7 +277,7 @@ function setupPetForm() {
 }
 
 // ==========================================
-// 5. ระบบ Dashboard & โควตา (Smart Logic)
+// 5. ระบบ Dashboard & โควตา
 // ==========================================
 async function loadQuotaAndDashboard() {
     if(!sysConfig) return;
@@ -346,13 +347,16 @@ async function loadMyPets() {
             if(pet.status === "cancelled" || pet.status === "deceased" || pet.status === "moved") return;
             count++; window.myPetsData[d.id] = pet; 
 
-            let vacBadge = pet.vaccine_status === "ฉีดแล้ว" 
+            // รองรับฐานข้อมูลเก่าที่เคยใช้คำว่า "ฉีดแล้ว"
+            let isVac = (pet.vaccine_status === "เคยฉีด" || pet.vaccine_status === "ฉีดแล้ว");
+            
+            let vacBadge = isVac 
                 ? (parseInt(pet.vaccine_year) >= currentVaccineYear ? `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${pet.vaccine_year})</span>` : `<span class="vaccine-badge badge-red">🔴 ขาดการต่อวัคซีน</span>`) 
-                : `<span class="vaccine-badge badge-red">🔴 ยังไม่เคยฉีด</span>`;
+                : `<span class="vaccine-badge badge-red">🔴 ไม่เคยฉีด</span>`;
 
             let actionBtn = "";
             let needNeuter = pet.neuter_status === "ยังไม่ทำหมัน";
-            let needVaccine = pet.vaccine_status === "ยังไม่เคยฉีด" || parseInt(pet.vaccine_year) < currentVaccineYear;
+            let needVaccine = (!isVac || parseInt(pet.vaccine_year) < currentVaccineYear);
 
             if (pet.status === "booked" || pet.status === "checked_in") {
                 let statusIcon = pet.status === "checked_in" ? "✅ รับบริการแล้ว" : `🎫 บัตรคิว #${pet.queue_no || '-'}`;
@@ -404,13 +408,27 @@ window.editPet = function(docId) {
     if(!pet) return;
     window.currentEditPetId = docId; 
     document.getElementById("form-title").textContent = "✏️ แก้ไขข้อมูลสัตว์เลี้ยง";
-    document.getElementById("p-name").value = pet.pet_name || ""; document.getElementById("p-type").value = pet.pet_type || "สุนัข";
-    document.getElementById("p-gender").value = pet.pet_gender || "ตัวผู้"; document.getElementById("p-breed").value = pet.breed === "ไม่ระบุ" ? "" : pet.breed;
-    document.getElementById("p-color").value = pet.color === "ไม่ระบุ" ? "" : pet.color; document.getElementById("p-age-year").value = pet.age_year || 0;
-    document.getElementById("p-age-month").value = pet.age_month || 0; document.getElementById("p-rearing").value = pet.rearing_style || "เลี้ยงระบบปิด (ในบ้านตลอด)";
-    document.getElementById("p-vac-status").value = pet.vaccine_status || "ยังไม่เคยฉีด"; document.getElementById("p-vac-year").value = pet.vaccine_year || "";
-    document.getElementById("vac-year-group").style.display = pet.vaccine_status === "ฉีดแล้ว" ? "block" : "none";
+    document.getElementById("p-name").value = pet.pet_name || ""; 
+    document.getElementById("p-type").value = pet.pet_type || "สุนัข";
+    document.getElementById("p-gender").value = pet.pet_gender || "ตัวผู้"; 
+    document.getElementById("p-breed").value = pet.breed === "ไม่ระบุ" ? "" : pet.breed;
+    document.getElementById("p-color").value = pet.color === "ไม่ระบุ" ? "" : pet.color; 
+    document.getElementById("p-age-year").value = pet.age_year || 0;
+    document.getElementById("p-age-month").value = pet.age_month || 0; 
+    
+    // Auto Legacy Mapping สำหรับตัวเลือกเดิมให้เข้ากับศัพท์ ROD
+    let mappedRear = pet.rearing_style === "เลี้ยงระบบปิด (ในบ้านตลอด)" ? "เลี้ยงในพื้นที่จำกัดตลอดเวลา" : (pet.rearing_style === "ปล่อยบางเวลา" ? "เลี้ยงในพื้นที่จำกัดบางเวลา" : (pet.rearing_style === "เลี้ยงระบบเปิด (ปล่อยอิสระ)" ? "เลี้ยงแบบปล่อยตลอดเวลา" : (pet.rearing_style || "เลี้ยงในพื้นที่จำกัดตลอดเวลา")));
+    document.getElementById("p-rearing").value = mappedRear;
+    
+    document.getElementById("p-location").value = pet.location || "บ้านพักอาศัย";
+    
+    let isVac = (pet.vaccine_status === "ฉีดแล้ว" || pet.vaccine_status === "เคยฉีด");
+    document.getElementById("p-vac-status").value = isVac ? "เคยฉีด" : "ไม่เคยฉีด"; 
+    document.getElementById("p-vac-year").value = pet.vaccine_year || "";
+    document.getElementById("vac-year-group").style.display = isVac ? "block" : "none";
+    
     document.getElementById("p-neuter-status").value = pet.neuter_status || "ยังไม่ทำหมัน";
+    
     currentPetBase64 = pet.pet_photo_base64 || ""; document.getElementById("pet-image-preview").src = currentPetBase64 || defaultPlaceholder;
     document.getElementById("dashboard-container").style.display = "none"; document.getElementById("add-pet-container").style.display = "block";
 }
@@ -434,7 +452,7 @@ window.softDeletePet = async function(docId) {
     }
 }
 
-// 📄 อัปเกรดใบรับรอง (Flip Card) + ตรรกะลายเซ็น
+// 📄 อัปเกรดใบรับรอง (Flip Card)
 window.viewCertificate = function(docId) {
     try {
         const pet = window.myPetsData[docId];
@@ -449,23 +467,23 @@ window.viewCertificate = function(docId) {
         if(pet.room_no) certAddress += ` (ห้อง ${pet.room_no})`;
         document.getElementById("cert-address").textContent = certAddress;
         
-        if (pet.vaccine_status === "ฉีดแล้ว") {
-            document.getElementById("cert-vac-status").innerHTML = `ฉีดแล้ว (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
+        let isVac = (pet.vaccine_status === "เคยฉีด" || pet.vaccine_status === "ฉีดแล้ว");
+        
+        if (isVac) {
+            document.getElementById("cert-vac-status").innerHTML = `เคยฉีด (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
             document.getElementById("cert-vac-status").style.color = "#50E3C2";
             document.getElementById("cert-vac-detail").innerHTML = `ยี่ห้อ: ${pet.vaccine_brand || '-'} (Lot: ${pet.vaccine_lot || '-'})<br>EXP: ${pet.vaccine_exp || '-'}`;
         } else {
-            document.getElementById("cert-vac-status").textContent = "ยังไม่เคยฉีดวัคซีน";
+            document.getElementById("cert-vac-status").textContent = "ไม่เคยฉีดวัคซีน";
             document.getElementById("cert-vac-status").style.color = "#ff6b6b";
             document.getElementById("cert-vac-detail").textContent = "-";
         }
         
-        // ตรรกะใหม่: ซ่อน/แสดง ลายเซ็นตามที่คุยกันไว้
         const sigElement = document.getElementById("cert-admin-sig");
         const nameElement = document.getElementById("cert-admin-name");
 
-        if (pet.vaccine_status === "ฉีดแล้ว") {
+        if (isVac) {
             if (pet.vaccinated_by_admin) {
-                // 1. เทศบาลฉีดให้ (โชว์รูป โชว์ชื่อคนฉีด)
                 nameElement.textContent = pet.vaccinated_by_admin;
                 nameElement.style.color = "#141E30"; 
                 if (sysConfig && sysConfig.admin_sig_base64) {
@@ -475,13 +493,11 @@ window.viewCertificate = function(docId) {
                     sigElement.style.display = "none";
                 }
             } else {
-                // 2. ประชาชนแจ้งประวัติมาเอง (ซ่อนรูป โชว์ข้อความ)
                 nameElement.textContent = "ประวัติเดิม (ระบุโดยเจ้าของ)";
                 nameElement.style.color = "#81A1C1"; 
                 sigElement.style.display = "none";
             }
         } else {
-            // 3. ยังไม่เคยฉีด (ซ่อนรูป ขีดกลาง)
             nameElement.textContent = "-";
             sigElement.style.display = "none";
         }
