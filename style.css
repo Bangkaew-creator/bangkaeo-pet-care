@@ -75,6 +75,42 @@ canvas.signature-pad { width: 100%; height: 150px; border-radius: 10px; backgrou
 .neumorphic-table td { color: #E0E5EC; }
 .print-only { display: none; }
 
+/* UI ใบรับรองหน้าประชาชน (ปรับเสริม) */
+.pet-card { background: rgba(0, 0, 0, 0.15); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid #D4AF37; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.pet-card-left { display: flex; gap: 15px; flex-grow: 1; }
+.pet-photo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #D4AF37; flex-shrink: 0; background-color: #1b2941; }
+.pet-info { color: #E0E5EC; font-size: 13px; line-height: 1.5; }
+.pet-name { color: #D4AF37; font-size: 18px; font-weight: 600; margin-bottom: 3px; }
+
+.vaccine-badge { font-size: 12px; font-weight: bold; display: inline-block; margin-top: 6px; }
+.vaccine-badge.badge-green { color: #50E3C2; background: transparent !important; border: none !important; padding: 0 !important; }
+.vaccine-badge.badge-red { color: #ff6b6b; background: transparent !important; border: none !important; padding: 0 !important; }
+
+.card-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; width: 110px; }
+.btn-action-small { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: #FFF; font-size: 11px; padding: 8px 5px; border-radius: 8px; cursor: pointer; font-family: 'Sarabun', sans-serif; transition: 0.3s; width: 100%; text-align: center; }
+.btn-edit { color: #81A1C1; border-color: rgba(129, 161, 193, 0.4); }
+.btn-delete { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.4); }
+.btn-neuter { color: #141E30; border-color: #50E3C2; background: #50E3C2; font-weight: bold; }
+.btn-vaccine { color: #141E30; border-color: #81A1C1; background: #81A1C1; font-weight: bold; }
+.btn-neuter-ticket { color: #D4AF37; border-color: #D4AF37; background: rgba(212, 175, 55, 0.1); font-weight: bold; }
+.btn-cancel-neuter { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.4); background: transparent; font-weight: bold; }
+
+.flip-card { background-color: transparent; width: 100%; max-width: 340px; height: 500px; perspective: 1000px; margin: 0 auto; }
+.flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; cursor: pointer; }
+.flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+.flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 15px; padding: 25px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; box-sizing: border-box; }
+.flip-card-front { background: linear-gradient(145deg, #141E30, #243B55); border: 2px solid #D4AF37; color: white; }
+.flip-card-back { background: #E0E5EC; color: #141E30; transform: rotateY(180deg); border: 2px solid #D4AF37; text-align: left; }
+
+.admin-view { display: none; }
+.raw-table-wrapper { width: 100%; overflow-x: auto; max-height: 600px; overflow-y: auto; background: #0d131f; border-radius: 10px; }
+.raw-table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.raw-table th, .raw-table td { padding: 10px 15px; border: 1px solid rgba(255,255,255,0.05); text-align: left; }
+.raw-table th { background: #1b2941; color: #D4AF37; position: sticky; top: 0; z-index: 10; font-weight: 600; }
+.raw-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.tab-btn { background: transparent; border: 1px solid #81A1C1; color: #81A1C1; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 5px; transition: 0.2s;}
+.tab-btn.active { background: #81A1C1; color: #141E30; font-weight: bold; }
+
 /* ==========================================
    CSS สำหรับการ Print หรือ Save as PDF
    ========================================== */
@@ -98,10 +134,10 @@ canvas.signature-pad { width: 100%; height: 150px; border-radius: 10px; backgrou
     body.print-consent-mode #print-consent-form { display: block !important; padding: 20px; font-family: 'Sarabun', sans-serif; color: #000; }
 
     /* โหมดพิมพ์ใบยินยอม Batch ทั้งหมด */
-    body.print-all-consents-mode #app-container, body.print-all-consents-mode #admin-container, body.print-all-consents-mode #report-container, body.print-all-consents-mode #settings-container, body.print-all-consents-mode #print-consent-form { display: none !important; }
+    body.print-all-consents-mode #app-container, body.print-all-consents-mode #admin-container, body.print-all-consents-mode #report-container, body.print-all-consents-mode #settings-container, body.print-all-consents-mode #print-consent-form, body.print-all-consents-mode #view-checkin, body.print-all-consents-mode #view-proxy, body.print-all-consents-mode #view-report, body.print-all-consents-mode #view-raw-data, body.print-all-consents-mode #view-settings { display: none !important; }
     body.print-all-consents-mode #print-all-consents-container { display: block !important; width: 100%; }
     
-    /* CSS ควบคุมให้ขึ้นหน้าใหม่ในแต่ละใบยินยอม */
+    /* CSS ควบคุมให้ขึ้นหน้าใหม่ในแต่ละใบยินยอม (โครงสร้างแบบคลาสสิค) */
     .consent-page {
         page-break-after: always;
         padding: 20px;
@@ -112,7 +148,7 @@ canvas.signature-pad { width: 100%; height: 150px; border-radius: 10px; backgrou
     }
     .consent-page:last-child { page-break-after: auto; }
     
-    /* กรอบคิวมุมขวาบน */
+    /* กรอบคิวมุมขวาบน (แบบเก่า) */
     .queue-badge {
         position: absolute;
         top: 20px;
