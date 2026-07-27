@@ -150,14 +150,33 @@
 
         <!-- 3. รายงาน PDF -->
         <div id="view-report" class="container admin-view" style="max-width: 800px;">
-            <div id="print-header" class="print-only"><h2 style="text-align: center; font-size: 20px; font-weight: bold;">รายงานสรุปผล โครงการทำหมันสุนัขและแมว</h2><h3 id="pdf-agency-name" style="text-align: center; font-size: 16px; margin-bottom: 20px;">เทศบาล...</h3></div>
+            <div id="print-header" class="print-only">
+                <h2 style="text-align: center; font-size: 20px; font-weight: bold;">ใบรายงานสรุปผลโครงการทำหมันสุนัขและแมว</h2>
+                <h3 id="pdf-agency-name" style="text-align: center; font-size: 16px; margin-bottom: 20px; font-weight: normal;">กำลังโหลด...</h3>
+            </div>
             <button type="button" id="btn-print-report" class="neumorphic-btn gold-btn no-print" style="margin-bottom: 20px;">🖨️ พิมพ์ใบสรุป (PDF)</button>
             <div class="card neumorphic"><h3 class="section-title">📊 ยอดการจองคิว</h3><div class="table-responsive"><table class="neumorphic-table" id="table-registered"><thead><tr><th rowspan="2">บริการ</th><th colspan="2">สุนัข</th><th colspan="2">แมว</th><th rowspan="2" style="color:#D4AF37;">รวม</th></tr><tr><th>ผู้</th><th>เมีย</th><th>ผู้</th><th>เมีย</th></tr></thead><tbody></tbody></table></div></div>
             <div class="card neumorphic" style="margin-top: 20px;"><h3 class="section-title">✅ ยอดเข้ารับบริการจริง</h3><div class="table-responsive"><table class="neumorphic-table" id="table-checked-in"><thead><tr><th rowspan="2">บริการ</th><th colspan="2">สุนัข</th><th colspan="2">แมว</th><th rowspan="2" style="color:#50E3C2;">รวม</th></tr><tr><th>ผู้</th><th>เมีย</th><th>ผู้</th><th>เมีย</th></tr></thead><tbody></tbody></table></div></div>
+            
             <div id="print-signatures" class="print-only">
-                <div class="sig-box"><p>ลงชื่อ................................................ผู้รายงาน</p><p id="sig-rep-name">(...)</p><p id="sig-rep-pos">-</p></div>
-                <div class="sig-box"><p>ลงชื่อ................................................ผู้ตรวจสอบ</p><p id="sig-rev-name">(...)</p><p id="sig-rev-pos">-</p></div>
-                <div class="sig-box"><p>ลงชื่อ................................................ผู้เห็นชอบ</p><p id="sig-app-name">(...)</p><p id="sig-app-pos">-</p></div>
+                <div class="sig-box">
+                    <p>ลงชื่อ..................................................</p>
+                    <p id="sig-rep-name">(...)</p>
+                    <p id="sig-rep-pos">-</p>
+                    <p style="margin-top: 5px;">ผู้รายงาน</p>
+                </div>
+                <div class="sig-box">
+                    <p>ลงชื่อ..................................................</p>
+                    <p id="sig-rev-name">(...)</p>
+                    <p id="sig-rev-pos">-</p>
+                    <p style="margin-top: 5px;">ผู้ตรวจสอบ</p>
+                </div>
+                <div class="sig-box">
+                    <p>ลงชื่อ..................................................</p>
+                    <p id="sig-app-name">(...)</p>
+                    <p id="sig-app-pos">-</p>
+                    <p style="margin-top: 5px;">ผู้เห็นชอบ</p>
+                </div>
             </div>
         </div>
 
