@@ -992,7 +992,7 @@ window.renderUserTable = function() {
                 <td><a href="tel:${u.phone}" class="neumorphic-btn outline-btn" style="padding: 4px 8px; font-size: 12px; color:#D4AF37; border-color:#D4AF37; text-decoration:none;">📞 ${u.phone}</a></td>
                 <td style="font-size: 15px;">${u.address}</td>
                 <td style="line-height: 1.6; font-size: 14px;">${serviceText.join("<br>")}</td>
-                <td style="line-height: 1.6; font-size: 14px;">${statusText.join("<br>")}</td>
+                <td style="line, font-size: 14px;">${statusText.join("<br>")}</td>
             </tr>
         `);
     });
