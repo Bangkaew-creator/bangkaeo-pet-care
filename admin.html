@@ -270,6 +270,16 @@
                 </div>
 
                 <h3 class="section-title" style="margin-top: 25px;">2. ข้อมูลหน่วยงาน</h3>
+                <!-- [เพิ่มใหม่] ส่วนอัปโหลดโลโก้ -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img id="st-logo-preview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z'/%3E%3C/svg%3E" 
+                         style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px dashed #81A1C1; cursor: pointer; background: #1b2941;" 
+                         onclick="document.getElementById('st-logo-upload').click()">
+                    <input type="file" id="st-logo-upload" accept="image/*" style="display: none;">
+                    <div style="font-size: 11px; color: #6A7A8A; margin-top: 5px;">(แตะเพื่อเปลี่ยนโลโก้หน่วยงาน)</div>
+                    <button type="button" id="btn-clear-logo" style="background: none; border: none; color: #ff6b6b; font-size: 11px; cursor: pointer; text-decoration: underline; margin-top: 5px;">ล้างรูปโลโก้</button>
+                </div>
+                <!-- จบส่วนอัปโหลดโลโก้ -->
                 <div class="input-group"><label>ชื่อหน่วยงาน (agency_name)</label><input type="text" id="st-agency" class="neumorphic-input"></div>
                 <div class="row"><div class="input-group half"><label>ตำบล</label><input type="text" id="st-tambon" class="neumorphic-input"></div><div class="input-group half"><label>อำเภอ</label><input type="text" id="st-amphoe" class="neumorphic-input"></div></div>
                 <div class="row"><div class="input-group half"><label>จังหวัด</label><input type="text" id="st-province" class="neumorphic-input"></div><div class="input-group half"><label>เบอร์โทร</label><input type="text" id="st-phone" class="neumorphic-input"></div></div>
