@@ -19,6 +19,10 @@ window.currentRawTab = "household";
 let adminRole = localStorage.getItem("adminRole"); 
 let adminMoo = localStorage.getItem("adminMoo");   
 
+// [เพิ่มใหม่] ตัวแปรสำหรับเก็บ Base64 ของโลโก้หน่วยงาน
+let currentAgencyLogoBase64 = ""; 
+const defaultLogoIcon = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z'/%3E%3C/svg%3E";
+
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
 const legalConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)";
 
@@ -556,9 +560,8 @@ window.switchRawTab = async function(tabName) {
             window.renderRawTable();
             
         } else if (tabName === 'stray') {
-            thead.innerHTML = "<tr><th>อำเภอ</th><th>ตำบล</th><th>หมู่</th><th>สถานที่อาศัย</th><th>LocationDesc</th><th>FeederName</th><th>เลขบัตร</th><th>FeederPhone</th><th>จำนวนหมา</th><th>วัคซีน</th><th>ทำหมัน</th><th>จำนวนแมว</th><th>วัคซีน.1</th><th>ทำหมัน.1</th></tr>";
-            window.rawTableData = []; 
-            window.renderRawTable();
+             html = "<tr><td colspan='14' style='text-align:center;'>ระบบข้อมูลสัตว์จรจัด จะเปิดให้ใช้งานในเฟสที่ 3 ครับ</td></tr>";
+             count = 1;
         }
     } catch(e) { tbody.innerHTML = `<tr><td colspan='24' style='color:#ff6b6b;'>Error: ${e.message}</td></tr>`; }
 }
@@ -631,10 +634,42 @@ function setupExcelExport() {
 // ==========================================
 // 7. ตั้งค่าระบบ (Settings & Canvas Signature)
 // ==========================================
+
+// [เพิ่มใหม่] ฟังก์ชันจัดการรูปโลโก้หน่วยงาน
+document.getElementById("st-logo-upload")?.addEventListener("change", (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement("canvas");
+            const MAX_WIDTH = 250; let width = img.width; let height = img.height;
+            if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+            else { if (height > MAX_WIDTH) { width *= MAX_WIDTH / height; height = MAX_WIDTH; } }
+            canvas.width = width; canvas.height = height;
+            canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+            currentAgencyLogoBase64 = canvas.toDataURL("image/png");
+            document.getElementById("st-logo-preview").src = currentAgencyLogoBase64;
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+document.getElementById("btn-clear-logo")?.addEventListener("click", () => {
+    currentAgencyLogoBase64 = ""; document.getElementById("st-logo-preview").src = defaultLogoIcon;
+});
+
 function loadSettingsToForm() {
     if(sysConfig) {
         document.getElementById("st-moo-count").value = sysConfig.moo_count || 16;
         document.getElementById("st-agency").value = sysConfig.agency_name || "";
+        
+        // [เพิ่มใหม่] โหลดรูปภาพโลโก้เดิมมาแสดง
+        currentAgencyLogoBase64 = sysConfig.agency_logo_base64 || "";
+        if(document.getElementById("st-logo-preview")) {
+            document.getElementById("st-logo-preview").src = currentAgencyLogoBase64 || defaultLogoIcon;
+        }
+
         document.getElementById("st-tambon").value = sysConfig.tambon || ""; document.getElementById("st-amphoe").value = sysConfig.amphoe || ""; document.getElementById("st-province").value = sysConfig.province || ""; document.getElementById("st-phone").value = sysConfig.phone || "";
         document.getElementById("st-max-neuter").value = sysConfig.max_neuter_per_house || 2;
         document.getElementById("st-start").value = sysConfig.nt_start_reg || ""; document.getElementById("st-end").value = sysConfig.nt_end_reg || ""; document.getElementById("st-nt-date").value = sysConfig.nt_date || ""; document.getElementById("st-nt-loc").value = sysConfig.nt_location || "";
@@ -661,44 +696,18 @@ function renderVolunteerSecretInputs() {
 }
 document.getElementById("st-moo-count").addEventListener("change", renderVolunteerSecretInputs);
 
-// [เพิ่มใหม่] ฟังก์ชันจัดการรูปโลโก้หน่วยงาน
-document.getElementById("st-logo-upload")?.addEventListener("change", (e) => {
-    const file = e.target.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement("canvas");
-            const MAX_WIDTH = 250; let width = img.width; let height = img.height;
-            if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
-            else { if (height > MAX_WIDTH) { width *= MAX_WIDTH / height; height = MAX_WIDTH; } }
-            canvas.width = width; canvas.height = height;
-            canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-            currentAgencyLogoBase64 = canvas.toDataURL("image/png");
-            document.getElementById("st-logo-preview").src = currentAgencyLogoBase64;
-        };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-});
-document.getElementById("btn-clear-logo")?.addEventListener("click", () => {
-    currentAgencyLogoBase64 = ""; document.getElementById("st-logo-preview").src = defaultLogoIcon;
-});
 function setupSettingsForm() {
     document.getElementById("btn-save-settings").addEventListener("click", async () => {
         const btn = document.getElementById("btn-save-settings"); btn.disabled = true; btn.textContent = "กำลังบันทึก...";
         try {
             const updates = {
-                // ... (ข้อมูลเดิมทั้งหมด ปล่อยไว้เหมือนเดิม) ...
                 moo_count: parseInt(document.getElementById("st-moo-count").value) || 16, max_neuter_per_house: parseInt(document.getElementById("st-max-neuter").value) || 2,
                 agency_name: document.getElementById("st-agency").value, tambon: document.getElementById("st-tambon").value, amphoe: document.getElementById("st-amphoe").value, province: document.getElementById("st-province").value, phone: document.getElementById("st-phone").value,
                 nt_start_reg: document.getElementById("st-start").value, nt_end_reg: document.getElementById("st-end").value, nt_date: document.getElementById("st-nt-date").value, nt_location: document.getElementById("st-nt-loc").value,
                 quota_neuter: parseInt(document.getElementById("st-q-neuter").value) || 100, quota_vaccine: parseInt(document.getElementById("st-q-vac").value) || 300,
                 current_vaccine_year: parseInt(document.getElementById("st-vac-year").value) || 2569, vaccine_brand: document.getElementById("st-vac-brand").value, vaccine_lot: document.getElementById("st-vac-lot").value, vaccine_exp: document.getElementById("st-vac-exp").value,
                 rep_name: document.getElementById("st-rep-name").value, rep_pos: document.getElementById("st-rep-pos").value, rev_name: document.getElementById("st-rev-name").value, rev_pos: document.getElementById("st-rev-pos").value, app_name: document.getElementById("st-app-name").value, app_pos: document.getElementById("st-app-pos").value,
-                
-                // [เพิ่มใหม่] เซฟโลโก้
-                agency_logo_base64: currentAgencyLogoBase64 
+                agency_logo_base64: currentAgencyLogoBase64 // [เพิ่มใหม่] เซฟโลโก้
             };
             
             if(adminSignaturePad && !adminSignaturePad.isEmpty()) {
