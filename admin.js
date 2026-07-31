@@ -661,17 +661,44 @@ function renderVolunteerSecretInputs() {
 }
 document.getElementById("st-moo-count").addEventListener("change", renderVolunteerSecretInputs);
 
+// [เพิ่มใหม่] ฟังก์ชันจัดการรูปโลโก้หน่วยงาน
+document.getElementById("st-logo-upload")?.addEventListener("change", (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement("canvas");
+            const MAX_WIDTH = 250; let width = img.width; let height = img.height;
+            if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+            else { if (height > MAX_WIDTH) { width *= MAX_WIDTH / height; height = MAX_WIDTH; } }
+            canvas.width = width; canvas.height = height;
+            canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+            currentAgencyLogoBase64 = canvas.toDataURL("image/png");
+            document.getElementById("st-logo-preview").src = currentAgencyLogoBase64;
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+document.getElementById("btn-clear-logo")?.addEventListener("click", () => {
+    currentAgencyLogoBase64 = ""; document.getElementById("st-logo-preview").src = defaultLogoIcon;
+});
 function setupSettingsForm() {
     document.getElementById("btn-save-settings").addEventListener("click", async () => {
         const btn = document.getElementById("btn-save-settings"); btn.disabled = true; btn.textContent = "กำลังบันทึก...";
         try {
             const updates = {
+                // ... (ข้อมูลเดิมทั้งหมด ปล่อยไว้เหมือนเดิม) ...
                 moo_count: parseInt(document.getElementById("st-moo-count").value) || 16, max_neuter_per_house: parseInt(document.getElementById("st-max-neuter").value) || 2,
                 agency_name: document.getElementById("st-agency").value, tambon: document.getElementById("st-tambon").value, amphoe: document.getElementById("st-amphoe").value, province: document.getElementById("st-province").value, phone: document.getElementById("st-phone").value,
                 nt_start_reg: document.getElementById("st-start").value, nt_end_reg: document.getElementById("st-end").value, nt_date: document.getElementById("st-nt-date").value, nt_location: document.getElementById("st-nt-loc").value,
                 quota_neuter: parseInt(document.getElementById("st-q-neuter").value) || 100, quota_vaccine: parseInt(document.getElementById("st-q-vac").value) || 300,
                 current_vaccine_year: parseInt(document.getElementById("st-vac-year").value) || 2569, vaccine_brand: document.getElementById("st-vac-brand").value, vaccine_lot: document.getElementById("st-vac-lot").value, vaccine_exp: document.getElementById("st-vac-exp").value,
-                rep_name: document.getElementById("st-rep-name").value, rep_pos: document.getElementById("st-rep-pos").value, rev_name: document.getElementById("st-rev-name").value, rev_pos: document.getElementById("st-rev-pos").value, app_name: document.getElementById("st-app-name").value, app_pos: document.getElementById("st-app-pos").value
+                rep_name: document.getElementById("st-rep-name").value, rep_pos: document.getElementById("st-rep-pos").value, rev_name: document.getElementById("st-rev-name").value, rev_pos: document.getElementById("st-rev-pos").value, app_name: document.getElementById("st-app-name").value, app_pos: document.getElementById("st-app-pos").value,
+                
+                // [เพิ่มใหม่] เซฟโลโก้
+                agency_logo_base64: currentAgencyLogoBase64 
             };
             
             if(adminSignaturePad && !adminSignaturePad.isEmpty()) {
