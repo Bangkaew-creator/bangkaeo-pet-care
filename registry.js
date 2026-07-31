@@ -108,6 +108,12 @@ async function loadSystemConfig() {
             sysConfig = confSnap.data();
             document.getElementById("txt-agency-name").textContent = sysConfig.agency_name || "สมุดประจำตัวสัตว์เลี้ยง";
             document.getElementById("cert-back-agency").textContent = sysConfig.agency_name || "หน่วยงาน";
+            
+            // [เพิ่มใหม่ 5.1] โชว์โลโก้ที่ Dashboard ถ้ามี
+            if (sysConfig.agency_logo_base64) {
+                const logoImg = document.getElementById("header-agency-logo");
+                if(logoImg) { logoImg.src = sysConfig.agency_logo_base64; logoImg.style.display = "block"; }
+            }
         }
     } catch(e) { console.error("Error loading config:", e); }
 }
@@ -350,18 +356,50 @@ async function loadMyPets() {
             // รองรับฐานข้อมูลเก่าที่เคยใช้คำว่า "ฉีดแล้ว"
             let isVac = (pet.vaccine_status === "เคยฉีด" || pet.vaccine_status === "ฉีดแล้ว");
             
-            let vacBadge = isVac 
-                ? (parseInt(pet.vaccine_year) >= currentVaccineYear ? `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${pet.vaccine_year})</span>` : `<span class="vaccine-badge badge-red">🔴 ขาดการต่อวัคซีน</span>`) 
-                : `<span class="vaccine-badge badge-red">🔴 ไม่เคยฉีด</span>`;
+            // [แก้ไขใหม่ 5.2] บล็อกสถานะวัคซีน เพื่อรองรับไฟสีเหลือง 🟡
+            let vacBadge = `<span class="vaccine-badge badge-red">🔴 ไม่เคยฉีด</span>`;
+            let needVaccine = true;
+            
+            if (isVac) {
+                const petVacYear = parseInt(pet.vaccine_year) || 0;
+                if (petVacYear < currentVaccineYear) {
+                    vacBadge = `<span class="vaccine-badge badge-red">🔴 ขาดการต่อวัคซีน (หมดอายุ)</span>`;
+                    needVaccine = true;
+                } else {
+                    needVaccine = false;
+                    vacBadge = `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${pet.vaccine_year})</span>`;
+                    
+                    // เช็คไฟเหลือง 🟡 ถ้ามี vaccine_date
+                    if (pet.vaccine_date) {
+                        const vacDateParts = pet.vaccine_date.split('/');
+                        if (vacDateParts.length === 3) {
+                            const dDay = parseInt(vacDateParts[0]), mMonth = parseInt(vacDateParts[1])-1, yYear = parseInt(vacDateParts[2])-543;
+                            const vacObjDate = new Date(yYear, mMonth, dDay);
+                            const todayObj = new Date();
+                            const diffTime = Math.abs(todayObj - vacObjDate);
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            // เกิน 330 วัน (ประมาณ 11 เดือน) = ใกล้หมดอายุ
+                            if (diffDays >= 330) {
+                                vacBadge = `<span class="vaccine-badge badge-yellow" style="color: #F5A623; background: transparent; border: none; font-weight: bold; font-size: 12px; margin-top: 6px; display: inline-block;">🟡 ใกล้ถึงกำหนดรับวัคซีน</span>`;
+                            }
+                        }
+                    }
+                }
+            }
 
             let actionBtn = "";
             let needNeuter = pet.neuter_status === "ยังไม่ทำหมัน";
-            let needVaccine = (!isVac || parseInt(pet.vaccine_year) < currentVaccineYear);
 
             if (pet.status === "booked" || pet.status === "checked_in") {
                 let statusIcon = pet.status === "checked_in" ? "✅ รับบริการแล้ว" : `🎫 บัตรคิว #${pet.queue_no || '-'}`;
                 let cancelBtn = pet.status === "booked" ? `<button class="btn-action-small btn-cancel-neuter" onclick="window.cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>` : "";
-                actionBtn = `<button class="btn-action-small btn-neuter-ticket" onclick="window.viewNeuterTicket('${d.id}')">${statusIcon}</button>${cancelBtn}`;
+                
+                // [เพิ่มใหม่ 5.2] ปุ่มรับคู่มือหลังผ่าตัด
+                let postOpBtn = (pet.status === "checked_in" && pet.service_type && pet.service_type.includes("ทำหมัน")) 
+                                ? `<button class="btn-action-small" style="color: #50E3C2; border-color: #50E3C2; margin-top: 5px;" onclick="window.sendPostOpCare('${pet.pet_name}')">📥 รับคู่มือดูแลแผล</button>` 
+                                : "";
+                
+                actionBtn = `<button class="btn-action-small btn-neuter-ticket" onclick="window.viewNeuterTicket('${d.id}')">${statusIcon}</button>${cancelBtn}${postOpBtn}`;
             } else if (isBookingOpen) {
                 if (needNeuter && currentBookedNeuter < currentTotalNeuterQuota) {
                     actionBtn = `<button class="btn-action-small btn-neuter" onclick="window.startBookingFlow('${d.id}', 'ทำหมันและวัคซีน')">✂️ จองคิวทำหมัน</button>`;
@@ -383,7 +421,7 @@ async function loadMyPets() {
                             <div>${pet.pet_type} ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี</div>
                             <div>พันธุ์: ${pet.breed || '-'}</div>
                             ${vacBadge}
-                            ${pet.neuter_status === "ทำหมันแล้ว" ? '<br><span class="vaccine-badge badge-green">✂️ ทำหมันแล้ว</span>' : ''}
+                            ${pet.neuter_status === "ทำหมันแล้ว" ? '<br><span class="vaccine-badge badge-green" style="font-size: 12px; margin-top: 6px; display: inline-block; font-weight: bold;">✂️ ทำหมันแล้ว</span>' : ''}
                         </div>
                     </div>
                     <div class="card-actions">
@@ -630,5 +668,21 @@ window.cancelBooking = async function(docId) {
             alert("ยกเลิกคิวและคืนโควตาสำเร็จ");
             await loadQuotaAndDashboard(); loadMyPets(); 
         } catch(e) { alert("เกิดข้อผิดพลาดในการยกเลิก"); }
+    }
+}
+
+// [เพิ่มใหม่ 5.3] ฟังก์ชันสำหรับประชาชนกดรับข้อความคู่มือหลังผ่าตัด (ย้ายมาจากเฟส 1)
+window.sendPostOpCare = async function(petName) {
+    if (!liff.isInClient()) return alert("ฟังก์ชันนี้ใช้ได้เมื่อเปิดผ่านแอป LINE เท่านั้นครับ");
+    
+    try {
+        await liff.sendMessages([{
+            type: "text",
+            text: `📌 คำแนะนำการดูแลหลังผ่าตัด (น้อง${petName})\n\n๑. ให้สัตว์นอนในท่าปกติ(ท่านอนตะแคงข้างใดข้างหนึ่ง ระวังยาให้คอพับ) ในกรณีพื้นปูน พื้นกระเบื้องเย็น หรืออากาศหนาว ปูผ้ารองตัวสัตว์เพื่อให้ความอบอุ่น\n๒. อย่าทำการป้อนอาหารป้อนน้ำให้แก่สัตว์ที่ยังไม่รู้สึกตัว รอให้สัตว์ฟื้นจากยาสลบดีแล้วจึงให้อาหารและน้ำ โดยให้สัตว์เดินไปกินด้วยตัวเอง\n๓. ในช่วงแรกของการฟื้นระยะแรก สัตว์ยังทรงตัวไม่ดี คอยระมัดระวังไม่ให้ส่วนศีรษะกระแทกพื้น\n๔. หลังการผ่าตัดไม่ให้สัตว์เลีย กัดแทะแผลผ่าตัด หรือ กระโดด ต้องใส่อุปกรณ์กันเลีย เช่น ปลอกคอกันเลีย เสื้อผ่าตัด เป็นต้น เนื่องจากว่าน้ำลายสัตว์มีแบคทีเรีย เมื่อมีการเลีย กัดแทะแผล จะทำให้เกิดการติดเชื้อจะทำให้แผลไม่ติดกันได้\n๕. ป้อนยาสัตว์ตามที่สัตวแพทย์สั่งอย่างเคร่งครัด เพื่อป้องกันการติดเชื้อและอักเสบหลังผ่าตัด\n๖. ห้ามโดนน้ำ ห้ามอาบน้ำ ห้ามให้สัตว์อยู่ในที่ชื้น เป็นเวลา ๗ วัน หรือ จนกว่าแผลจะหาย\n๗. ปิดแผลให้ครบ ๗ วันหรือจนกว่าจะตัดไหม ยกเว้นแผลเปียกน้ำ ถ้าแผลผ่าตัดมีอาการแฉะให้เปิดแผลและแต้มด้วยเบตาดีนเท่านั้น จากนั้นปิดแผลด้วยผ้าก็อตและเทปสำหรับปิดแผล ห้าม!!!ใช้แอลกอฮอล์ล้างแผลโดยเด็ดขาด เพราะจะทำให้เนื้อเยื่อบริเวณปากแผลตายและจะทำให้แผลไม่ติดกัน`
+        }]);
+        alert("ระบบได้ส่งคำแนะนำเข้าแชท LINE ของท่านแล้ว กรุณากลับไปตรวจสอบที่แชทครับ");
+    } catch (e) {
+        console.error(e);
+        alert("เกิดข้อผิดพลาด ไม่สามารถส่งข้อความได้");
     }
 }
