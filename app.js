@@ -650,18 +650,46 @@ function setupAdminSearch() {
 
     searchBtn.addEventListener("click", async () => {
         const keyword = searchInput.value.trim();
-        if(!keyword) return alert("กรุณาพิมพ์ บ้านเลขที่-หมู่");
+        if(!keyword) return alert("กรุณาพิมพ์ บ้านเลขที่-หมู่, ชื่อ หรือเบอร์โทรศัพท์");
         const res = document.getElementById("admin-result-container");
         res.innerHTML = "<p style='text-align:center; color:#D4AF37;'>กำลังค้นหา...</p>";
 
         try {
-            const q = query(collection(db, "pets"), where("house_village_search", "==", keyword));
-            const snap = await getDocs(q);
-            if(snap.empty) { res.innerHTML = "<p style='text-align:center; color:#ff6b6b;'>ไม่พบข้อมูล</p>"; return; }
+            const petsRef = collection(db, "pets");
+            
+            // ค้นหา 3 รูปแบบพร้อมกัน
+            const qHouse = query(petsRef, where("house_village_search", "==", keyword));
+            const qPhone = query(petsRef, where("phone_number", "==", keyword));
+            // ใช้ >= และ <= สำหรับค้นหาชื่อที่ขึ้นต้นด้วยคำที่พิมพ์
+            const qName = query(petsRef, where("owner_name", ">=", keyword), where("owner_name", "<=", keyword + '\uf8ff'));
+
+            const [snapHouse, snapPhone, snapName] = await Promise.all([
+                getDocs(qHouse),
+                getDocs(qPhone),
+                getDocs(qName)
+            ]);
+
+            // ใช้ Map เพื่อป้องกันข้อมูลซ้ำ (Deduplicate)
+            const mergedResults = new Map();
+            const processSnap = (snap) => {
+                snap.forEach(d => {
+                    if (!mergedResults.has(d.id)) {
+                        mergedResults.set(d.id, d.data());
+                    }
+                });
+            };
+
+            processSnap(snapHouse);
+            processSnap(snapPhone);
+            processSnap(snapName);
+
+            if(mergedResults.size === 0) { 
+                res.innerHTML = "<p style='text-align:center; color:#ff6b6b;'>ไม่พบข้อมูล</p>"; 
+                return; 
+            }
 
             res.innerHTML = ""; window.currentSearchPets = {};
-            snap.forEach((d) => {
-                const pet = d.data(); const docId = d.id;
+            mergedResults.forEach((pet, docId) => {
                 window.currentSearchPets[docId] = pet;
                 
                 const badge = pet.consent_agreed ? `<span class="status-badge badge-green" style="cursor:pointer;" onclick="viewConsent('${docId}')">📄 เซ็นแล้ว (กดดู)</span>` : `<span class="status-badge badge-red">📄 ยังไม่เซ็น</span>`;
@@ -674,6 +702,7 @@ function setupAdminSearch() {
                     <div class="${cardClass}" id="card-${docId}">
                         <div style="flex: 1;">
                             <strong style="color: #D4AF37; font-size: 16px;">น้อง${pet.pet_name}</strong> 
+                            <br><span style="color:#A0B0C0; font-size: 12px;">👤 ${pet.owner_name} | 📞 ${pet.phone_number}</span>
                             <br><span style="color:#A0B0C0; font-size: 14px;">(${pet.pet_type} ${pet.pet_gender} - ${pet.service_type})</span>
                             <br>${badge}
                         </div>
