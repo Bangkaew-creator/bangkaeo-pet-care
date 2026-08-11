@@ -54,20 +54,18 @@
             <img id="user-profile-img" src="" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #D4AF37; display: none;">
         </div>
         
-        <!-- [เฟส 2] กล่องแสดงสถานะ รออนุมัติ จากเจ้าของบ้าน -->
         <div id="pending-member-msg" style="display: none; background: rgba(245, 166, 35, 0.1); border: 1px solid #F5A623; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
             <p style="color: #F5A623; font-size: 15px; font-weight: bold;">⏳ รอการอนุมัติสิทธิ์ครัวเรือน</p>
             <p style="color: #E0E5EC; font-size: 13px; margin-top: 5px;">ท่านได้ลงทะเบียนด้วยบ้านเลขที่ที่มีในระบบแล้ว กรุณารอให้เจ้าของบ้าน (ผู้ลงทะเบียนคนแรก) กดยอมรับสิทธิ์ของท่านเพื่อเริ่มใช้งาน</p>
         </div>
 
-        <!-- [เฟส 2] กล่องจัดการสมาชิก (สำหรับเจ้าของบ้าน) -->
         <div id="head-approval-box" class="card neumorphic" style="display: none; border-left: 5px solid #F5A623;">
             <h4 style="color: #F5A623; font-size: 15px; margin-bottom: 10px;">🔔 คำขอเข้าร่วมบ้าน (รออนุมัติ)</h4>
             <div id="pending-members-list"></div>
         </div>
         
         <div id="campaign-banner-container" class="card neumorphic" style="display: none; margin-bottom: 20px; border-left: 5px solid #50E3C2; padding: 15px;">
-            <h4 style="color: #50E3C2; font-size: 16px; margin-bottom: 10px;">📊 สถานะคิวโครงการปัจจุบัน</h4>
+            <h4 style="color: #50E3C2; font-size: 16px; margin-bottom: 10px;">📊 สถานะคิวโครงการ <span id="txt-campaign-name" style="font-size:12px; color:#A0B0C0;"></span></h4>
             <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
                 <div style="font-size: 13px; color: #A0B0C0; margin-bottom: 5px;">📅 <b>กำหนดการ:</b> <span id="txt-service-date">-</span></div>
                 <div style="font-size: 13px; color: #A0B0C0;">📍 <b>สถานที่:</b> <span id="txt-service-location">-</span></div>
@@ -88,9 +86,10 @@
         <button type="button" id="btn-show-add-pet" class="neumorphic-btn gold-btn" style="margin-bottom: 20px; width: 100%;">+ เพิ่มสัตว์เลี้ยงใหม่ในบ้าน</button>
         <div id="pet-cards-container"></div>
         
-       <div style="text-align: center; margin-top: 30px;">
-            <a href="public.html" style="color: #D4AF37; font-size: 15px; text-decoration: underline; cursor: pointer; display: block; margin-bottom: 15px;">ศูนย์ข้อมูลสาธารณะ / แจ้งเบาะแสจรจัด</a>
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="public.html" style="color: #D4AF37; font-size: 15px; text-decoration: underline; cursor: pointer; display: block; margin-bottom: 15px;">🌐 ไปยังศูนย์ข้อมูลสาธารณะ / แจ้งเบาะแสจรจัด</a>
             <a href="admin.html" style="color: #6A7A8A; font-size: 12px; text-decoration: underline; cursor: pointer;">สำหรับเจ้าหน้าที่เทศบาล / อสม.</a>
+        </div>
     </div>
 
     <!-- ================= ส่วนที่ 3: ฟอร์มเพิ่ม/แก้ไขสัตว์เลี้ยง ================= -->
@@ -120,6 +119,7 @@
                 <div class="input-group half"><label>อายุ (ปี) <span style="color:#ff6b6b">*</span></label><input type="number" id="p-age-year" class="neumorphic-input" value="0" min="0"></div>
                 <div class="input-group half"><label>อายุ (เดือน) <span style="color:#ff6b6b">*</span></label><input type="number" id="p-age-month" class="neumorphic-input" value="0" min="0" max="11"></div>
             </div>
+            <p style="font-size:11px; color:#50E3C2; margin-top:-10px; margin-bottom:15px;">*อายุจะถูกคำนวณบวกเพิ่มให้อัตโนมัติในแต่ละปี</p>
             
             <div class="row">
                 <div class="input-group half"><label>รูปแบบการเลี้ยง <span style="color:#ff6b6b">*</span></label>
