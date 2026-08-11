@@ -172,6 +172,7 @@ function setupNavigation() {
     document.getElementById("menu-proxy").addEventListener("click", () => switchView('view-proxy'));
     document.getElementById("menu-settings").addEventListener("click", () => { loadSettingsToForm(); switchView('view-settings'); });
     document.getElementById("menu-report").addEventListener("click", () => { window.generateReport(); switchView('view-report'); });
+    document.getElementById("menu-stray-manage")?.addEventListener("click", () => { switchView('view-stray-manage'); window.loadStrayReports(); });
     document.getElementById("menu-raw-data").addEventListener("click", () => { window.switchRawTab('household'); switchView('view-raw-data'); });
     document.getElementById("menu-logout").addEventListener("click", () => {
         if(confirm("ออกจากโหมดเจ้าหน้าที่?")) { localStorage.clear(); window.location.href = "registry.html"; }
@@ -560,8 +561,43 @@ window.switchRawTab = async function(tabName) {
             window.renderRawTable();
             
         } else if (tabName === 'stray') {
-             html = "<tr><td colspan='14' style='text-align:center;'>ระบบข้อมูลสัตว์จรจัด จะเปิดให้ใช้งานในเฟสที่ 3 ครับ</td></tr>";
-             count = 1;
+            thead.innerHTML = "<tr><th>อำเภอ</th><th>ตำบล</th><th>หมู่</th><th>สถานที่อาศัย</th><th>LocationDesc</th><th>FeederName</th><th>เลขบัตร</th><th>FeederPhone</th><th>จำนวนหมา</th><th>วัคซีน</th><th>ทำหมัน</th><th>จำนวนแมว</th><th>วัคซีน.1</th><th>ทำหมัน.1</th></tr>";
+            
+            const snap = await getDocs(collection(db, "stray_reports"));
+            window.rawTableData = []; 
+            snap.forEach(d => {
+                const r = d.data();
+                window.rawTableData.push({
+                    amphoe: sysConfig?.amphoe || "-",
+                    tambon: sysConfig?.tambon || "-",
+                    moo: r.moo || "-",
+                    loc: "สถานที่สาธารณะ/ที่จรจัด",
+                    landmark: r.landmark || "-",
+                    feeder_name: r.reporter_name || "-",
+                    card: "-",
+                    feeder_phone: r.reporter_phone || "-",
+                    dog_count: r.dog_count || 0,
+                    cat_count: r.cat_count || 0,
+                    status: r.status
+                });
+            });
+            
+            let html = "";
+            let count = 0;
+            window.rawTableData.forEach(r => {
+                count++;
+                // สำหรับข้อมูลจรจัด จะถือว่าถ้าลงพื้นที่จัดการแล้ว (completed) คือจับทำหมัน/วัคซีนแล้วตามเป้า
+                let isDone = r.status === "completed" ? 1 : 0; 
+                let dVac = r.dog_count > 0 ? (isDone ? r.dog_count : 0) : 0;
+                let dNeu = r.dog_count > 0 ? (isDone ? r.dog_count : 0) : 0;
+                let cVac = r.cat_count > 0 ? (isDone ? r.cat_count : 0) : 0;
+                let cNeu = r.cat_count > 0 ? (isDone ? r.cat_count : 0) : 0;
+
+                html += `<tr><td>${r.amphoe}</td><td>${r.tambon}</td><td>${r.moo}</td><td>${r.loc}</td><td>${r.landmark}</td><td>${r.feeder_name}</td><td>${r.card}</td><td>${r.feeder_phone}</td><td>${r.dog_count}</td><td>${dVac}</td><td>${dNeu}</td><td>${r.cat_count}</td><td>${cVac}</td><td>${cNeu}</td></tr>`;
+            });
+            if(count === 0) html = `<tr><td colspan="14" style="text-align:center;">ยังไม่มีข้อมูลเบาะแสสัตว์จรจัด</td></tr>`;
+            tbody.innerHTML = html;
+            return; // จบการทำงานของ tab stray ทันที
         }
     } catch(e) { tbody.innerHTML = `<tr><td colspan='24' style='color:#ff6b6b;'>Error: ${e.message}</td></tr>`; }
 }
@@ -886,4 +922,95 @@ function renderTable(tableId, data) {
         <tr><td style="text-align: left;">วัคซีนอย่างเดียว</td><td>${v.d.m}</td><td>${v.d.f}</td><td>${v.c.m}</td><td>${v.c.f}</td><td style="font-weight: bold;">${tv}</td></tr>
         <tr style="background: rgba(212, 175, 55, 0.1); font-weight: bold;"><td>รวมสุทธิ</td><td>${n.d.m + v.d.m}</td><td>${n.d.f + v.d.f}</td><td>${n.c.m + v.c.m}</td><td>${n.c.f + v.c.f}</td><td style="color: #D4AF37; font-size: 16px;">${tn + tv}</td></tr>
     `;
+}
+
+// ==========================================
+// [เฟส 3] ระบบจัดการสัตว์จรจัด (Admin Stray Management)
+// ==========================================
+window.loadStrayReports = async function() {
+    const container = document.getElementById("stray-reports-container");
+    const filter = document.getElementById("stray-filter-status").value;
+    container.innerHTML = "<p style='color:#D4AF37; text-align:center;'>กำลังดึงข้อมูลเบาะแส...</p>";
+
+    try {
+        const q = query(collection(db, "stray_reports"));
+        const snap = await getDocs(q);
+        
+        let reports = [];
+        snap.forEach(d => { reports.push({ id: d.id, ...d.data() }); });
+        
+        // เรียงจากใหม่ไปเก่า
+        reports.sort((a,b) => (b.reported_at?.toMillis() || 0) - (a.reported_at?.toMillis() || 0));
+
+        container.innerHTML = "";
+        let count = 0;
+        let pendingCount = 0;
+
+        reports.forEach(r => {
+            if (r.status === "pending") pendingCount++;
+            if (filter !== "all" && r.status !== filter) return;
+            count++;
+
+            const isPending = r.status === "pending";
+            const cardStyle = isPending ? "border-left: 5px solid #ff6b6b;" : "border-left: 5px solid #50E3C2; background: rgba(80, 227, 194, 0.05);";
+            const badge = isPending ? `<span style="background: rgba(255,107,107,0.2); color: #ff6b6b; padding: 2px 6px; border-radius: 4px; font-size: 11px;">🔴 รอดำเนินการ</span>` : `<span style="background: rgba(80,227,194,0.2); color: #50E3C2; padding: 2px 6px; border-radius: 4px; font-size: 11px;">✅ ดำเนินการแล้ว</span>`;
+            
+            let photoHtml = r.photo_base64 && r.photo_base64 !== "" 
+                ? `<img src="${r.photo_base64}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #81A1C1; flex-shrink:0;">` 
+                : `<div style="width: 100px; height: 100px; background: rgba(0,0,0,0.2); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:#6A7A8A; font-size:10px; text-align:center;">ไม่มีรูปภาพ</div>`;
+
+            let actionBtn = isPending 
+                ? `<button class="btn-action-small" style="background: #50E3C2; color: #141E30; border-color: #50E3C2; font-weight:bold;" onclick="window.updateStrayStatus('${r.id}', 'completed')">✔️ มาร์คว่าจัดการแล้ว</button>`
+                : `<button class="btn-action-small" style="background: transparent; color: #A0B0C0; border-color: rgba(255,255,255,0.2);" onclick="window.updateStrayStatus('${r.id}', 'pending')">↩️ ย้อนกลับสถานะ</button>`;
+
+            container.insertAdjacentHTML('beforeend', `
+                <div class="card neumorphic" style="padding: 15px; margin-bottom: 15px; ${cardStyle}">
+                    <div style="display: flex; gap: 15px;">
+                        ${photoHtml}
+                        <div style="flex-grow: 1; font-size: 13px; line-height: 1.6; color: #E0E5EC;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <b style="color: #D4AF37; font-size: 15px;">แจ้งพบที่: หมู่ ${r.moo}</b>
+                                ${badge}
+                            </div>
+                            <div style="color: #A0B0C0;">📍 ${r.landmark}</div>
+                            <div style="margin-top: 5px;">🐕 สุนัข: <b style="color:#FFF;">${r.dog_count}</b> ตัว | 🐈 แมว: <b style="color:#FFF;">${r.cat_count}</b> ตัว</div>
+                            <div style="margin-top: 5px; font-size: 12px; color: #81A1C1;">👤 ผู้แจ้ง: ${r.reporter_name} <a href="tel:${r.reporter_phone}" style="color: #D4AF37;">(📞 ${r.reporter_phone})</a></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button class="btn-action-small" style="color: #81A1C1; border-color: rgba(129,161,193,0.4);" onclick="window.openGoogleMaps(${r.lat}, ${r.lng})">🗺️ นำทาง Google Maps</button>
+                        ${actionBtn}
+                    </div>
+                </div>
+            `);
+        });
+
+        if (count === 0) container.innerHTML = `<p style="text-align:center; color:#A0B0C0;">ไม่พบข้อมูลเบาะแสในหมวดหมู่นี้</p>`;
+
+        // อัปเดต Badge สีแดงแจ้งเตือนแอดมินตรงเมนู (ถ้ามีเคสค้าง)
+        const badgeEl = document.getElementById("stray-badge");
+        if (badgeEl) {
+            if (pendingCount > 0) { badgeEl.textContent = pendingCount; badgeEl.style.display = "inline-block"; } 
+            else { badgeEl.style.display = "none"; }
+        }
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<p style="color:#ff6b6b; text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
+    }
+}
+
+window.openGoogleMaps = function(lat, lng) {
+    if(!lat || !lng) return alert("ไม่มีข้อมูลพิกัด GPS ที่ชัดเจน");
+    window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
+}
+
+window.updateStrayStatus = async function(docId, newStatus) {
+    const txt = newStatus === 'completed' ? 'ยืนยันว่าลงพื้นที่จัดการเคสนี้เรียบร้อยแล้ว?' : 'ย้อนกลับสถานะเป็น "รอดำเนินการ"?';
+    if(confirm(txt)) {
+        try {
+            await updateDoc(doc(db, "stray_reports"), { status: newStatus });
+            window.loadStrayReports();
+        } catch(e) { alert("อัปเดตสถานะไม่สำเร็จ"); }
+    }
 }
