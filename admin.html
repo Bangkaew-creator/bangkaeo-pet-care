@@ -85,7 +85,10 @@
             <div class="card neumorphic">
                 <div class="row" style="align-items: center;">
                     <div class="input-group" style="flex: 2; margin-bottom: 0;"><input type="text" id="search-house" class="neumorphic-input" placeholder="บ้านเลขที่ (เช่น 51/2-8)"></div>
-                    <div class="input-group" style="flex: 1; margin-bottom: 0;"><select id="search-moo" class="neumorphic-input"><option value="">ทุกหมู่</option></select></div>
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <!-- ให้ JS เติม Option แทนการใช้ document.write -->
+                        <select id="search-moo" class="neumorphic-input"><option value="">ทุกหมู่</option></select>
+                    </div>
                 </div>
                 <button type="button" id="btn-search" class="neumorphic-btn gold-btn" style="margin-top: 15px; width: 100%;">ค้นหาข้อมูล</button>
             </div>
@@ -101,7 +104,11 @@
                 <div class="input-group"><label>เบอร์โทรศัพท์</label><input type="tel" id="px-phone" class="neumorphic-input" placeholder="08X-XXX-XXXX"></div>
                 <div class="row">
                     <div class="input-group half"><label>บ้านเลขที่</label><input type="text" id="px-house" class="neumorphic-input"></div>
-                    <div class="input-group half"><label>หมู่ที่</label><select id="px-moo" class="neumorphic-input"><option value="" disabled selected>เลือก</option></select></div>
+                    <div class="input-group half">
+                        <label>หมู่ที่</label>
+                        <!-- ให้ JS เติม Option แทนการใช้ document.write -->
+                        <select id="px-moo" class="neumorphic-input"><option value="" disabled selected>เลือก</option></select>
+                    </div>
                 </div>
                 <div class="input-group checkbox-group"><input type="checkbox" id="px-is-rental" class="neumorphic-checkbox" onchange="document.getElementById('px-room-group').style.display = this.checked ? 'block' : 'none'"><label for="px-is-rental">เป็นบ้านเช่า/หอพัก</label></div>
                 <div class="input-group" id="px-room-group" style="display:none; margin-top: 10px;"><label>เลขห้อง</label><input type="text" id="px-room" class="neumorphic-input"></div>
@@ -109,7 +116,6 @@
 
             <div class="card neumorphic" id="proxy-pet-form">
                 <h3 class="section-title">2. เพิ่มสัตว์เลี้ยง (เพิ่มได้หลายตัว)</h3>
-                
                 <div style="text-align: center; margin-bottom: 20px;">
                     <img id="px-img-preview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #D4AF37; cursor: pointer; background: #1b2941;" onclick="document.getElementById('px-img-upload').click()">
                     <input type="file" id="px-img-upload" accept="image/*" style="display: none;">
@@ -196,7 +202,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- [เฟส 3] จัดการเบาะแสสัตว์จรจัด -->
         <div id="view-stray-manage" class="container admin-view">
             <h2 class="title" style="color: #ff6b6b; text-align: left; font-size: 18px;">🐕 จัดการเบาะแสสัตว์จรจัด</h2>
@@ -212,7 +218,7 @@
             </div>
             <div id="stray-reports-container"></div>
         </div>
-        
+
         <!-- 4. ตารางข้อมูลดิบ (Data) อิงตามตาราง ROD พร้อมระบบ Filter -->
         <div id="view-raw-data" class="container admin-view" style="max-width: 100%;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -233,32 +239,9 @@
                         <input type="text" id="raw-search" class="neumorphic-input" placeholder="🔍 ค้นหา (เช่น บ้านเลขที่, ชื่อ)" oninput="window.renderRawTable()">
                     </div>
                     <div style="flex: 1; min-width: 120px;">
+                        <!-- ให้ JS เติม Option แทนการใช้ document.write เพื่อป้องกัน UI พัง -->
                         <select id="raw-filter-moo" class="neumorphic-input" onchange="window.renderRawTable()">
                             <option value="">ทุกหมู่</option>
-                    <!-- [เฟส 3] Modal อัปเดตผลการจัดการสัตว์จรจัด (ROD) -->
-    <div id="stray-action-modal" class="modal-overlay" style="display: none; z-index: 3000;">
-        <div class="card neumorphic" style="width: 90%; max-width: 400px;">
-            <h3 class="section-title" style="color: #50E3C2;">✅ บันทึกผลการลงพื้นที่ (ROD)</h3>
-            <p style="font-size: 13px; color: #A0B0C0; margin-bottom: 15px;">ยอดที่ชาวบ้านแจ้ง: สุนัข <span id="stray-modal-rep-dog" style="color:#FFF;">0</span> ตัว | แมว <span id="stray-modal-rep-cat" style="color:#FFF;">0</span> ตัว</p>
-            
-            <div class="row">
-                <div class="input-group half"><label style="color:#D4AF37;">สุนัขทำหมัน (ตัว)</label><input type="number" id="stray-act-dog-neu" class="neumorphic-input" value="0" min="0"></div>
-                <div class="input-group half"><label style="color:#D4AF37;">สุนัขวัคซีน (ตัว)</label><input type="number" id="stray-act-dog-vac" class="neumorphic-input" value="0" min="0"></div>
-            </div>
-            <div class="row">
-                <div class="input-group half"><label style="color:#50E3C2;">แมวทำหมัน (ตัว)</label><input type="number" id="stray-act-cat-neu" class="neumorphic-input" value="0" min="0"></div>
-                <div class="input-group half"><label style="color:#50E3C2;">แมววัคซีน (ตัว)</label><input type="number" id="stray-act-cat-vac" class="neumorphic-input" value="0" min="0"></div>
-            </div>
-            
-            <input type="hidden" id="stray-modal-docid">
-            
-            <div class="row" style="margin-top: 15px;">
-                <button type="button" class="neumorphic-btn half outline-btn" onclick="document.getElementById('stray-action-modal').style.display='none'">ยกเลิก</button>
-                <button type="button" id="btn-confirm-stray-action" class="neumorphic-btn gold-btn half" style="background:#50E3C2; border-color:#50E3C2; color:#141E30;">บันทึกผล</button>
-            </div>
-        </div>
-    </div>
-                            <script>for(let i=1; i<=16; i++) document.write(`<option value="${i}">หมู่ ${i}</option>`);</script>
                         </select>
                     </div>
                     <div style="flex: 1; min-width: 120px;">
@@ -310,7 +293,6 @@
                 </div>
 
                 <h3 class="section-title" style="margin-top: 25px;">2. ข้อมูลหน่วยงาน</h3>
-                <!-- [เพิ่มใหม่] ส่วนอัปโหลดโลโก้ -->
                 <div style="text-align: center; margin-bottom: 20px;">
                     <img id="st-logo-preview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z'/%3E%3C/svg%3E" 
                          style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px dashed #81A1C1; cursor: pointer; background: #1b2941;" 
@@ -319,7 +301,6 @@
                     <div style="font-size: 11px; color: #6A7A8A; margin-top: 5px;">(แตะเพื่อเปลี่ยนโลโก้หน่วยงาน)</div>
                     <button type="button" id="btn-clear-logo" style="background: none; border: none; color: #ff6b6b; font-size: 11px; cursor: pointer; text-decoration: underline; margin-top: 5px;">ล้างรูปโลโก้</button>
                 </div>
-                <!-- จบส่วนอัปโหลดโลโก้ -->
                 <div class="input-group"><label>ชื่อหน่วยงาน (agency_name)</label><input type="text" id="st-agency" class="neumorphic-input"></div>
                 <div class="row"><div class="input-group half"><label>ตำบล</label><input type="text" id="st-tambon" class="neumorphic-input"></div><div class="input-group half"><label>อำเภอ</label><input type="text" id="st-amphoe" class="neumorphic-input"></div></div>
                 <div class="row"><div class="input-group half"><label>จังหวัด</label><input type="text" id="st-province" class="neumorphic-input"></div><div class="input-group half"><label>เบอร์โทร</label><input type="text" id="st-phone" class="neumorphic-input"></div></div>
@@ -393,6 +374,30 @@
                 </div>
             </div>
             <button onclick="document.getElementById('cert-modal').style.display='none'" class="neumorphic-btn outline-btn" style="width: 200px; color: white;">✖ ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <!-- [เฟส 3] Modal อัปเดตผลการจัดการสัตว์จรจัด (ROD) -->
+    <div id="stray-action-modal" class="modal-overlay" style="display: none; z-index: 3000;">
+        <div class="card neumorphic" style="width: 90%; max-width: 400px;">
+            <h3 class="section-title" style="color: #50E3C2;">✅ บันทึกผลการลงพื้นที่ (ROD)</h3>
+            <p style="font-size: 13px; color: #A0B0C0; margin-bottom: 15px;">ยอดที่ชาวบ้านแจ้ง: สุนัข <span id="stray-modal-rep-dog" style="color:#FFF;">0</span> ตัว | แมว <span id="stray-modal-rep-cat" style="color:#FFF;">0</span> ตัว</p>
+            
+            <div class="row">
+                <div class="input-group half"><label style="color:#D4AF37;">สุนัขทำหมัน (ตัว)</label><input type="number" id="stray-act-dog-neu" class="neumorphic-input" value="0" min="0"></div>
+                <div class="input-group half"><label style="color:#D4AF37;">สุนัขวัคซีน (ตัว)</label><input type="number" id="stray-act-dog-vac" class="neumorphic-input" value="0" min="0"></div>
+            </div>
+            <div class="row">
+                <div class="input-group half"><label style="color:#50E3C2;">แมวทำหมัน (ตัว)</label><input type="number" id="stray-act-cat-neu" class="neumorphic-input" value="0" min="0"></div>
+                <div class="input-group half"><label style="color:#50E3C2;">แมววัคซีน (ตัว)</label><input type="number" id="stray-act-cat-vac" class="neumorphic-input" value="0" min="0"></div>
+            </div>
+            
+            <input type="hidden" id="stray-modal-docid">
+            
+            <div class="row" style="margin-top: 15px;">
+                <button type="button" class="neumorphic-btn half outline-btn" onclick="document.getElementById('stray-action-modal').style.display='none'">ยกเลิก</button>
+                <button type="button" id="btn-confirm-stray-action" class="neumorphic-btn gold-btn half" style="background:#50E3C2; border-color:#50E3C2; color:#141E30;">บันทึกผล</button>
+            </div>
         </div>
     </div>
 
