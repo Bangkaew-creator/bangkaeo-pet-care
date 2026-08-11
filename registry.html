@@ -46,7 +46,6 @@
     <div id="dashboard-container" class="container" style="display: none;">
         <div class="project-header" style="text-align: left; display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
             <div style="display: flex; gap: 10px; align-items: center;">
-                <!-- [เพิ่มใหม่] โลโก้หน่วยงาน -->
                 <img id="header-agency-logo" src="" style="width: 40px; height: 40px; border-radius: 50%; display: none; object-fit: cover;">
                 <div>
                     <h3 style="font-size: 18px; color: #D4AF37;">สมุดประจำตัวสัตว์เลี้ยง</h3>
@@ -54,6 +53,18 @@
                 </div>
             </div>
             <img id="user-profile-img" src="" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #D4AF37; display: none;">
+        </div>
+        
+        <!-- [เฟส 2] กล่องแสดงสถานะ รออนุมัติ จากเจ้าของบ้าน -->
+        <div id="pending-member-msg" style="display: none; background: rgba(245, 166, 35, 0.1); border: 1px solid #F5A623; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+            <p style="color: #F5A623; font-size: 15px; font-weight: bold;">⏳ รอการอนุมัติสิทธิ์ครัวเรือน</p>
+            <p style="color: #E0E5EC; font-size: 13px; margin-top: 5px;">ท่านได้ลงทะเบียนด้วยบ้านเลขที่ที่มีในระบบแล้ว กรุณารอให้เจ้าของบ้าน (ผู้ลงทะเบียนคนแรก) กดยอมรับสิทธิ์ของท่านเพื่อเริ่มใช้งาน</p>
+        </div>
+
+        <!-- [เฟส 2] กล่องจัดการสมาชิก (สำหรับเจ้าของบ้าน) -->
+        <div id="head-approval-box" class="card neumorphic" style="display: none; border-left: 5px solid #F5A623;">
+            <h4 style="color: #F5A623; font-size: 15px; margin-bottom: 10px;">🔔 คำขอเข้าร่วมบ้าน (รออนุมัติ)</h4>
+            <div id="pending-members-list"></div>
         </div>
         
         <div id="campaign-banner-container" class="card neumorphic" style="display: none; margin-bottom: 20px; border-left: 5px solid #50E3C2; padding: 15px;">
