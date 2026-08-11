@@ -22,6 +22,7 @@ let adminMoo = localStorage.getItem("adminMoo");
 let currentAgencyLogoBase64 = ""; 
 const defaultLogoIcon = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z'/%3E%3C/svg%3E";
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
+const legalConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)";
 
 function formatThaiDate(dateStr) {
     if (!dateStr) return "-";
@@ -50,7 +51,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("btn-clear-admin-sig")?.addEventListener("click", () => { adminSignaturePad.clear(); });
     }
 
-    // [ย้าย Event Listener ของ Modal มาไว้ใน DOMContentLoaded เพื่อให้ทำงานชัวร์ๆ]
     document.getElementById("btn-confirm-stray-action")?.addEventListener("click", async () => {
         const docId = document.getElementById('stray-modal-docid').value;
         const dNeu = parseInt(document.getElementById('stray-act-dog-neu').value) || 0;
@@ -77,6 +77,54 @@ document.addEventListener("DOMContentLoaded", async () => {
             alert("บันทึกไม่สำเร็จ");
         } finally {
             btn.disabled = false; btn.textContent = "บันทึกผล";
+        }
+    });
+
+    // [เพิ่มใหม่] ฟังก์ชันเคลียร์คนไม่มาตามนัด (เลยวันนัด 3 วัน)
+    document.getElementById("btn-auto-cancel")?.addEventListener("click", async () => {
+        const currentCamp = sysConfig?.campaign_id || "";
+        const serviceDateStr = sysConfig?.nt_date || ""; // ต้องเป็นฟอร์แมต YYYY-MM-DD
+        
+        if (!currentCamp || !serviceDateStr) {
+            return alert("กรุณาตั้งชื่อรอบโครงการ และ 'วันให้บริการ (เช่น 2026-08-05)' ในหน้าตั้งค่าก่อนครับ");
+        }
+
+        const serviceDate = new Date(serviceDateStr);
+        const today = new Date();
+        const diffDays = Math.floor((today - serviceDate) / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 3) {
+            return alert(`ยังไม่พ้นกำหนด 3 วันครับ (เพิ่งผ่านมา ${diffDays >= 0 ? diffDays : 0} วัน)`);
+        }
+
+        if(confirm(`พ้นกำหนดวันให้บริการมาแล้ว ${diffDays} วัน\n\nต้องการเคลียร์คิวที่ 'จองคิวแต่ไม่ได้มารับบริการ' ในรอบ "${currentCamp}" ให้กลับไปเป็นสถานะปกติหรือไม่?\n(ยอดจองและโควตาของคนเหล่านั้นจะถูกรีเซต)`)) {
+            const btn = document.getElementById("btn-auto-cancel");
+            btn.disabled = true; btn.textContent = "กำลังเคลียร์ข้อมูล...";
+            try {
+                let clearCount = 0;
+                const snapAll = await getDocs(collection(db, "pets"));
+                
+                for (const d of snapAll.docs) {
+                    const p = d.data();
+                    if (p.campaign_id === currentCamp && p.status === "booked") {
+                        await updateDoc(doc(db, "pets", d.id), { 
+                            status: "registered", 
+                            service_type: null, 
+                            queue_no: null, 
+                            consent_agreed: false, 
+                            campaign_id: null 
+                        });
+                        clearCount++;
+                    }
+                }
+                alert(`✅ เคลียร์คิวตกหล่นสำเร็จทั้งหมด ${clearCount} รายการ!`);
+                location.reload();
+            } catch(e) { 
+                console.error(e);
+                alert("เกิดข้อผิดพลาดในการเคลียร์คิว"); 
+            } finally {
+                btn.disabled = false; btn.textContent = "🗑️ เคลียร์คิวตกหล่น (เลยกำหนด)";
+            }
         }
     });
     
@@ -222,15 +270,10 @@ function setupSearchLogic() {
         let selectedMoo = document.getElementById("search-moo").value;
         if(!rawInput) return alert("ระบุบ้านเลขที่, ชื่อ หรือเบอร์โทร");
 
-        if (adminRole === "volunteer" && selectedMoo !== adminMoo) {
-            // อนุโลมให้ค้นหาชื่อข้ามหมู่ได้ แต่ถ้าจะลงทะเบียนให้ จะถูกบังคับหมู่เดิม
-        }
-
         const resContainer = document.getElementById("search-result-container");
         resContainer.innerHTML = "<p style='color:#D4AF37; text-align:center;'>กำลังค้นหา...</p>";
 
         try {
-            // ถ้าพิมพ์เป็นแพทเทิร์น บ้านเลขที่-หมู่ (เช่น 51/2-8)
             let houseKey = null;
             if (rawInput.includes("-")) { 
                 const p = rawInput.split("-"); 
@@ -241,16 +284,13 @@ function setupSearchLogic() {
 
             const petsRef = collection(db, "pets");
             
-            // เตรียมคิวรี
             const queries = [];
             if (houseKey) queries.push(query(petsRef, where("house_village_search", ">=", houseKey), where("house_village_search", "<=", houseKey + '\uf8ff')));
             queries.push(query(petsRef, where("phone_number", "==", rawInput)));
             queries.push(query(petsRef, where("owner_name", ">=", rawInput), where("owner_name", "<=", rawInput + '\uf8ff')));
 
-            // ยิง Query พร้อมกัน
             const snapshots = await Promise.all(queries.map(q => getDocs(q)));
 
-            // ผสานผลลัพธ์
             const mergedResults = new Map();
             snapshots.forEach(snap => {
                 snap.forEach(d => {
@@ -733,7 +773,6 @@ function loadSettingsToForm() {
             document.getElementById("st-logo-preview").src = currentAgencyLogoBase64 || defaultLogoIcon;
         }
 
-        // [เฟส 3] โหลด Campaign ID
         if(document.getElementById("st-campaign-id")) {
             document.getElementById("st-campaign-id").value = sysConfig.campaign_id || "";
         }
@@ -810,7 +849,6 @@ window.printConsentA4 = async function(docId) {
         const printHouse = pet.house_no || user.house_no || "-";
         const printVillage = pet.village_no || user.village_no || "-";
 
-        // [แก้ปัญหาคิวไหล] ใช้เลขคิวที่บันทึกไว้ใน DB เลย ถ้าไม่มีให้ขึ้น N/A
         document.getElementById("p-queue-no").textContent = `คิวที่: ${pet.queue_no || 'N/A'}`;
         document.getElementById("p-owner-name").textContent = printName;
         document.getElementById("p-owner-name-sig").textContent = printName;
@@ -833,6 +871,84 @@ window.printConsentA4 = async function(docId) {
         document.head.removeChild(pageStyle);
     } catch (e) { console.error(e); alert("เกิดข้อผิดพลาดในการดึงข้อมูล"); }
 }
+
+const execBatchPrint = async (printType) => {
+    const btnAll = document.getElementById("btn-print-all-booked");
+    const btnCheck = document.getElementById("btn-print-checked-in");
+    btnAll.disabled = true; btnCheck.disabled = true;
+    
+    const currentCamp = sysConfig?.campaign_id || "";
+    if(!currentCamp) {
+        alert("กรุณาตั้งชื่อ 'รอบโครงการ (Campaign ID)' ในหน้าตั้งค่าก่อนพิมพ์ครับ");
+        btnAll.disabled = false; btnCheck.disabled = false;
+        return;
+    }
+
+    try {
+        const snap = await getDocs(collection(db, "pets")); 
+        let validPets = [];
+        snap.forEach(d => { 
+            const p = d.data(); 
+            if(p.status === "cancelled" || p.status === "deceased" || p.status === "moved" || !p.signature_base64 || !p.consent_agreed) return;
+            if((p.campaign_id || "") !== currentCamp) return;
+            
+            if (printType === 'checked_in' && p.status !== 'checked_in') return;
+            if (printType === 'all' && (p.status !== 'booked' && p.status !== 'checked_in')) return;
+
+            validPets.push({ id: d.id, ...p }); 
+        });
+
+        validPets.sort((a, b) => (a.queue_no || 0) - (b.queue_no || 0));
+        
+        if(validPets.length === 0) {
+            alert(`ไม่พบข้อมูลในรอบ "${currentCamp}" ตามเงื่อนไขที่เลือกครับ`);
+            return;
+        }
+
+        const container = document.getElementById("print-all-consents-container"); 
+        container.innerHTML = "";
+        const agency = sysConfig ? sysConfig.agency_name : "เทศบาล...";
+        
+        validPets.forEach((pet) => {
+            container.insertAdjacentHTML('beforeend', `
+                <div class="consent-page">
+                    <div class="queue-badge">คิวที่: ${pet.queue_no || 'N/A'}</div>
+                    <h2 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 5px;">ใบยินยอมผ่าตัดทำหมัน</h2>
+                    <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px;">กับ${agency} ร่วมกับปศุสัตว์จังหวัดสมุทรปราการ</h3>
+                    <div style="font-size: 16px; line-height: 2;">
+                        <p><strong>ข้าพเจ้า (ชื่อเจ้าของ):</strong> ${pet.owner_name}</p>
+                        <p><strong>เบอร์โทรศัพท์:</strong> ${pet.phone_number || "-"}</p>
+                        <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ ${pet.house_no} หมู่ที่ ${pet.village_no} ตำบลบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ</p>
+                        <p style="margin-top: 15px;"><strong>มีความประสงค์ขอรับบริการทำหมัน/ฉีดวัคซีน ให้แก่สัตว์เลี้ยงดังนี้:</strong></p>
+                        <p>ชื่อสัตว์เลี้ยง: ${pet.pet_name} &nbsp;&nbsp; ประเภท: ${pet.pet_type} &nbsp;&nbsp; เพศ: ${pet.pet_gender}</p>
+                        <p style="margin-top: 30px; text-indent: 40px; text-align: justify;">${legalConsentText}</p>
+                    </div>
+                    <div style="margin-top: 50px; text-align: center;">
+                        <img src="${pet.signature_base64}" style="max-height: 100px; display: block; margin: 0 auto; border-bottom: 1px dotted #000;">
+                        <p style="margin-top: 10px;">(ลงชื่อ) .............................................................. ผู้ยินยอม</p>
+                        <p style="margin-top: 5px;">(${pet.owner_name})</p>
+                    </div>
+                </div>
+            `);
+        });
+        
+        const pageStyle = document.createElement('style');
+        pageStyle.innerHTML = '@page { size: portrait; }';
+        document.head.appendChild(pageStyle);
+
+        document.getElementById('print-options-modal').style.display = 'none';
+        document.body.classList.add('print-all-consents-mode'); 
+        window.print(); 
+        document.body.classList.remove('print-all-consents-mode');
+        
+        document.head.removeChild(pageStyle);
+    } catch(e) { alert("เกิดข้อผิดพลาดในการโหลดข้อมูลพิมพ์"); } 
+    finally { btnAll.disabled = false; btnCheck.disabled = false; }
+};
+
+document.getElementById("btn-print-all-booked")?.addEventListener("click", () => execBatchPrint('all'));
+document.getElementById("btn-print-checked-in")?.addEventListener("click", () => execBatchPrint('checked_in'));
+
 
 function setupReportAndPrint() {
     document.getElementById("btn-print-report").addEventListener("click", () => { 
