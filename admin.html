@@ -80,6 +80,8 @@
         <!-- 1. ค้นหา & จัดการ -->
         <div id="view-checkin" class="container admin-view">
             <h2 class="title" style="color: #50E3C2; text-align: left; font-size: 18px;">🔍 ค้นหา & จัดการคิว</h2>
+            
+            <!-- [เปลี่ยนใหม่] ปุ่มพิมพ์แบบใหม่ และปุ่มออโต้แคนเซิล -->
             <div class="row admin-only" style="margin-bottom: 20px;">
                 <button type="button" onclick="document.getElementById('print-options-modal').style.display='flex'" class="neumorphic-btn outline-btn half" style="color: #81A1C1; border-color: rgba(129,161,193,0.4);">🖨️ พิมพ์ใบยินยอมรอบปัจจุบัน</button>
                 <button type="button" id="btn-auto-cancel" class="neumorphic-btn outline-btn half" style="color: #ff6b6b; border-color: rgba(255,107,107,0.4);">🗑️ เคลียร์คิวตกหล่น (เลยกำหนด)</button>
@@ -242,7 +244,6 @@
                         <input type="text" id="raw-search" class="neumorphic-input" placeholder="🔍 ค้นหา (เช่น บ้านเลขที่, ชื่อ)" oninput="window.renderRawTable()">
                     </div>
                     <div style="flex: 1; min-width: 120px;">
-                        <!-- ให้ JS เติม Option แทนการใช้ document.write เพื่อป้องกัน UI พัง -->
                         <select id="raw-filter-moo" class="neumorphic-input" onchange="window.renderRawTable()">
                             <option value="">ทุกหมู่</option>
                         </select>
@@ -310,7 +311,7 @@
 
                 <h3 class="section-title" style="margin-top: 25px;">3. กำหนดการและโควตา</h3>
                 <div class="input-group" style="background: rgba(212,175,55,0.1); padding: 10px; border-radius: 8px; border: 1px dashed #D4AF37;">
-                    <label style="color: #D4AF37; font-weight: bold;">ชื่อรอบโครงการ (Campaign ID) <span style="font-size: 11px; color:#A0B0C0;">*เมื่อเปลี่ยนชื่อรอบ โควตาบ้านละ 2 ตัวของประชาชนจะถูกรีเซตใหม่*</span></label>
+                    <label style="color: #D4AF37; font-weight: bold;">ชื่อรอบโครงการ (Campaign ID) <span style="font-size: 11px; color:#A0B0C0;">*เมื่อเปลี่ยนชื่อรอบ โควตาของประชาชนจะถูกรีเซตใหม่*</span></label>
                     <input type="text" id="st-campaign-id" class="neumorphic-input" placeholder="เช่น รอบที่ 1/2569 หรือ Round_1_2569">
                 </div>
                 <div class="input-group"><label>จำนวนทำหมันสูงสุดต่อบ้าน</label><input type="number" id="st-max-neuter" class="neumorphic-input" value="2"></div>
@@ -404,9 +405,6 @@
         </div>
     </div>
 
-    <!-- ฟอร์ม A4 สำหรับพิมพ์ (ซ่อนไว้) -->
-    <div id="print-all-consents-container" style="display: none;"></div>
-
     <!-- [เฟส 3] Modal ตัวเลือกการพิมพ์ใบยินยอม -->
     <div id="print-options-modal" class="modal-overlay" style="display: none; z-index: 3000;">
         <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
@@ -423,6 +421,10 @@
             <button type="button" onclick="document.getElementById('print-options-modal').style.display='none'" class="neumorphic-btn outline-btn" style="color: #ff6b6b; border-color: transparent;">ยกเลิก</button>
         </div>
     </div>
+
+    <!-- ฟอร์ม A4 สำหรับพิมพ์ (ซ่อนไว้) -->
+    <div id="print-all-consents-container" style="display: none;"></div>
+
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
     <!-- เพิ่มไลบรารี SheetJS สำหรับส่งออก Excel -->
