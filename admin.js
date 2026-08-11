@@ -802,24 +802,16 @@ window.printConsentA4 = async function(docId) {
     const pet = window.currentSearchPets[docId];
     if(!pet || !pet.signature_base64) return alert("ไม่สามารถพิมพ์ได้ เนื่องจากยังไม่มีลายเซ็น");
     try {
-        const snapAll = await getDocs(collection(db, "pets"));
-        let allPets = [];
-        snapAll.forEach(d => {
-            const p = d.data();
-            if(p.status !== "cancelled" && p.signature_base64 && p.consent_agreed) {
-                allPets.push({ id: d.id, time: p.signed_timestamp ? p.signed_timestamp.toMillis() : 0 });
-            }
-        });
-        allPets.sort((a,b) => a.time - b.time);
-        const qIndex = allPets.findIndex(p => p.id === docId);
-        const queueNo = qIndex !== -1 ? qIndex + 1 : "-";
+        const userSnap = await getDoc(doc(db, "users", pet.owner_uid));
+        const user = userSnap.exists() ? userSnap.data() : {};
 
-        const printName = pet.owner_name || "-";
-        const printPhone = pet.phone_number || "-";
-        const printHouse = pet.house_no || "-";
-        const printVillage = pet.village_no || "-";
+        const printName = pet.owner_name || user.owner_name || "-";
+        const printPhone = pet.phone_number || user.phone_number || "-";
+        const printHouse = pet.house_no || user.house_no || "-";
+        const printVillage = pet.village_no || user.village_no || "-";
 
-        document.getElementById("p-queue-no").textContent = `คิวที่: ${queueNo}`;
+        // [แก้ปัญหาคิวไหล] ใช้เลขคิวที่บันทึกไว้ใน DB เลย ถ้าไม่มีให้ขึ้น N/A
+        document.getElementById("p-queue-no").textContent = `คิวที่: ${pet.queue_no || 'N/A'}`;
         document.getElementById("p-owner-name").textContent = printName;
         document.getElementById("p-owner-name-sig").textContent = printName;
         document.getElementById("p-phone").textContent = printPhone;
