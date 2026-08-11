@@ -116,6 +116,17 @@ async function loadSystemConfig() {
                 const logoImg = document.getElementById("header-agency-logo");
                 if(logoImg) { logoImg.src = sysConfig.agency_logo_base64; logoImg.style.display = "block"; }
             }
+
+            // [อัปเดต] ดึงจำนวนหมู่จาก Config มาสร้าง Dropdown อัตโนมัติ
+            let mooCount = sysConfig.moo_count || 16;
+            let hhMooSelect = document.getElementById("hh-village-no");
+            if (hhMooSelect) {
+                let mooHtml = '<option value="" disabled selected>เลือก</option>';
+                for(let i=1; i<=mooCount; i++) {
+                    mooHtml += `<option value="${i}">หมู่ ${i}</option>`;
+                }
+                hhMooSelect.innerHTML = mooHtml;
+            }
         }
     } catch(e) { console.error("Error loading config:", e); }
 }
