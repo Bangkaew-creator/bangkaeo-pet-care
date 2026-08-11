@@ -10,6 +10,9 @@ let currentHouseholdKey = "";
 let currentPetBase64 = ""; 
 let sysConfig = null; 
 
+// [เฟส 2] ตัวแปรจัดการสิทธิ์
+let currentUserRole = "head"; 
+
 window.currentEditPetId = null; 
 window.myPetsData = {}; 
 window.bookingPetId = null;
@@ -109,7 +112,6 @@ async function loadSystemConfig() {
             document.getElementById("txt-agency-name").textContent = sysConfig.agency_name || "สมุดประจำตัวสัตว์เลี้ยง";
             document.getElementById("cert-back-agency").textContent = sysConfig.agency_name || "หน่วยงาน";
             
-            // [เพิ่มใหม่ 5.1] โชว์โลโก้ที่ Dashboard ถ้ามี
             if (sysConfig.agency_logo_base64) {
                 const logoImg = document.getElementById("header-agency-logo");
                 if(logoImg) { logoImg.src = sysConfig.agency_logo_base64; logoImg.style.display = "block"; }
@@ -127,18 +129,90 @@ async function checkUserData() {
             const u = userSnap.data();
             currentHouseholdKey = u.house_village_search || `${u.house_no}-${u.village_no}`;
             
+            // [เฟส 2] ตรวจสอบสิทธิ์ (ถ้าไม่มีตั้งไว้ ถือว่าเป็น head ตามข้อมูลเก่า)
+            currentUserRole = u.household_role || "head";
+            
             let displayAddress = `บ้านเลขที่ ${u.house_no} หมู่ ${u.village_no}`;
             if(u.is_rental && u.room_no) displayAddress += ` (ห้อง ${u.room_no})`;
             document.getElementById("display-household-info").textContent = displayAddress;
             
             document.getElementById("dashboard-container").style.display = "block";
             
-            await loadQuotaAndDashboard(); 
-            loadMyPets();
+            // [เฟส 2] แสดงสถานะตาม Role
+            if (currentUserRole === "pending") {
+                document.getElementById("pending-member-msg").style.display = "block";
+                document.getElementById("btn-show-add-pet").style.display = "none";
+                document.getElementById("pet-cards-container").innerHTML = ""; // ซ่อนสัตว์เลี้ยงระหว่างรอ
+            } else if (currentUserRole === "rejected") {
+                document.getElementById("pending-member-msg").style.display = "block";
+                document.getElementById("pending-member-msg").innerHTML = `<p style="color: #ff6b6b; font-size: 15px; font-weight: bold;">❌ คำขอถูกปฏิเสธ</p><p style="color: #E0E5EC; font-size: 13px; margin-top: 5px;">เจ้าของบ้านไม่อนุมัติสิทธิ์ครัวเรือนของท่าน หากมีข้อสงสัยโปรดติดต่อเจ้าหน้าที่</p>`;
+                document.getElementById("btn-show-add-pet").style.display = "none";
+                document.getElementById("pet-cards-container").innerHTML = "";
+            } else {
+                // เป็น head หรือ member
+                document.getElementById("pending-member-msg").style.display = "none";
+                document.getElementById("btn-show-add-pet").style.display = "block";
+                await loadQuotaAndDashboard(); 
+                loadMyPets();
+                
+                // ถ้าเป็น head ให้โหลดคำขอรออนุมัติ
+                if (currentUserRole === "head") {
+                    loadPendingMembers();
+                }
+            }
         } else {
             document.getElementById("household-setup-container").style.display = "block";
         }
     } catch (error) { console.error("Error", error); }
+}
+
+// [เพิ่มใหม่ เฟส 2] โหลดรายชื่อผู้รออนุมัติสำหรับเจ้าของบ้าน
+async function loadPendingMembers() {
+    try {
+        const q = query(collection(db, "users"), where("head_uid", "==", userProfileData.userId), where("household_role", "==", "pending"));
+        const snap = await getDocs(q);
+        
+        const box = document.getElementById("head-approval-box");
+        const list = document.getElementById("pending-members-list");
+        
+        if(snap.empty) {
+            box.style.display = "none";
+            return;
+        }
+        
+        box.style.display = "block";
+        list.innerHTML = "";
+        
+        snap.forEach(d => {
+            const m = d.data();
+            list.insertAdjacentHTML('beforeend', `
+                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(245, 166, 35, 0.2);">
+                    <div style="font-size: 13px; color: #E0E5EC;">
+                        👤 <b>${m.owner_name}</b><br>📞 <a href="tel:${m.phone_number}" style="color:#81A1C1;">${m.phone_number}</a>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="window.handleMember('${d.id}', 'member')" style="background: #50E3C2; border: none; color: #141E30; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);">✔️ รับ</button>
+                        <button onclick="window.handleMember('${d.id}', 'rejected')" style="background: transparent; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px;">❌ ปฏิเสธ</button>
+                    </div>
+                </div>
+            `);
+        });
+    } catch (error) { console.error("Error loading pending members", error); }
+}
+
+// [เพิ่มใหม่ เฟส 2] ฟังก์ชันกดยอมรับ/ปฏิเสธสมาชิก
+window.handleMember = async function(uid, status) {
+    const actionText = status === 'member' ? 'ยอมรับให้เป็นสมาชิกในบ้าน?' : 'ปฏิเสธคำขอนี้?';
+    if(confirm(`ยืนยันการ${actionText}`)) {
+        try {
+            await updateDoc(doc(db, "users", uid), { 
+                household_role: status, 
+                updated_at: serverTimestamp() 
+            });
+            alert("อัปเดตสิทธิ์เรียบร้อยแล้ว");
+            loadPendingMembers();
+        } catch(e) { alert("เกิดข้อผิดพลาดในการอัปเดตสิทธิ์"); }
+    }
 }
 
 // ==========================================
@@ -168,11 +242,24 @@ function setupHouseholdForm() {
             if(isRental && roomNo) searchKey = `${hNo}-${vNo}-${roomNo}`;
 
             try {
+                // [เฟส 2] ตรวจสอบว่ามีบ้านนี้อยู่แล้วหรือไม่ เพื่อกำหนด Role (Head/Pending)
+                const houseQ = query(collection(db, "users"), where("house_village_search", "==", searchKey), where("household_role", "==", "head"));
+                const houseSnap = await getDocs(houseQ);
+                
+                let role = "head";
+                let headUid = userProfileData.userId;
+                
+                if(!houseSnap.empty) {
+                    role = "pending";
+                    headUid = houseSnap.docs[0].id; // ล็อก UID ของหัวหน้าบ้านไว้
+                }
+
                 await setDoc(doc(db, "users", userProfileData.userId), {
                     owner_name: name, phone_number: phone, house_no: hNo, village_no: vNo,
                     is_rental: isRental, room_no: isRental ? roomNo : "",
                     line_displayName: userProfileData.displayName, picture_url: userProfileData.pictureUrl,
-                    house_village_search: searchKey, updated_at: serverTimestamp()
+                    house_village_search: searchKey, updated_at: serverTimestamp(),
+                    household_role: role, head_uid: headUid // บันทึกสิทธิ์ลงไป
                 }, { merge: true });
 
                 document.getElementById("household-setup-container").style.display = "none";
@@ -356,7 +443,7 @@ async function loadMyPets() {
             // รองรับฐานข้อมูลเก่าที่เคยใช้คำว่า "ฉีดแล้ว"
             let isVac = (pet.vaccine_status === "เคยฉีด" || pet.vaccine_status === "ฉีดแล้ว");
             
-            // [แก้ไขใหม่ 5.2] บล็อกสถานะวัคซีน เพื่อรองรับไฟสีเหลือง 🟡
+            // บล็อกสถานะวัคซีน เพื่อรองรับไฟสีเหลือง 🟡
             let vacBadge = `<span class="vaccine-badge badge-red">🔴 ไม่เคยฉีด</span>`;
             let needVaccine = true;
             
@@ -394,7 +481,7 @@ async function loadMyPets() {
                 let statusIcon = pet.status === "checked_in" ? "✅ รับบริการแล้ว" : `🎫 บัตรคิว #${pet.queue_no || '-'}`;
                 let cancelBtn = pet.status === "booked" ? `<button class="btn-action-small btn-cancel-neuter" onclick="window.cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>` : "";
                 
-                // [เพิ่มใหม่ 5.2] ปุ่มรับคู่มือหลังผ่าตัด
+                // ปุ่มรับคู่มือหลังผ่าตัด
                 let postOpBtn = (pet.status === "checked_in" && pet.service_type && pet.service_type.includes("ทำหมัน")) 
                                 ? `<button class="btn-action-small" style="color: #50E3C2; border-color: #50E3C2; margin-top: 5px;" onclick="window.sendPostOpCare('${pet.pet_name}')">📥 รับคู่มือดูแลแผล</button>` 
                                 : "";
@@ -686,3 +773,176 @@ window.sendPostOpCare = async function(petName) {
         alert("เกิดข้อผิดพลาด ไม่สามารถส่งข้อความได้");
     }
 }
+
+
+There is a file you can reference named "style.css". Refer to this file by its name verbatim.
+[source: 18]* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
+body { background-color: #141E30; color: #E0E5EC; min-height: 100vh; padding: 20px 15px; }
+.loading-screen { display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 18px; color: #D4AF37; }
+.container { max-width: 500px; margin: 0 auto; padding-bottom: 50px; }
+.title { text-align: center; color: #D4AF37; margin-bottom: 20px; font-size: 22px; }
+
+/* Header & Sidebar */
+.project-header { text-align: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(212, 175, 55, 0.2); }
+.project-header h3 { color: #D4AF37; font-size: 18px; line-height: 1.3; }
+.project-header p { color: #A0B0C0; font-size: 14px; margin-top: 5px; }
+.hamburger-btn { background: none; border: none; color: #D4AF37; font-size: 28px; cursor: pointer; padding: 0 10px; transition: 0.3s; }
+.hamburger-btn:hover { color: #FFF; }
+.sidebar { height: 100%; width: 250px; position: fixed; z-index: 1000; top: 0; right: -250px; background-color: #0a0f18; box-shadow: -5px 0 15px rgba(0,0,0,0.5); overflow-x: hidden; transition: 0.3s; padding-top: 60px; }
+.sidebar a { padding: 15px 20px; text-decoration: none; font-size: 16px; color: #E0E5EC; display: block; transition: 0.2s; border-bottom: 1px solid #141E30; }
+.sidebar a:hover { color: #D4AF37; background-color: #141E30; border-left: 4px solid #D4AF37; }
+.sidebar .close-btn { position: absolute; top: 10px; right: 20px; font-size: 36px; border: none; padding: 0; }
+
+/* Neumorphism UI */
+.card { padding: 20px; border-radius: 15px; margin-bottom: 20px; }
+.neumorphic { background: #141E30; box-shadow: 6px 6px 12px #0d131f, -6px -6px 12px #1b2941; }
+.neumorphic-inner { background: #141E30; box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; border-radius: 10px; }
+.section-title { color: #D4AF37; margin-bottom: 15px; font-size: 18px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 5px; }
+.input-group { margin-bottom: 15px; }
+.input-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #A0B0C0; }
+.row { display: flex; gap: 15px; }
+.half { flex: 1; }
+
+.neumorphic-input { width: 100%; padding: 12px 15px; border: none; border-radius: 10px; background: #141E30; color: #FFF; font-size: 16px; outline: none; box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; }
+.neumorphic-input::placeholder { color: #6A7A8A; }
+.checkbox-group { display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; }
+.checkbox-group input { margin-top: 5px; transform: scale(1.2); }
+
+.neumorphic-btn { width: 100%; padding: 15px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; color: #A0B0C0; background: #141E30; box-shadow: 4px 4px 8px #0d131f, -4px -4px 8px #1b2941; transition: 0.2s; }
+.neumorphic-btn:active { box-shadow: inset 4px 4px 8px #0d131f, inset -4px -4px 8px #1b2941; }
+.gold-btn { color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.2); }
+.gold-btn:disabled { color: #6A7A8A; border: none; opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+.outline-btn { color: #81A1C1; border: 1px dashed #81A1C1; box-shadow: none; background: transparent; }
+
+/* Dashboard Progress */
+.progress-container { margin-bottom: 10px; }
+.progress-label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: #B0C4DE; }
+.progress-track { width: 100%; height: 12px; background: #0d131f; border-radius: 10px; box-shadow: inset 2px 2px 5px #0a0e17, inset -2px -2px 5px #141e30; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #B8962E, #D4AF37); border-radius: 10px; transition: width 0.5s ease; }
+.progress-fill.vaccine { background: linear-gradient(90deg, #4A90E2, #50E3C2); }
+
+/* Lists & Items */
+.pet-item { padding: 15px; margin-bottom: 10px; border-radius: 10px; background: #1b2941; border-left: 4px solid #D4AF37; font-size: 14px; position: relative;}
+.pet-item .remove-btn { position: absolute; right: 10px; top: 10px; color: #ff6b6b; background: none; border: none; cursor: pointer; font-weight: bold;}
+.btn-cancel-pet { background: transparent; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 10px; transition: 0.3s; }
+.btn-cancel-pet:hover { background: rgba(255,107,107,0.2); }
+
+/* Step UI & Canvas */
+.step-content { display: none; }
+.step-content.active { display: block; animation: fadeIn 0.4s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.terms-box { padding: 15px; max-height: 180px; overflow-y: auto; font-size: 14px; line-height: 1.6; color: #E0E5EC; }
+.disabled-section { opacity: 0.3; pointer-events: none; transition: 0.3s; }
+.disabled-section.active { opacity: 1; pointer-events: auto; }
+canvas.signature-pad { width: 100%; height: 150px; border-radius: 10px; background: #FFF; margin-top: 10px; border: 2px solid #D4AF37; touch-action: none; cursor: crosshair; }
+.clear-btn { background: none; border: none; color: #ff6b6b; font-size: 14px; text-decoration: underline; margin-top: 5px; cursor: pointer; display: block; text-align: right; width: 100%; }
+
+/* Modal & Admin Cards */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; display: flex; justify-content: center; align-items: center; }
+.admin-card { padding: 15px; border-radius: 10px; background: #1b2941; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #81A1C1; }
+.admin-card.checked { border-left-color: #50E3C2; background: #12222b; }
+.status-badge { display: inline-block; padding: 4px 8px; border-radius: 5px; font-size: 12px; margin-top: 5px; font-weight: bold; }
+.badge-green { background: rgba(80, 227, 194, 0.2); color: #50E3C2; border: 1px solid #50E3C2; }
+.badge-red { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid #ff6b6b; }
+
+/* ตารางสรุปรายงาน */
+.table-responsive { width: 100%; overflow-x: auto; }
+.neumorphic-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; margin-top: 10px; }
+.neumorphic-table th, .neumorphic-table td { padding: 12px; border: 1px solid rgba(160, 176, 192, 0.2); }
+.neumorphic-table th { background: #0d131f; color: #A0B0C0; font-weight: 600; }
+.neumorphic-table td { color: #E0E5EC; }
+.print-only { display: none; }
+
+/* UI ใบรับรองหน้าประชาชน (ปรับเสริม) */
+.pet-card { background: rgba(0, 0, 0, 0.15); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid #D4AF37; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.pet-card-left { display: flex; gap: 15px; flex-grow: 1; }
+.pet-photo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #D4AF37; flex-shrink: 0; background-color: #1b2941; }
+.pet-info { color: #E0E5EC; font-size: 13px; line-height: 1.5; }
+.pet-name { color: #D4AF37; font-size: 18px; font-weight: 600; margin-bottom: 3px; }
+
+.vaccine-badge { font-size: 12px; font-weight: bold; display: inline-block; margin-top: 6px; }
+.vaccine-badge.badge-green { color: #50E3C2; background: transparent !important; border: none !important; padding: 0 !important; }
+.vaccine-badge.badge-red { color: #ff6b6b; background: transparent !important; border: none !important; padding: 0 !important; }
+
+.card-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; width: 110px; }
+.btn-action-small { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: #FFF; font-size: 11px; padding: 8px 5px; border-radius: 8px; cursor: pointer; font-family: 'Sarabun', sans-serif; transition: 0.3s; width: 100%; text-align: center; }
+.btn-edit { color: #81A1C1; border-color: rgba(129, 161, 193, 0.4); }
+.btn-delete { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.4); }
+.btn-neuter { color: #141E30; border-color: #50E3C2; background: #50E3C2; font-weight: bold; }
+.btn-vaccine { color: #141E30; border-color: #81A1C1; background: #81A1C1; font-weight: bold; }
+.btn-neuter-ticket { color: #D4AF37; border-color: #D4AF37; background: rgba(212, 175, 55, 0.1); font-weight: bold; }
+.btn-cancel-neuter { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.4); background: transparent; font-weight: bold; }
+
+.flip-card { background-color: transparent; width: 100%; max-width: 340px; height: 500px; perspective: 1000px; margin: 0 auto; }
+.flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; cursor: pointer; }
+.flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+.flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 15px; padding: 25px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; box-sizing: border-box; }
+.flip-card-front { background: linear-gradient(145deg, #141E30, #243B55); border: 2px solid #D4AF37; color: white; }
+.flip-card-back { background: #E0E5EC; color: #141E30; transform: rotateY(180deg); border: 2px solid #D4AF37; text-align: left; }
+
+.admin-view { display: none; }
+.raw-table-wrapper { width: 100%; overflow-x: auto; max-height: 600px; overflow-y: auto; background: #0d131f; border-radius: 10px; }
+.raw-table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.raw-table th, .raw-table td { padding: 10px 15px; border: 1px solid rgba(255,255,255,0.05); text-align: left; }
+.raw-table th { background: #1b2941; color: #D4AF37; position: sticky; top: 0; z-index: 10; font-weight: 600; }
+.raw-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.tab-btn { background: transparent; border: 1px solid #81A1C1; color: #81A1C1; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-right: 5px; transition: 0.2s;}
+.tab-btn.active { background: #81A1C1; color: #141E30; font-weight: bold; }
+
+/* ==========================================
+   CSS สำหรับการ Print หรือ Save as PDF
+   ========================================== */
+@media print {
+    body { background: #FFF !important; color: #000 !important; padding: 0 !important; margin: 0 !important; }
+    .no-print, #btn-staff-login, .title, .loading-screen, .project-header { display: none !important; }
+    
+    /* โหมดพิมพ์รายงานสรุป (แนวนอนปลดล็อกความกว้าง 100%) */
+    body.print-report-mode #main-wrapper { display: block !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    body.print-report-mode #view-checkin, body.print-report-mode #view-proxy, body.print-report-mode #view-raw-data, body.print-report-mode #view-settings { display: none !important; }
+    
+    body.print-report-mode #view-report { display: block !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    body.print-report-mode .container { max-width: 100% !important; } /* สำคัญมาก: ปลดล็อกกรอบของ .container เดิม */
+    body.print-report-mode .card.neumorphic { box-shadow: none !important; background: transparent !important; padding: 0 !important; margin-bottom: 25px !important; border: none !important; width: 100% !important; }
+    body.print-report-mode .section-title { color: #000 !important; border-bottom: 2px solid #000 !important; font-size: 16px !important; text-align: left; }
+    body.print-report-mode .neumorphic-table { width: 100% !important; }
+    body.print-report-mode .neumorphic-table th, body.print-report-mode .neumorphic-table td { border: 1px solid #000 !important; color: #000 !important; padding: 8px !important; font-size: 14px !important; }
+    body.print-report-mode .neumorphic-table th { background: #f0f0f0 !important; font-weight: bold !important; }
+    body.print-report-mode .print-only { display: block !important; }
+    body.print-report-mode #print-signatures { display: flex !important; justify-content: space-between !important; margin-top: 40px !important; page-break-inside: avoid; width: 100% !important; }
+    body.print-report-mode .sig-box { text-align: center; font-size: 14px; line-height: 1.6; width: 32%; }
+    body.print-report-mode #btn-print-report { display: none !important; }
+
+    /* โหมดพิมพ์ใบยินยอม A4 ใบเดียว (แนวตั้ง) */
+    body.print-consent-mode #app-container, body.print-consent-mode #admin-container, body.print-consent-mode #report-container, body.print-consent-mode #settings-container { display: none !important; }
+    body.print-consent-mode #print-consent-form { display: block !important; padding: 0; font-family: 'Sarabun', sans-serif; color: #000; width: 100%; max-width: 100%; }
+
+    /* โหมดพิมพ์ใบยินยอม Batch ทั้งหมด (แนวตั้ง) */
+    body.print-all-consents-mode #app-container, body.print-all-consents-mode #main-wrapper, body.print-all-consents-mode #admin-container, body.print-all-consents-mode #report-container, body.print-all-consents-mode #settings-container, body.print-all-consents-mode #print-consent-form, body.print-all-consents-mode #view-checkin, body.print-all-consents-mode #view-proxy, body.print-all-consents-mode #view-report, body.print-all-consents-mode #view-raw-data, body.print-all-consents-mode #view-settings { display: none !important; }
+    body.print-all-consents-mode #print-all-consents-container { display: block !important; width: 100% !important; max-width: 100% !important; }
+    
+    /* CSS ควบคุมให้ขึ้นหน้าใหม่ในแต่ละใบยินยอม (โครงสร้างแบบคลาสสิค) */
+    .consent-page {
+        page-break-after: always;
+        padding: 0;
+        margin: 0;
+        font-family: 'Sarabun', sans-serif;
+        color: #000;
+        position: relative;
+        min-height: 95vh;
+        width: 100%;
+    }
+    .consent-page:last-child { page-break-after: auto; }
+    
+    /* กรอบคิวมุมขวาบน (แบบเก่า) */
+    .queue-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        font-size: 18px;
+        font-weight: bold;
+        border: 2px solid #000;
+        padding: 8px 20px;
+        border-radius: 8px;
+    }
+}
+.vaccine-badge.badge-yellow { color: #F5A623; background: transparent !important; border: none !important; padding: 0 !important; }
