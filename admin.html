@@ -80,7 +80,10 @@
         <!-- 1. ค้นหา & จัดการ -->
         <div id="view-checkin" class="container admin-view">
             <h2 class="title" style="color: #50E3C2; text-align: left; font-size: 18px;">🔍 ค้นหา & จัดการคิว</h2>
-            <button type="button" id="btn-print-all-consents" class="neumorphic-btn outline-btn admin-only" style="color: #81A1C1; border-color: rgba(129,161,193,0.4); margin-bottom: 20px;">🖨️ พิมพ์ใบยินยอมทั้งหมด (Batch Print)</button>
+            <div class="row admin-only" style="margin-bottom: 20px;">
+                <button type="button" onclick="document.getElementById('print-options-modal').style.display='flex'" class="neumorphic-btn outline-btn half" style="color: #81A1C1; border-color: rgba(129,161,193,0.4);">🖨️ พิมพ์ใบยินยอมรอบปัจจุบัน</button>
+                <button type="button" id="btn-auto-cancel" class="neumorphic-btn outline-btn half" style="color: #ff6b6b; border-color: rgba(255,107,107,0.4);">🗑️ เคลียร์คิวตกหล่น (เลยกำหนด)</button>
+            </div>
 
             <div class="card neumorphic">
                 <div class="row" style="align-items: center;">
@@ -404,6 +407,22 @@
     <!-- ฟอร์ม A4 สำหรับพิมพ์ (ซ่อนไว้) -->
     <div id="print-all-consents-container" style="display: none;"></div>
 
+    <!-- [เฟส 3] Modal ตัวเลือกการพิมพ์ใบยินยอม -->
+    <div id="print-options-modal" class="modal-overlay" style="display: none; z-index: 3000;">
+        <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
+            <h3 class="section-title" style="color: #81A1C1;">🖨️ ตัวเลือกการพิมพ์ใบยินยอม</h3>
+            <p style="font-size: 13px; color: #A0B0C0; margin-bottom: 15px;">ระบบจะดึงข้อมูลเฉพาะรอบ <strong id="print-camp-name" style="color:#D4AF37;">ปัจจุบัน</strong> เท่านั้น</p>
+            
+            <button type="button" id="btn-print-checked-in" class="neumorphic-btn gold-btn" style="margin-bottom: 10px; background: rgba(80, 227, 194, 0.1); border-color: #50E3C2; color: #50E3C2;">
+                ✅ พิมพ์เฉพาะคนที่มารับบริการแล้ว
+            </button>
+            <button type="button" id="btn-print-all-booked" class="neumorphic-btn outline-btn" style="margin-bottom: 20px; color: #D4AF37; border-color: #D4AF37;">
+                ⏳ พิมพ์ผู้ที่จองคิวทั้งหมด (รวมที่ยังไม่มา)
+            </button>
+            
+            <button type="button" onclick="document.getElementById('print-options-modal').style.display='none'" class="neumorphic-btn outline-btn" style="color: #ff6b6b; border-color: transparent;">ยกเลิก</button>
+        </div>
+    </div>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
     <!-- เพิ่มไลบรารี SheetJS สำหรับส่งออก Excel -->
