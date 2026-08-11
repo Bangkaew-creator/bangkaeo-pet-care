@@ -586,12 +586,11 @@ window.switchRawTab = async function(tabName) {
             let count = 0;
             window.rawTableData.forEach(r => {
                 count++;
-                // สำหรับข้อมูลจรจัด จะถือว่าถ้าลงพื้นที่จัดการแล้ว (completed) คือจับทำหมัน/วัคซีนแล้วตามเป้า
-                let isDone = r.status === "completed" ? 1 : 0; 
-                let dVac = r.dog_count > 0 ? (isDone ? r.dog_count : 0) : 0;
-                let dNeu = r.dog_count > 0 ? (isDone ? r.dog_count : 0) : 0;
-                let cVac = r.cat_count > 0 ? (isDone ? r.cat_count : 0) : 0;
-                let cNeu = r.cat_count > 0 ? (isDone ? r.cat_count : 0) : 0;
+                // [เฟส 3] ดึงค่าที่แอดมินกรอกจริงๆ (Actual Done) มาลงตาราง ROD 
+                let dVac = r.dog_vac_done || 0;
+                let dNeu = r.dog_neu_done || 0;
+                let cVac = r.cat_vac_done || 0;
+                let cNeu = r.cat_neu_done || 0;
 
                 html += `<tr><td>${r.amphoe}</td><td>${r.tambon}</td><td>${r.moo}</td><td>${r.loc}</td><td>${r.landmark}</td><td>${r.feeder_name}</td><td>${r.card}</td><td>${r.feeder_phone}</td><td>${r.dog_count}</td><td>${dVac}</td><td>${dNeu}</td><td>${r.cat_count}</td><td>${cVac}</td><td>${cNeu}</td></tr>`;
             });
@@ -699,6 +698,7 @@ function loadSettingsToForm() {
     if(sysConfig) {
         document.getElementById("st-moo-count").value = sysConfig.moo_count || 16;
         document.getElementById("st-agency").value = sysConfig.agency_name || "";
+        document.getElementById("st-campaign-id").value = sysConfig.campaign_id || "";
         
         // [เพิ่มใหม่] โหลดรูปภาพโลโก้เดิมมาแสดง
         currentAgencyLogoBase64 = sysConfig.agency_logo_base64 || "";
@@ -737,6 +737,7 @@ function setupSettingsForm() {
         const btn = document.getElementById("btn-save-settings"); btn.disabled = true; btn.textContent = "กำลังบันทึก...";
         try {
             const updates = {
+                campaign_id: document.getElementById("st-campaign-id").value.trim(),
                 moo_count: parseInt(document.getElementById("st-moo-count").value) || 16, max_neuter_per_house: parseInt(document.getElementById("st-max-neuter").value) || 2,
                 agency_name: document.getElementById("st-agency").value, tambon: document.getElementById("st-tambon").value, amphoe: document.getElementById("st-amphoe").value, province: document.getElementById("st-province").value, phone: document.getElementById("st-phone").value,
                 nt_start_reg: document.getElementById("st-start").value, nt_end_reg: document.getElementById("st-end").value, nt_date: document.getElementById("st-nt-date").value, nt_location: document.getElementById("st-nt-loc").value,
@@ -959,8 +960,9 @@ window.loadStrayReports = async function() {
                 ? `<img src="${r.photo_base64}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #81A1C1; flex-shrink:0;">` 
                 : `<div style="width: 100px; height: 100px; background: rgba(0,0,0,0.2); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:#6A7A8A; font-size:10px; text-align:center;">ไม่มีรูปภาพ</div>`;
 
+            // [เปลี่ยนให้เปิด Modal แทนการบันทึกทันที]
             let actionBtn = isPending 
-                ? `<button class="btn-action-small" style="background: #50E3C2; color: #141E30; border-color: #50E3C2; font-weight:bold;" onclick="window.updateStrayStatus('${r.id}', 'completed')">✔️ มาร์คว่าจัดการแล้ว</button>`
+                ? `<button class="btn-action-small" style="background: #50E3C2; color: #141E30; border-color: #50E3C2; font-weight:bold;" onclick="window.openStrayActionModal('${r.id}', ${r.dog_count}, ${r.cat_count})">✔️ มาร์คว่าจัดการแล้ว</button>`
                 : `<button class="btn-action-small" style="background: transparent; color: #A0B0C0; border-color: rgba(255,255,255,0.2);" onclick="window.updateStrayStatus('${r.id}', 'pending')">↩️ ย้อนกลับสถานะ</button>`;
 
             container.insertAdjacentHTML('beforeend', `
@@ -973,7 +975,8 @@ window.loadStrayReports = async function() {
                                 ${badge}
                             </div>
                             <div style="color: #A0B0C0;">📍 ${r.landmark}</div>
-                            <div style="margin-top: 5px;">🐕 สุนัข: <b style="color:#FFF;">${r.dog_count}</b> ตัว | 🐈 แมว: <b style="color:#FFF;">${r.cat_count}</b> ตัว</div>
+                            <div style="margin-top: 5px;">🐕 สุนัขแจ้ง: <b style="color:#FFF;">${r.dog_count}</b> | 🐈 แมวแจ้ง: <b style="color:#FFF;">${r.cat_count}</b></div>
+                            ${!isPending ? `<div style="margin-top: 5px; color: #50E3C2;">✅ ผลงานทำจริง: (หมาหมัน ${r.dog_neu_done}, หมาวัคซีน ${r.dog_vac_done}) (แมวหมัน ${r.cat_neu_done}, แมววัคซีน ${r.cat_vac_done})</div>` : ''}
                             <div style="margin-top: 5px; font-size: 12px; color: #81A1C1;">👤 ผู้แจ้ง: ${r.reporter_name} <a href="tel:${r.reporter_phone}" style="color: #D4AF37;">(📞 ${r.reporter_phone})</a></div>
                         </div>
                     </div>
@@ -987,7 +990,6 @@ window.loadStrayReports = async function() {
 
         if (count === 0) container.innerHTML = `<p style="text-align:center; color:#A0B0C0;">ไม่พบข้อมูลเบาะแสในหมวดหมู่นี้</p>`;
 
-        // อัปเดต Badge สีแดงแจ้งเตือนแอดมินตรงเมนู (ถ้ามีเคสค้าง)
         const badgeEl = document.getElementById("stray-badge");
         if (badgeEl) {
             if (pendingCount > 0) { badgeEl.textContent = pendingCount; badgeEl.style.display = "inline-block"; } 
@@ -1005,16 +1007,63 @@ window.openGoogleMaps = function(lat, lng) {
     window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
 }
 
-window.updateStrayStatus = async function(docId, newStatus) {
-    const txt = newStatus === 'completed' ? 'ยืนยันว่าลงพื้นที่จัดการเคสนี้เรียบร้อยแล้ว?' : 'ย้อนกลับสถานะเป็น "รอดำเนินการ"?';
-    if(confirm(txt)) {
+// [เพิ่มใหม่ เฟส 3] ฟังก์ชันเปิดกล่องกรอกผลงาน
+window.openStrayActionModal = function(docId, repDog, repCat) {
+    document.getElementById('stray-modal-docid').value = docId;
+    document.getElementById('stray-modal-rep-dog').textContent = repDog;
+    document.getElementById('stray-modal-rep-cat').textContent = repCat;
+    
+    // ตั้งค่า Default เป็นเลขเดียวกับที่แจ้งมา เพื่อให้แอดมินไม่ต้องพิมพ์ใหม่ถ้าตัวเลขตรงกัน
+    document.getElementById('stray-act-dog-neu').value = repDog;
+    document.getElementById('stray-act-dog-vac').value = repDog;
+    document.getElementById('stray-act-cat-neu').value = repCat;
+    document.getElementById('stray-act-cat-vac').value = repCat;
+
+    document.getElementById('stray-action-modal').style.display = 'flex';
+}
+
+// [เพิ่มใหม่ เฟส 3] ฟังก์ชันบันทึกผลงานลง Firebase
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("btn-confirm-stray-action")?.addEventListener("click", async () => {
+        const docId = document.getElementById('stray-modal-docid').value;
+        const dNeu = parseInt(document.getElementById('stray-act-dog-neu').value) || 0;
+        const dVac = parseInt(document.getElementById('stray-act-dog-vac').value) || 0;
+        const cNeu = parseInt(document.getElementById('stray-act-cat-neu').value) || 0;
+        const cVac = parseInt(document.getElementById('stray-act-cat-vac').value) || 0;
+        
+        const btn = document.getElementById("btn-confirm-stray-action");
+        btn.disabled = true; btn.textContent = "กำลังบันทึก...";
+        
         try {
-            // [แก้ไขแล้ว] เพิ่ม docId เข้าไปเพื่อให้ระบบรู้ว่าต้องอัปเดตเคสไหน
-            await updateDoc(doc(db, "stray_reports", docId), { status: newStatus });
+            await updateDoc(doc(db, "stray_reports", docId), { 
+                status: 'completed',
+                dog_neu_done: dNeu,
+                dog_vac_done: dVac,
+                cat_neu_done: cNeu,
+                cat_vac_done: cVac,
+                updated_at: serverTimestamp()
+            });
+            document.getElementById('stray-action-modal').style.display = 'none';
             window.loadStrayReports();
-        } catch(e) { 
+        } catch(e) {
             console.error(e);
-            alert("อัปเดตสถานะไม่สำเร็จ"); 
+            alert("บันทึกไม่สำเร็จ");
+        } finally {
+            btn.disabled = false; btn.textContent = "บันทึกผล";
+        }
+    });
+});
+
+window.updateStrayStatus = async function(docId, newStatus) {
+    if (newStatus === 'pending') {
+        if(confirm('ย้อนกลับสถานะเป็น "รอดำเนินการ"?\n(สถิติผลงานที่กรอกไว้สำหรับเคสนี้จะถูกล้างค่าเป็น 0)')) {
+            try {
+                await updateDoc(doc(db, "stray_reports", docId), { 
+                    status: newStatus,
+                    dog_neu_done: 0, dog_vac_done: 0, cat_neu_done: 0, cat_vac_done: 0 
+                });
+                window.loadStrayReports();
+            } catch(e) { alert("อัปเดตสถานะไม่สำเร็จ"); }
         }
     }
 }
