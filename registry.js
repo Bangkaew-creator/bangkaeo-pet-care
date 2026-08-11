@@ -386,7 +386,6 @@ async function loadQuotaAndDashboard() {
         
         snap.forEach(d => {
             const p = d.data();
-            // [เฟส 3] คำนวณโควตาเฉพาะของรอบปัจจุบันเท่านั้น
             if ((p.campaign_id || "") === currentCamp && (p.status === "booked" || p.status === "checked_in")) {
                 if (p.service_type === "ทำหมันและวัคซีน") currentBookedNeuter++;
                 if (p.service_type === "วัคซีนอย่างเดียว") currentBookedVaccine++;
@@ -429,7 +428,7 @@ async function loadMyPets() {
         container.innerHTML = "";
         window.myPetsData = {}; 
         let count = 0;
-        let myHouseNeuterCount = 0; // [เฟส 3] นับคิวทำหมันของบ้านนี้ในรอบปัจจุบัน
+        let myHouseNeuterCount = 0; 
 
         const currentVaccineYear = sysConfig ? (sysConfig.current_vaccine_year || 2569) : 2569;
         const currentCamp = sysConfig ? (sysConfig.campaign_id || "") : "";
@@ -442,7 +441,6 @@ async function loadMyPets() {
 
         const petsArray = [];
 
-        // ลูปแรกรวบรวมข้อมูลและนับโควตาทำหมันประจำบ้าน
         snap.forEach(d => {
             const pet = d.data();
             if(pet.status === "cancelled" || pet.status === "deceased" || pet.status === "moved") return;
@@ -455,9 +453,7 @@ async function loadMyPets() {
             }
         });
 
-        // ลูปสองเรนเดอร์การ์ดสัตว์เลี้ยง
         petsArray.forEach(pet => {
-            // [เฟส 3] การคำนวณอายุอัตโนมัติ (Dynamic Age)
             let displayAgeYear = pet.age_year || 0;
             let displayAgeMonth = pet.age_month || 0;
             if (pet.registered_timestamp) {
@@ -503,22 +499,18 @@ async function loadMyPets() {
             let actionBtn = "";
             let needNeuter = pet.neuter_status === "ยังไม่ทำหมัน";
             
-            // [เฟส 3] เช็กว่ามีการจองคิวในรอบ "ปัจจุบัน" หรือไม่
             let isActiveBooking = (pet.status === "booked" || pet.status === "checked_in") && ((pet.campaign_id || "") === currentCamp);
 
-            // แจ้งหาย
             let isLost = pet.is_lost === true;
             let lostBadge = isLost ? `<div style="color: #F5A623; font-size: 13px; font-weight: bold; margin-bottom: 5px;">📢 สถานะ: ประกาศตามหา (สูญหาย)</div>` : "";
             let lostBtn = isLost
                 ? `<button class="btn-action-small" style="color: #141E30; background: #50E3C2; border-color: #50E3C2; font-weight:bold;" onclick="window.reportFoundPet('${pet.id}')">🎉 เจอตัวแล้ว</button>`
                 : `<button class="btn-action-small" style="color: #F5A623; border-color: rgba(245, 166, 35, 0.4);" onclick="window.reportLostPet('${pet.id}')">📢 แจ้งสูญหาย</button>`;
 
-            // จัดการปุ่มตาม Lifecycle
             if (isActiveBooking) {
                 let statusIcon = pet.status === "checked_in" ? "✅ รับบริการแล้ว" : `🎫 บัตรคิว #${pet.queue_no || '-'}`;
                 let cancelBtn = pet.status === "booked" ? `<button class="btn-action-small btn-cancel-neuter" onclick="window.cancelBooking('${pet.id}')">❌ ยกเลิกจองคิว</button>` : "";
                 
-                // [เฟส 3] ซ่อนคู่มือดูแลแผลหลังผ่านไป 14 วัน
                 let showPostOp = false;
                 if (pet.status === "checked_in" && pet.service_type && pet.service_type.includes("ทำหมัน")) {
                     if (pet.updated_at) {
@@ -704,23 +696,27 @@ async function submitBooking() {
     try {
         const petsRef = collection(db, "pets"); 
         const snapAll = await getDocs(petsRef);
-        let serviceQueueCount = 0;
+        
+        let maxQueue = 0; 
         const currentCamp = sysConfig?.campaign_id || "";
 
-        // [เฟส 3] นับคิวแยกตามรอบโครงการปัจจุบันเท่านั้น
+        // [แก้ปัญหาคิวไหล] 
         snapAll.forEach(d => {
             const p = d.data();
-            if (p.service_type === serviceType && (p.campaign_id || "") === currentCamp && (p.status === "booked" || p.status === "checked_in")) {
-                serviceQueueCount++;
+            if (p.service_type === serviceType && (p.campaign_id || "") === currentCamp) {
+                if (p.queue_no && p.queue_no > maxQueue) {
+                    maxQueue = p.queue_no;
+                }
             }
         });
-        const nextQueueNo = serviceQueueCount + 1;
+        
+        const nextQueueNo = maxQueue + 1;
 
         await updateDoc(doc(db, "pets", window.bookingPetId), { 
             service_type: serviceType,
             status: "booked",
             queue_no: nextQueueNo,
-            campaign_id: currentCamp, // บันทึกชื่อรอบโครงการฝังไว้ด้วย
+            campaign_id: currentCamp, 
             consent_agreed: true,
             signature_base64: signatureData,
             signed_timestamp: serverTimestamp()
