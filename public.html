@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>แดชบอร์ดสาธารณะ - เทศบาลเมืองบางแก้ว</title>
+    <title>ศูนย์ข้อมูลสาธารณะ - เทศบาลเมืองบางแก้ว</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- นำเข้า Leaflet CSS สำหรับแผนที่ -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Custom styles for public page tabs */
-        .public-tab-container { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
-        .public-tab { flex: 1; min-width: 100px; padding: 10px; text-align: center; background: rgba(255,255,255,0.05); color: #81A1C1; border-radius: 10px; cursor: pointer; border: 1px solid rgba(129,161,193,0.3); font-size: 14px; transition: 0.3s; white-space: nowrap; }
-        .public-tab.active { background: rgba(212, 175, 55, 0.1); color: #D4AF37; border-color: #D4AF37; font-weight: bold; }
         .public-view { display: none; }
         .public-view.active { display: block; animation: fadeIn 0.4s; }
         .gps-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 12px; color: #50E3C2; margin-top: 10px; word-break: break-all; text-align: center; border: 1px dashed #50E3C2; }
@@ -27,96 +25,143 @@
             <p id="txt-agency-name" style="color: #A0B0C0; font-size: 14px; margin-top: 2px;">เทศบาล...</p>
         </div>
 
-        <!-- Tabs Navigation -->
-        <div class="public-tab-container">
-            <div class="public-tab active" onclick="switchPublicTab('view-stats', this)">📊 สถิติโครงการ</div>
-            <div class="public-tab" onclick="switchPublicTab('view-stray', this)">🐕 แจ้งสัตว์จรจัด</div>
-            <div class="public-tab" onclick="switchPublicTab('view-lost', this)">📢 ประกาศสัตว์หาย</div>
+        <!-- [อัปเดตใหม่] เมนู 2x2 Grid -->
+        <div class="grid-menu">
+            <div class="grid-menu-btn active" onclick="window.switchPublicTab('view-stats', this)">
+                <span class="grid-icon">📊</span>
+                <span>สถิติโครงการ</span>
+            </div>
+            <div class="grid-menu-btn" onclick="window.switchPublicTab('view-stray', this)">
+                <span class="grid-icon">🐕</span>
+                <span>ระบบสัตว์จรจัด</span>
+            </div>
+            <div class="grid-menu-btn" onclick="window.switchPublicTab('view-lost', this)">
+                <span class="grid-icon">📢</span>
+                <span>ประกาศสัตว์หาย</span>
+            </div>
+            <div class="grid-menu-btn" style="border-color: #50E3C2; color: #50E3C2;" onclick="window.location.href='registry.html'">
+                <span class="grid-icon">📖</span>
+                <span>สมุดประจำตัวสัตว์</span>
+            </div>
         </div>
 
-        <!-- View 1: Public Stats -->
+        <!-- View 1: Public Stats (สถิติระดับตำบล) -->
         <div id="view-stats" class="public-view active">
             <div class="card neumorphic">
-                <h3 class="section-title">ความคืบหน้าโครงการปัจจุบัน</h3>
-                <p style="font-size: 13px; color: #A0B0C0; margin-bottom: 15px; text-align: center;">ข้อมูลอัปเดตแบบ Real-time ตามฐานข้อมูลเทศบาล</p>
+                <h3 class="section-title">สถิติโครงการระดับตำบล</h3>
+                <p style="font-size: 13px; color: #A0B0C0; margin-bottom: 15px; text-align: center;">ความครอบคลุมของการจัดการสัตว์เลี้ยงในระบบ</p>
                 
+                <div class="row" style="margin-bottom: 15px;">
+                    <div class="half stat-circle-box">
+                        <div class="stat-percent" style="color: #50E3C2;" id="stat-total-pets">0</div>
+                        <div class="stat-desc">สัตว์เลี้ยงในระบบ (ตัว)</div>
+                    </div>
+                </div>
+                
+                <div class="row" style="margin-bottom: 15px;">
+                    <div class="half stat-circle-box">
+                        <div class="stat-percent" style="color: #D4AF37;" id="stat-neuter-percent">0%</div>
+                        <div class="stat-desc">สัดส่วนการทำหมัน<br><span id="stat-neuter-text" style="font-size: 10px;">(0 ตัว)</span></div>
+                    </div>
+                    <div class="half stat-circle-box">
+                        <div class="stat-percent" style="color: #4A90E2;" id="stat-vac-percent">0%</div>
+                        <div class="stat-desc">วัคซีนปีปัจจุบัน<br><span id="stat-vac-text" style="font-size: 10px;">(0 ตัว)</span></div>
+                    </div>
+                </div>
+
+                <hr style="border-color: rgba(255,255,255,0.05); margin: 20px 0;">
+
+                <h3 class="section-title" style="font-size: 15px;">โควตาการให้บริการรอบปัจจุบัน</h3>
                 <div class="progress-container">
-                    <div class="progress-label"><span>คิวทำหมัน (สุนัขและแมว)</span><span id="pb-neuter-text">กำลังโหลด...</span></div>
+                    <div class="progress-label"><span>ทำหมัน</span><span id="pb-neuter-text">กำลังโหลด...</span></div>
                     <div class="progress-track"><div id="pb-neuter-bar" class="progress-fill" style="width: 0%;"></div></div>
                 </div>
-                <div class="progress-container" style="margin-top: 20px;">
-                    <div class="progress-label"><span>คิวฉีดวัคซีนอย่างเดียว</span><span id="pb-vaccine-text">กำลังโหลด...</span></div>
+                <div class="progress-container" style="margin-top: 15px;">
+                    <div class="progress-label"><span>ฉีดวัคซีนอย่างเดียว</span><span id="pb-vaccine-text">กำลังโหลด...</span></div>
                     <div class="progress-track"><div id="pb-vaccine-bar" class="progress-fill vaccine" style="width: 0%;"></div></div>
                 </div>
             </div>
-
-            <div class="card neumorphic">
-                <h3 class="section-title">สรุปประชากรสัตว์เลี้ยงขึ้นทะเบียน</h3>
-                <div class="row" style="text-align: center; margin-bottom: 10px;">
-                    <div class="half" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                        <div style="font-size: 28px; color: #D4AF37; font-weight: bold;" id="stat-dog">0</div>
-                        <div style="font-size: 13px; color: #A0B0C0;">สุนัข (ตัว)</div>
-                    </div>
-                    <div class="half" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                        <div style="font-size: 28px; color: #50E3C2; font-weight: bold;" id="stat-cat">0</div>
-                        <div style="font-size: 13px; color: #A0B0C0;">แมว (ตัว)</div>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- View 2: Stray Animal Report -->
+        <!-- View 2: Stray Animal Report (แผนที่ และ แจ้งเบาะแส ROD) -->
         <div id="view-stray" class="public-view">
             <div class="card neumorphic">
-                <h3 class="section-title" style="color: #ff6b6b;">📍 แจ้งพิกัดสัตว์จรจัด</h3>
-                <p style="font-size: 13px; color: #A0B0C0; margin-bottom: 15px; line-height: 1.6;">พื้นที่สำหรับผู้ให้อาหาร (Feeder) และประชาชนทั่วไป ร่วมแจ้งพิกัดเพื่อช่วยเหลือ ทำหมัน และควบคุมโรค</p>
+                <h3 class="section-title">📍 แผนที่เบาะแสสัตว์จรจัด</h3>
+                <!-- แผนที่ Leaflet -->
+                <div id="stray-map" style="height: 250px; width: 100%; border-radius: 10px; margin-bottom: 15px; border: 2px solid #81A1C1; z-index: 1;"></div>
+                
+                <h4 style="font-size: 14px; color: #D4AF37; margin-bottom: 10px;">รายการแจ้งล่าสุด (ลดความซ้ำซ้อน)</h4>
+                <div id="public-stray-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px;">
+                    <p style="text-align: center; color: #A0B0C0; font-size: 12px;">กำลังโหลดข้อมูล...</p>
+                </div>
+
+                <hr style="border-color: rgba(255,255,255,0.05); margin: 20px 0;">
+
+                <h3 class="section-title" style="color: #ff6b6b;">📝 แจ้งเบาะแสสัตว์จรจัด</h3>
+                <p style="font-size: 12px; color: #A0B0C0; margin-bottom: 15px;">ข้อมูลของท่านจะถูกนำไปใช้จัดการและรายงานตามมาตรฐาน (ROD)</p>
                 
                 <div class="input-group">
                     <label>ชื่อผู้แจ้ง / ผู้ให้อาหาร (Feeder)</label>
-                    <input type="text" id="stray-feeder-name" class="neumorphic-input" placeholder="ระบุชื่อของท่าน หรือ ไม่ประสงค์ออกนาม">
+                    <input type="text" id="stray-feeder-name" class="neumorphic-input" placeholder="ระบุชื่อ หรือ ไม่ประสงค์ออกนาม">
                 </div>
-                <div class="input-group">
-                    <label>เบอร์โทรศัพท์ติดต่อ <span style="color:#ff6b6b">*</span></label>
-                    <input type="tel" id="stray-feeder-phone" class="neumorphic-input" placeholder="08X-XXX-XXXX">
+                <div class="row">
+                    <div class="input-group half">
+                        <label>เบอร์โทรศัพท์ <span style="color:#ff6b6b">*</span></label>
+                        <input type="tel" id="stray-feeder-phone" class="neumorphic-input" placeholder="08X-XXX-XXXX">
+                    </div>
+                    <div class="input-group half">
+                        <label>เลขบัตร ปชช. (ไม่บังคับ)</label>
+                        <input type="text" id="stray-feeder-idcard" class="neumorphic-input" placeholder="13 หลัก">
+                    </div>
                 </div>
 
-                <h3 class="section-title" style="margin-top: 25px;">ข้อมูลสถานที่</h3>
-                <div class="input-group">
-                    <label>หมู่ที่พบ <span style="color:#ff6b6b">*</span></label>
-                    <select id="stray-moo" class="neumorphic-input">
-                        <option value="" disabled selected>เลือกหมู่</option>
-                        <script>for(let i=1; i<=16; i++) document.write(`<option value="${i}">หมู่ที่ ${i}</option>`);</script>
-                    </select>
+                <h3 class="section-title" style="margin-top: 15px; font-size: 15px;">ข้อมูลสถานที่พบ</h3>
+                <div class="row">
+                    <div class="input-group half">
+                        <label>หมู่ที่ <span style="color:#ff6b6b">*</span></label>
+                        <select id="stray-moo" class="neumorphic-input">
+                            <option value="" disabled selected>เลือกหมู่</option>
+                            <script>for(let i=1; i<=16; i++) document.write(`<option value="${i}">หมู่ที่ ${i}</option>`);</script>
+                        </select>
+                    </div>
+                    <div class="input-group half">
+                        <label>หมวดหมู่ <span style="color:#ff6b6b">*</span></label>
+                        <select id="stray-loc-category" class="neumorphic-input">
+                            <option value="วัด">วัด</option>
+                            <option value="บริเวณหมู่บ้าน">บริเวณหมู่บ้าน</option>
+                            <option value="อื่นๆ" selected>อื่นๆ</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="input-group">
-                    <label>จุดสังเกต / สถานที่ (Landmark) <span style="color:#ff6b6b">*</span></label>
-                    <input type="text" id="stray-location-desc" class="neumorphic-input" placeholder="เช่น ซอยข้างวัด, หน้าเซเว่นหมู่บ้าน...">
+                    <label>รายละเอียดสถานที่ (Landmark) <span style="color:#ff6b6b">*</span></label>
+                    <input type="text" id="stray-location-desc" class="neumorphic-input" placeholder="เช่น ซอยข้างวัด, สวนสาธารณะ...">
                 </div>
 
                 <!-- ระบบดึง GPS -->
                 <div style="margin-bottom: 20px;">
-                    <label style="font-size: 14px; color: #A0B0C0; display: block; margin-bottom: 5px;">พิกัดแผนที่ (GPS) <span style="color:#ff6b6b">*</span></label>
-                    <button type="button" id="btn-get-gps" class="neumorphic-btn outline-btn" style="color: #50E3C2; border-color: #50E3C2;">📍 กดเพื่อดึงพิกัดตำแหน่งปัจจุบันของคุณ</button>
+                    <label style="font-size: 13px; color: #A0B0C0; display: block; margin-bottom: 5px;">พิกัดแผนที่ (GPS) <span style="color:#ff6b6b">*</span></label>
+                    <button type="button" id="btn-get-gps" class="neumorphic-btn outline-btn" style="color: #50E3C2; border-color: #50E3C2; padding: 10px; font-size: 14px;">📍 กดเพื่อดึงพิกัดตำแหน่งของคุณ</button>
                     <div id="gps-display" class="gps-box" style="display: none;"></div>
                     <input type="hidden" id="stray-lat">
                     <input type="hidden" id="stray-lng">
                 </div>
 
-                <h3 class="section-title" style="margin-top: 25px;">ข้อมูลสัตว์จรจัดที่พบ</h3>
-                <div style="text-align: center; margin-bottom: 20px;">
+                <h3 class="section-title" style="font-size: 15px;">ข้อมูลสัตว์จรจัดที่พบ</h3>
+                <div style="text-align: center; margin-bottom: 15px;">
                     <img id="stray-img-preview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M448 80c8.8 0 16 7.2 16 16V415.8l-5-6.5-136-176c-4.5-5.9-11.6-9.3-19-9.3s-14.4 3.4-19 9.3L202 340.7l-30.5-42.7C167 291.7 159.8 288 152 288s-15 3.7-19.5 10.1l-80 112L48 416.3l0-.3V96c0-8.8 7.2-16 16-16H448zM64 32C28.7 32 0 60.7 0 96V416c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H64zm80 192a48 48 0 1 0 0-96 48 48 0 1 0 0 96z'/%3E%3C/svg%3E" 
-                         style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 10px; border: 2px dashed #81A1C1; background: rgba(0,0,0,0.2); cursor: pointer;"
+                         style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; border: 2px dashed #81A1C1; background: rgba(0,0,0,0.2); cursor: pointer;"
                          onclick="document.getElementById('stray-img-upload').click()">
                     <input type="file" id="stray-img-upload" accept="image/*" style="display: none;">
-                    <p style="font-size: 12px; color: #6A7A8A; margin-top: 8px;">แตะที่กรอบเพื่อถ่ายรูปสภาพแวดล้อม หรือ สัตว์จรจัด</p>
+                    <p style="font-size: 11px; color: #6A7A8A; margin-top: 5px;">(แตะที่รูปเพื่อถ่ายรูปสภาพแวดล้อม หรือ สัตว์จรจัด)</p>
                 </div>
 
                 <div class="row">
-                    <div class="input-group half"><label>สุนัขจรจัด (โดยประมาณ)</label><input type="number" id="stray-dog-count" class="neumorphic-input" value="0" min="0"></div>
-                    <div class="input-group half"><label>แมวจรจัด (โดยประมาณ)</label><input type="number" id="stray-cat-count" class="neumorphic-input" value="0" min="0"></div>
+                    <div class="input-group half"><label>สุนัขจรจัด (ประมาณ)</label><input type="number" id="stray-dog-count" class="neumorphic-input" value="0" min="0"></div>
+                    <div class="input-group half"><label>แมวจรจัด (ประมาณ)</label><input type="number" id="stray-cat-count" class="neumorphic-input" value="0" min="0"></div>
                 </div>
                 
-                <button type="button" id="btn-submit-stray" class="neumorphic-btn gold-btn" style="margin-top: 20px; width: 100%; background: #ff6b6b; color: #141E30; border-color: #ff6b6b;">🚨 ส่งข้อมูลแจ้งเบาะแส</button>
+                <button type="button" id="btn-submit-stray" class="neumorphic-btn gold-btn" style="margin-top: 10px; width: 100%; background: #ff6b6b; color: #141E30; border-color: #ff6b6b;">🚨 ส่งข้อมูลแจ้งเบาะแส</button>
             </div>
         </div>
 
@@ -125,33 +170,17 @@
             <div class="card neumorphic" style="text-align: center;">
                 <h3 class="section-title">📢 ประกาศสัตว์เลี้ยงสูญหาย</h3>
                 <p style="font-size: 13px; color: #A0B0C0; margin-bottom: 20px;">พื้นที่กระจายข่าวสารเพื่อช่วยกันพาน้องกลับบ้าน</p>
-                
-                <div id="lost-pets-list">
-                    <!-- สถานะกำลังพัฒนา -->
-                    <div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 15px; margin-bottom: 15px; border-left: 5px solid #D4AF37; text-align: left;">
-                        <div style="color: #D4AF37; font-size: 14px; font-weight: bold; margin-bottom: 5px;">ระบบอยู่ในระหว่างการเชื่อมต่อ...</div>
-                        <div style="color: #E0E5EC; font-size: 13px; line-height: 1.5;">ฟีเจอร์บอร์ดประกาศสัตว์หาย จะเปิดให้ทดลองใช้งานได้ในสเตปต่อไปครับ</div>
-                    </div>
-                </div>
-                
-                <button type="button" class="neumorphic-btn outline-btn" style="width: 100%; margin-top: 10px;" onclick="window.location.href='registry.html'">แจ้งสัตว์เลี้ยงของท่านสูญหาย (ต้องเข้าสู่ระบบ)</button>
+                <div id="lost-pets-list"></div>
             </div>
         </div>
 
         <div style="text-align: center; margin-top: 30px;">
-            <a href="registry.html" style="color: #6A7A8A; font-size: 12px; text-decoration: underline; cursor: pointer; margin-right: 15px;">กลับสู่สมุดประจำตัวสัตว์เลี้ยง</a>
             <a href="admin.html" style="color: #6A7A8A; font-size: 12px; text-decoration: underline; cursor: pointer;">เข้าสู่ระบบจัดการ (แอดมิน)</a>
         </div>
     </div>
     
-    <script>
-        function switchPublicTab(viewId, element) {
-            document.querySelectorAll('.public-view').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.public-tab').forEach(el => el.classList.remove('active'));
-            document.getElementById(viewId).classList.add('active');
-            element.classList.add('active');
-        }
-    </script>
+    <!-- นำเข้า Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script type="module" src="public.js"></script>
 </body>
 </html>
