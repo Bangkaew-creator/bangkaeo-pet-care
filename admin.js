@@ -1009,8 +1009,12 @@ window.updateStrayStatus = async function(docId, newStatus) {
     const txt = newStatus === 'completed' ? 'ยืนยันว่าลงพื้นที่จัดการเคสนี้เรียบร้อยแล้ว?' : 'ย้อนกลับสถานะเป็น "รอดำเนินการ"?';
     if(confirm(txt)) {
         try {
-            await updateDoc(doc(db, "stray_reports"), { status: newStatus });
+            // [แก้ไขแล้ว] เพิ่ม docId เข้าไปเพื่อให้ระบบรู้ว่าต้องอัปเดตเคสไหน
+            await updateDoc(doc(db, "stray_reports", docId), { status: newStatus });
             window.loadStrayReports();
-        } catch(e) { alert("อัปเดตสถานะไม่สำเร็จ"); }
+        } catch(e) { 
+            console.error(e);
+            alert("อัปเดตสถานะไม่สำเร็จ"); 
+        }
     }
 }
