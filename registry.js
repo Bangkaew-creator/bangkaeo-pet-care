@@ -477,6 +477,13 @@ async function loadMyPets() {
             let actionBtn = "";
             let needNeuter = pet.neuter_status === "ยังไม่ทำหมัน";
 
+            // [เพิ่มใหม่] โลจิกตรวจสอบสัตว์หาย
+            let isLost = pet.is_lost === true;
+            let lostBadge = isLost ? `<div style="color: #F5A623; font-size: 13px; font-weight: bold; margin-bottom: 5px;">📢 สถานะ: ประกาศตามหา (สูญหาย)</div>` : "";
+            let lostBtn = isLost
+                ? `<button class="btn-action-small" style="color: #141E30; background: #50E3C2; border-color: #50E3C2; font-weight:bold;" onclick="window.reportFoundPet('${d.id}')">🎉 เจอตัวแล้ว</button>`
+                : `<button class="btn-action-small" style="color: #F5A623; border-color: rgba(245, 166, 35, 0.4);" onclick="window.reportLostPet('${d.id}')">📢 แจ้งสูญหาย</button>`;
+
             if (pet.status === "booked" || pet.status === "checked_in") {
                 let statusIcon = pet.status === "checked_in" ? "✅ รับบริการแล้ว" : `🎫 บัตรคิว #${pet.queue_no || '-'}`;
                 let cancelBtn = pet.status === "booked" ? `<button class="btn-action-small btn-cancel-neuter" onclick="window.cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>` : "";
@@ -499,10 +506,11 @@ async function loadMyPets() {
             }
 
             container.insertAdjacentHTML('beforeend', `
-                <div class="pet-card">
+                <div class="pet-card" ${isLost ? 'style="border-left-color: #F5A623;"' : ''}>
                     <div class="pet-card-left">
                         <img src="${pet.pet_photo_base64 || defaultPlaceholder}" class="pet-photo">
                         <div class="pet-info">
+                            ${lostBadge}
                             <div class="pet-name">${pet.pet_name}</div>
                             <div>${pet.pet_type} ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี</div>
                             <div>พันธุ์: ${pet.breed || '-'}</div>
@@ -512,6 +520,7 @@ async function loadMyPets() {
                     </div>
                     <div class="card-actions">
                         ${actionBtn}
+                        ${lostBtn}
                         <button class="btn-action-small" style="color: #D4AF37; border-color: rgba(212, 175, 55, 0.4);" onclick="window.viewCertificate('${d.id}')">📄 ใบรับรอง</button>
                         <button class="btn-action-small btn-edit" onclick="window.editPet('${d.id}')">✏️ แก้ไข</button>
                         <button class="btn-action-small btn-delete" onclick="window.softDeletePet('${d.id}')">แจ้งตาย/ย้าย</button>
@@ -768,5 +777,38 @@ window.sendPostOpCare = async function(petName) {
     } catch (e) {
         console.error(e);
         alert("เกิดข้อผิดพลาด ไม่สามารถส่งข้อความได้");
+    }
+}
+
+// [เพิ่มใหม่ เฟส 3] ฟังก์ชันแจ้งสัตว์สูญหาย
+window.reportLostPet = async function(docId) {
+    const pet = window.myPetsData[docId];
+    if(!pet) return;
+    if(confirm(`⚠️ ยืนยันการแจ้งประกาศว่าน้อง ${pet.pet_name} สูญหาย?\n(ข้อมูลของน้องจะถูกนำไปแสดงที่บอร์ดประกาศสัตว์หายสาธารณะเพื่อให้คนช่วยตามหา)`)) {
+        try {
+            await updateDoc(doc(db, "pets", docId), { 
+                is_lost: true, 
+                lost_reported_at: serverTimestamp(), 
+                updated_at: serverTimestamp() 
+            });
+            alert("บันทึกข้อมูลการสูญหายแล้ว ขอให้น้องกลับมาไวๆ นะครับ 🤍");
+            loadMyPets();
+        } catch(e) { alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ"); }
+    }
+}
+
+// [เพิ่มใหม่ เฟส 3] ฟังก์ชันแจ้งเจอสัตว์แล้ว
+window.reportFoundPet = async function(docId) {
+    const pet = window.myPetsData[docId];
+    if(!pet) return;
+    if(confirm(`🎉 ยืนยันว่าพบน้อง ${pet.pet_name} แล้วใช่หรือไม่?\n(ประกาศตามหาน้องจะถูกนำออกจากบอร์ดสาธารณะ)`)) {
+        try {
+            await updateDoc(doc(db, "pets", docId), { 
+                is_lost: false, 
+                updated_at: serverTimestamp() 
+            });
+            alert("ยินดีด้วยครับ! ยกเลิกสถานะสูญหายเรียบร้อยแล้ว");
+            loadMyPets();
+        } catch(e) { alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ"); }
     }
 }
