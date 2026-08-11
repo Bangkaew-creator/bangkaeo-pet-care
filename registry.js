@@ -10,7 +10,6 @@ let currentHouseholdKey = "";
 let currentPetBase64 = ""; 
 let sysConfig = null; 
 
-// [เฟส 2] ตัวแปรจัดการสิทธิ์
 let currentUserRole = "head"; 
 
 window.currentEditPetId = null; 
@@ -117,14 +116,11 @@ async function loadSystemConfig() {
                 if(logoImg) { logoImg.src = sysConfig.agency_logo_base64; logoImg.style.display = "block"; }
             }
 
-            // [อัปเดต] ดึงจำนวนหมู่จาก Config มาสร้าง Dropdown อัตโนมัติ
             let mooCount = sysConfig.moo_count || 16;
             let hhMooSelect = document.getElementById("hh-village-no");
             if (hhMooSelect) {
                 let mooHtml = '<option value="" disabled selected>เลือก</option>';
-                for(let i=1; i<=mooCount; i++) {
-                    mooHtml += `<option value="${i}">หมู่ ${i}</option>`;
-                }
+                for(let i=1; i<=mooCount; i++) { mooHtml += `<option value="${i}">หมู่ ${i}</option>`; }
                 hhMooSelect.innerHTML = mooHtml;
             }
         }
@@ -139,8 +135,6 @@ async function checkUserData() {
         if (userSnap.exists()) {
             const u = userSnap.data();
             currentHouseholdKey = u.house_village_search || `${u.house_no}-${u.village_no}`;
-            
-            // [เฟส 2] ตรวจสอบสิทธิ์ครัวเรือน
             currentUserRole = u.household_role || "head";
             
             let displayAddress = `บ้านเลขที่ ${u.house_no} หมู่ ${u.village_no}`;
@@ -149,7 +143,6 @@ async function checkUserData() {
             
             document.getElementById("dashboard-container").style.display = "block";
             
-            // [เฟส 2] แยกการแสดงผลตาม Role
             if (currentUserRole === "pending") {
                 const pendingMsg = document.getElementById("pending-member-msg");
                 if (pendingMsg) pendingMsg.style.display = "block";
@@ -171,10 +164,7 @@ async function checkUserData() {
                 await loadQuotaAndDashboard(); 
                 loadMyPets();
                 
-                // ถ้าเป็น head ให้โหลดคำขอรออนุมัติเพิ่มเติม
-                if (currentUserRole === "head") {
-                    loadPendingMembers();
-                }
+                if (currentUserRole === "head") { loadPendingMembers(); }
             }
         } else {
             document.getElementById("household-setup-container").style.display = "block";
@@ -182,19 +172,14 @@ async function checkUserData() {
     } catch (error) { console.error("Error", error); }
 }
 
-// [เฟส 2] ฟังก์ชันโหลดรายชื่อผู้รออนุมัติ (สำหรับ Head)
 async function loadPendingMembers() {
     try {
         const q = query(collection(db, "users"), where("head_uid", "==", userProfileData.userId), where("household_role", "==", "pending"));
         const snap = await getDocs(q);
-        
         const box = document.getElementById("head-approval-box");
         const list = document.getElementById("pending-members-list");
         
-        if(snap.empty) {
-            if(box) box.style.display = "none";
-            return;
-        }
+        if(snap.empty) { if(box) box.style.display = "none"; return; }
         
         if(box) box.style.display = "block";
         if(list) list.innerHTML = "";
@@ -216,15 +201,11 @@ async function loadPendingMembers() {
     } catch (error) { console.error("Error loading pending members", error); }
 }
 
-// [เฟส 2] ฟังก์ชันกดยอมรับ/ปฏิเสธสมาชิก
 window.handleMember = async function(uid, status) {
     const actionText = status === 'member' ? 'ยอมรับให้เป็นสมาชิกในบ้าน?' : 'ปฏิเสธคำขอนี้?';
     if(confirm(`ยืนยันการ${actionText}`)) {
         try {
-            await updateDoc(doc(db, "users", uid), { 
-                household_role: status, 
-                updated_at: serverTimestamp() 
-            });
+            await updateDoc(doc(db, "users", uid), { household_role: status, updated_at: serverTimestamp() });
             alert("อัปเดตสิทธิ์เรียบร้อยแล้ว");
             loadPendingMembers();
         } catch(e) { alert("เกิดข้อผิดพลาดในการอัปเดตสิทธิ์"); }
@@ -258,7 +239,6 @@ function setupHouseholdForm() {
             if(isRental && roomNo) searchKey = `${hNo}-${vNo}-${roomNo}`;
 
             try {
-                // [เฟส 2] ตรวจสอบสิทธิ์ว่าบ้านเลขที่นี้มี "หัวหน้าบ้าน" แล้วหรือยัง
                 const houseQ = query(collection(db, "users"), where("house_village_search", "==", searchKey), where("household_role", "==", "head"));
                 const houseSnap = await getDocs(houseQ);
                 
@@ -267,7 +247,7 @@ function setupHouseholdForm() {
                 
                 if(!houseSnap.empty) {
                     role = "pending";
-                    headUid = houseSnap.docs[0].id; // ล็อก UID ของหัวหน้าบ้านไว้
+                    headUid = houseSnap.docs[0].id; 
                 }
 
                 await setDoc(doc(db, "users", userProfileData.userId), {
@@ -396,7 +376,9 @@ async function loadQuotaAndDashboard() {
     
     currentTotalNeuterQuota = sysConfig.quota_neuter || 100;
     currentTotalVaccineQuota = sysConfig.quota_vaccine || 300;
-    currentBookedNeuter = 0; currentBookedVaccine = 0;
+    currentBookedNeuter = 0; 
+    currentBookedVaccine = 0;
+    const currentCamp = sysConfig.campaign_id || "";
 
     try {
         const petsRef = collection(db, "pets");
@@ -404,7 +386,8 @@ async function loadQuotaAndDashboard() {
         
         snap.forEach(d => {
             const p = d.data();
-            if (p.status === "booked" || p.status === "checked_in") {
+            // [เฟส 3] คำนวณโควตาเฉพาะของรอบปัจจุบันเท่านั้น
+            if ((p.campaign_id || "") === currentCamp && (p.status === "booked" || p.status === "checked_in")) {
                 if (p.service_type === "ทำหมันและวัคซีน") currentBookedNeuter++;
                 if (p.service_type === "วัคซีนอย่างเดียว") currentBookedVaccine++;
             }
@@ -416,6 +399,7 @@ async function loadQuotaAndDashboard() {
 
     if(isWithinDate || (currentBookedNeuter > 0 || currentBookedVaccine > 0)) {
         document.getElementById("campaign-banner-container").style.display = "block";
+        document.getElementById("txt-campaign-name").textContent = currentCamp ? `(${currentCamp})` : "";
         
         document.getElementById("txt-service-date").textContent = formatThaiDate(sysConfig.nt_date || sysConfig.service_date);
         document.getElementById("txt-service-location").textContent = sysConfig.nt_location || sysConfig.service_location || "-";
@@ -429,6 +413,8 @@ async function loadQuotaAndDashboard() {
         if (currentBookedNeuter >= currentTotalNeuterQuota && currentBookedVaccine >= currentTotalVaccineQuota) {
             document.getElementById("registration-closed-msg").style.display = "block";
         }
+    } else {
+        document.getElementById("campaign-banner-container").style.display = "none";
     }
 }
 
@@ -443,18 +429,50 @@ async function loadMyPets() {
         container.innerHTML = "";
         window.myPetsData = {}; 
         let count = 0;
+        let myHouseNeuterCount = 0; // [เฟส 3] นับคิวทำหมันของบ้านนี้ในรอบปัจจุบัน
 
         const currentVaccineYear = sysConfig ? (sysConfig.current_vaccine_year || 2569) : 2569;
+        const currentCamp = sysConfig ? (sysConfig.campaign_id || "") : "";
         
         const startDate = sysConfig?.nt_start_reg || sysConfig?.start_date || "";
         const endDate = sysConfig?.nt_end_reg || sysConfig?.end_date || "";
         const today = new Date().toISOString().split('T')[0];
         const isBookingOpen = startDate && endDate && (today >= startDate && today <= endDate);
+        const maxHouseNeuter = sysConfig?.max_neuter_per_house || 2;
 
+        const petsArray = [];
+
+        // ลูปแรกรวบรวมข้อมูลและนับโควตาทำหมันประจำบ้าน
         snap.forEach(d => {
             const pet = d.data();
             if(pet.status === "cancelled" || pet.status === "deceased" || pet.status === "moved") return;
-            count++; window.myPetsData[d.id] = pet; 
+            count++; 
+            window.myPetsData[d.id] = pet; 
+            petsArray.push({ id: d.id, ...pet });
+
+            if ((pet.campaign_id || "") === currentCamp && pet.service_type === "ทำหมันและวัคซีน" && (pet.status === "booked" || pet.status === "checked_in")) {
+                myHouseNeuterCount++;
+            }
+        });
+
+        // ลูปสองเรนเดอร์การ์ดสัตว์เลี้ยง
+        petsArray.forEach(pet => {
+            // [เฟส 3] การคำนวณอายุอัตโนมัติ (Dynamic Age)
+            let displayAgeYear = pet.age_year || 0;
+            let displayAgeMonth = pet.age_month || 0;
+            if (pet.registered_timestamp) {
+                const regDate = pet.registered_timestamp.toDate();
+                const now = new Date();
+                let monthsDiff = (now.getFullYear() - regDate.getFullYear()) * 12 + (now.getMonth() - regDate.getMonth());
+                if (now.getDate() < regDate.getDate()) { monthsDiff--; }
+                if (monthsDiff > 0) {
+                    let totalMonths = (displayAgeYear * 12) + displayAgeMonth + monthsDiff;
+                    displayAgeYear = Math.floor(totalMonths / 12);
+                    displayAgeMonth = totalMonths % 12;
+                }
+            }
+            let ageText = `${displayAgeYear} ปี ${displayAgeMonth} เดือน`;
+            if (displayAgeYear === 0) ageText = `${displayAgeMonth} เดือน`;
 
             let isVac = (pet.vaccine_status === "เคยฉีด" || pet.vaccine_status === "ฉีดแล้ว");
             let vacBadge = `<span class="vaccine-badge badge-red">🔴 ไม่เคยฉีด</span>`;
@@ -468,17 +486,14 @@ async function loadMyPets() {
                 } else {
                     needVaccine = false;
                     vacBadge = `<span class="vaccine-badge badge-green">🟢 วัคซีนครอบคลุม (ปี ${pet.vaccine_year})</span>`;
-                    
                     if (pet.vaccine_date) {
                         const vacDateParts = pet.vaccine_date.split('/');
                         if (vacDateParts.length === 3) {
                             const dDay = parseInt(vacDateParts[0]), mMonth = parseInt(vacDateParts[1])-1, yYear = parseInt(vacDateParts[2])-543;
                             const vacObjDate = new Date(yYear, mMonth, dDay);
-                            const todayObj = new Date();
-                            const diffTime = Math.abs(todayObj - vacObjDate);
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            const diffDays = Math.ceil(Math.abs(new Date() - vacObjDate) / (1000 * 60 * 60 * 24));
                             if (diffDays >= 330) {
-                                vacBadge = `<span class="vaccine-badge badge-yellow" style="color: #F5A623; background: transparent; border: none; font-weight: bold; font-size: 12px; margin-top: 6px; display: inline-block;">🟡 ใกล้ถึงกำหนดรับวัคซีน</span>`;
+                                vacBadge = `<span class="vaccine-badge badge-yellow">🟡 ใกล้ถึงกำหนดรับวัคซีน</span>`;
                             }
                         }
                     }
@@ -487,28 +502,46 @@ async function loadMyPets() {
 
             let actionBtn = "";
             let needNeuter = pet.neuter_status === "ยังไม่ทำหมัน";
+            
+            // [เฟส 3] เช็กว่ามีการจองคิวในรอบ "ปัจจุบัน" หรือไม่
+            let isActiveBooking = (pet.status === "booked" || pet.status === "checked_in") && ((pet.campaign_id || "") === currentCamp);
 
-            // [เพิ่มใหม่] โลจิกตรวจสอบสัตว์หาย
+            // แจ้งหาย
             let isLost = pet.is_lost === true;
             let lostBadge = isLost ? `<div style="color: #F5A623; font-size: 13px; font-weight: bold; margin-bottom: 5px;">📢 สถานะ: ประกาศตามหา (สูญหาย)</div>` : "";
             let lostBtn = isLost
-                ? `<button class="btn-action-small" style="color: #141E30; background: #50E3C2; border-color: #50E3C2; font-weight:bold;" onclick="window.reportFoundPet('${d.id}')">🎉 เจอตัวแล้ว</button>`
-                : `<button class="btn-action-small" style="color: #F5A623; border-color: rgba(245, 166, 35, 0.4);" onclick="window.reportLostPet('${d.id}')">📢 แจ้งสูญหาย</button>`;
+                ? `<button class="btn-action-small" style="color: #141E30; background: #50E3C2; border-color: #50E3C2; font-weight:bold;" onclick="window.reportFoundPet('${pet.id}')">🎉 เจอตัวแล้ว</button>`
+                : `<button class="btn-action-small" style="color: #F5A623; border-color: rgba(245, 166, 35, 0.4);" onclick="window.reportLostPet('${pet.id}')">📢 แจ้งสูญหาย</button>`;
 
-            if (pet.status === "booked" || pet.status === "checked_in") {
+            // จัดการปุ่มตาม Lifecycle
+            if (isActiveBooking) {
                 let statusIcon = pet.status === "checked_in" ? "✅ รับบริการแล้ว" : `🎫 บัตรคิว #${pet.queue_no || '-'}`;
-                let cancelBtn = pet.status === "booked" ? `<button class="btn-action-small btn-cancel-neuter" onclick="window.cancelBooking('${d.id}')">❌ ยกเลิกจองคิว</button>` : "";
+                let cancelBtn = pet.status === "booked" ? `<button class="btn-action-small btn-cancel-neuter" onclick="window.cancelBooking('${pet.id}')">❌ ยกเลิกจองคิว</button>` : "";
                 
-                let postOpBtn = (pet.status === "checked_in" && pet.service_type && pet.service_type.includes("ทำหมัน")) 
+                // [เฟส 3] ซ่อนคู่มือดูแลแผลหลังผ่านไป 14 วัน
+                let showPostOp = false;
+                if (pet.status === "checked_in" && pet.service_type && pet.service_type.includes("ทำหมัน")) {
+                    if (pet.updated_at) {
+                        const updatedDate = pet.updated_at.toDate();
+                        const diffDays = Math.ceil(Math.abs(new Date() - updatedDate) / (1000 * 60 * 60 * 24));
+                        if (diffDays <= 14) showPostOp = true;
+                    } else { showPostOp = true; }
+                }
+
+                let postOpBtn = showPostOp 
                                 ? `<button class="btn-action-small" style="color: #50E3C2; border-color: #50E3C2; margin-top: 5px;" onclick="window.sendPostOpCare('${pet.pet_name}')">📥 รับคู่มือดูแลแผล</button>` 
                                 : "";
                 
-                actionBtn = `<button class="btn-action-small btn-neuter-ticket" onclick="window.viewNeuterTicket('${d.id}')">${statusIcon}</button>${cancelBtn}${postOpBtn}`;
+                actionBtn = `<button class="btn-action-small btn-neuter-ticket" onclick="window.viewNeuterTicket('${pet.id}')">${statusIcon}</button>${cancelBtn}${postOpBtn}`;
             } else if (isBookingOpen) {
                 if (needNeuter && currentBookedNeuter < currentTotalNeuterQuota) {
-                    actionBtn = `<button class="btn-action-small btn-neuter" onclick="window.startBookingFlow('${d.id}', 'ทำหมันและวัคซีน')">✂️ จองคิวทำหมัน</button>`;
+                    if (myHouseNeuterCount < maxHouseNeuter) {
+                        actionBtn = `<button class="btn-action-small btn-neuter" onclick="window.startBookingFlow('${pet.id}', 'ทำหมันและวัคซีน')">✂️ จองคิวทำหมัน</button>`;
+                    } else {
+                        actionBtn = `<div style="font-size:11px; color:#ff6b6b; text-align:center; padding: 5px;">เต็มโควตาบ้าน (${maxHouseNeuter} ตัว) ในรอบนี้</div>`;
+                    }
                 } else if (!needNeuter && needVaccine && currentBookedVaccine < currentTotalVaccineQuota) {
-                    actionBtn = `<button class="btn-action-small btn-vaccine" onclick="window.startBookingFlow('${d.id}', 'วัคซีนอย่างเดียว')">💉 จองคิววัคซีน</button>`;
+                    actionBtn = `<button class="btn-action-small btn-vaccine" onclick="window.startBookingFlow('${pet.id}', 'วัคซีนอย่างเดียว')">💉 จองคิววัคซีน</button>`;
                 } else if (!needNeuter && !needVaccine) {
                     actionBtn = `<div style="font-size:12px; color:#50E3C2; text-align:center; padding: 5px; font-weight: bold;">✅ ประวัติครบถ้วน</div>`;
                 }
@@ -523,7 +556,7 @@ async function loadMyPets() {
                         <div class="pet-info">
                             ${lostBadge}
                             <div class="pet-name">${pet.pet_name}</div>
-                            <div>${pet.pet_type} ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี</div>
+                            <div>${pet.pet_type} ${pet.pet_gender} | อายุ ${ageText}</div>
                             <div>พันธุ์: ${pet.breed || '-'}</div>
                             ${vacBadge}
                             ${pet.neuter_status === "ทำหมันแล้ว" ? '<br><span class="vaccine-badge badge-green" style="font-size: 12px; margin-top: 6px; display: inline-block; font-weight: bold;">✂️ ทำหมันแล้ว</span>' : ''}
@@ -532,9 +565,9 @@ async function loadMyPets() {
                     <div class="card-actions">
                         ${actionBtn}
                         ${lostBtn}
-                        <button class="btn-action-small" style="color: #D4AF37; border-color: rgba(212, 175, 55, 0.4);" onclick="window.viewCertificate('${d.id}')">📄 ใบรับรอง</button>
-                        <button class="btn-action-small btn-edit" onclick="window.editPet('${d.id}')">✏️ แก้ไข</button>
-                        <button class="btn-action-small btn-delete" onclick="window.softDeletePet('${d.id}')">แจ้งตาย/ย้าย</button>
+                        <button class="btn-action-small" style="color: #D4AF37; border-color: rgba(212, 175, 55, 0.4);" onclick="window.viewCertificate('${pet.id}')">📄 ใบรับรอง</button>
+                        <button class="btn-action-small btn-edit" onclick="window.editPet('${pet.id}')">✏️ แก้ไข</button>
+                        <button class="btn-action-small btn-delete" onclick="window.softDeletePet('${pet.id}')">แจ้งตาย/ย้าย</button>
                     </div>
                 </div>
             `);
@@ -562,14 +595,12 @@ window.editPet = function(docId) {
     
     let mappedRear = pet.rearing_style === "เลี้ยงระบบปิด (ในบ้านตลอด)" ? "เลี้ยงในพื้นที่จำกัดตลอดเวลา" : (pet.rearing_style === "ปล่อยบางเวลา" ? "เลี้ยงในพื้นที่จำกัดบางเวลา" : (pet.rearing_style === "เลี้ยงระบบเปิด (ปล่อยอิสระ)" ? "เลี้ยงแบบปล่อยตลอดเวลา" : (pet.rearing_style || "เลี้ยงในพื้นที่จำกัดตลอดเวลา")));
     document.getElementById("p-rearing").value = mappedRear;
-    
     document.getElementById("p-location").value = pet.location || "บ้านพักอาศัย";
     
     let isVac = (pet.vaccine_status === "ฉีดแล้ว" || pet.vaccine_status === "เคยฉีด");
     document.getElementById("p-vac-status").value = isVac ? "เคยฉีด" : "ไม่เคยฉีด"; 
     document.getElementById("p-vac-year").value = pet.vaccine_year || "";
     document.getElementById("vac-year-group").style.display = isVac ? "block" : "none";
-    
     document.getElementById("p-neuter-status").value = pet.neuter_status || "ยังไม่ทำหมัน";
     
     currentPetBase64 = pet.pet_photo_base64 || ""; document.getElementById("pet-image-preview").src = currentPetBase64 || defaultPlaceholder;
@@ -579,23 +610,17 @@ window.editPet = function(docId) {
 window.softDeletePet = async function(docId) {
     const pet = window.myPetsData[docId];
     if(!pet) return;
-    
     const action = prompt(`กรุณาระบุสาเหตุที่ต้องการแจ้งของน้อง ${pet.pet_name}\nพิมพ์ "1" = เสียชีวิต\nพิมพ์ "2" = ย้ายที่อยู่`);
-    
     if(action === "1" || action === "2") {
         const newStatus = action === "1" ? "deceased" : "moved";
         try {
-            await updateDoc(doc(db, "pets", docId), { 
-                status: newStatus, 
-                updated_at: serverTimestamp() 
-            });
+            await updateDoc(doc(db, "pets", docId), { status: newStatus, updated_at: serverTimestamp() });
             alert("บันทึกการแจ้งสถานะเรียบร้อยแล้ว ข้อมูลจะถูกเก็บไว้ในประวัติของระบบครับ");
             loadMyPets(); 
         } catch(e) { alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ"); }
     }
 }
 
-// 📄 อัปเกรดใบรับรอง (Flip Card)
 window.viewCertificate = function(docId) {
     try {
         const pet = window.myPetsData[docId];
@@ -603,7 +628,7 @@ window.viewCertificate = function(docId) {
 
         document.getElementById("cert-img").src = pet.pet_photo_base64 || defaultPlaceholder;
         document.getElementById("cert-pet-name").textContent = pet.pet_name;
-        document.getElementById("cert-pet-detail").textContent = `${pet.pet_type} | ${pet.pet_gender} | อายุ ${pet.age_year || 0} ปี`;
+        document.getElementById("cert-pet-detail").textContent = `${pet.pet_type} | ${pet.pet_gender}`;
         document.getElementById("cert-owner").textContent = pet.owner_name || "-";
         
         let certAddress = `${pet.house_no || '-'} ม.${pet.village_no || '-'}`;
@@ -611,7 +636,6 @@ window.viewCertificate = function(docId) {
         document.getElementById("cert-address").textContent = certAddress;
         
         let isVac = (pet.vaccine_status === "เคยฉีด" || pet.vaccine_status === "ฉีดแล้ว");
-        
         if (isVac) {
             document.getElementById("cert-vac-status").innerHTML = `เคยฉีด (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
             document.getElementById("cert-vac-status").style.color = "#50E3C2";
@@ -632,9 +656,7 @@ window.viewCertificate = function(docId) {
                 if (sysConfig && sysConfig.admin_sig_base64) {
                     sigElement.src = sysConfig.admin_sig_base64;
                     sigElement.style.display = "block";
-                } else {
-                    sigElement.style.display = "none";
-                }
+                } else { sigElement.style.display = "none"; }
             } else {
                 nameElement.textContent = "ประวัติเดิม (ระบุโดยเจ้าของ)";
                 nameElement.style.color = "#81A1C1"; 
@@ -647,10 +669,7 @@ window.viewCertificate = function(docId) {
 
         document.getElementById("pet-cert-card").classList.remove("flipped");
         document.getElementById("cert-modal").style.display = "flex";
-    } catch(e) {
-        console.error("Certificate Error: ", e);
-        alert("ไม่สามารถเปิดใบรับรองได้เนื่องจากข้อมูลบางส่วนไม่สมบูรณ์");
-    }
+    } catch(e) { alert("ไม่สามารถเปิดใบรับรองได้เนื่องจากข้อมูลบางส่วนไม่สมบูรณ์"); }
 }
 
 window.startBookingFlow = function(docId, serviceType) {
@@ -686,19 +705,22 @@ async function submitBooking() {
         const petsRef = collection(db, "pets"); 
         const snapAll = await getDocs(petsRef);
         let serviceQueueCount = 0;
+        const currentCamp = sysConfig?.campaign_id || "";
+
+        // [เฟส 3] นับคิวแยกตามรอบโครงการปัจจุบันเท่านั้น
         snapAll.forEach(d => {
             const p = d.data();
-            if (p.service_type === serviceType && (p.status === "booked" || p.status === "checked_in")) {
+            if (p.service_type === serviceType && (p.campaign_id || "") === currentCamp && (p.status === "booked" || p.status === "checked_in")) {
                 serviceQueueCount++;
             }
         });
-        
         const nextQueueNo = serviceQueueCount + 1;
 
         await updateDoc(doc(db, "pets", window.bookingPetId), { 
             service_type: serviceType,
             status: "booked",
             queue_no: nextQueueNo,
+            campaign_id: currentCamp, // บันทึกชื่อรอบโครงการฝังไว้ด้วย
             consent_agreed: true,
             signature_base64: signatureData,
             signed_timestamp: serverTimestamp()
@@ -764,12 +786,8 @@ window.cancelBooking = async function(docId) {
 
     if(confirm(`ยืนยันการยกเลิกคิว?\n(โควตาจะถูกส่งคืนระบบทันที)`)) {
         try {
-            await updateDoc(doc(db, "pets", docId), { status: "registered", service_type: null, queue_no: null, consent_agreed: false });
-            
-            if (liff.isInClient()) {
-                await liff.sendMessages([{ type: "text", text: `❌ ท่านได้ยกเลิกคิวจองสิทธิ์ของน้อง${pet.pet_name} และคืนสิทธิ์เข้าสู่ระบบเรียบร้อยแล้วครับ` }]);
-            }
-
+            await updateDoc(doc(db, "pets", docId), { status: "registered", service_type: null, queue_no: null, consent_agreed: false, campaign_id: null });
+            if (liff.isInClient()) { await liff.sendMessages([{ type: "text", text: `❌ ท่านได้ยกเลิกคิวจองสิทธิ์ของน้อง${pet.pet_name} เรียบร้อยแล้วครับ` }]); }
             alert("ยกเลิกคิวและคืนโควตาสำเร็จ");
             await loadQuotaAndDashboard(); loadMyPets(); 
         } catch(e) { alert("เกิดข้อผิดพลาดในการยกเลิก"); }
@@ -778,46 +796,33 @@ window.cancelBooking = async function(docId) {
 
 window.sendPostOpCare = async function(petName) {
     if (!liff.isInClient()) return alert("ฟังก์ชันนี้ใช้ได้เมื่อเปิดผ่านแอป LINE เท่านั้นครับ");
-    
     try {
         await liff.sendMessages([{
             type: "text",
             text: `📌 คำแนะนำการดูแลหลังผ่าตัด (น้อง${petName})\n\n๑. ให้สัตว์นอนในท่าปกติ(ท่านอนตะแคงข้างใดข้างหนึ่ง ระวังยาให้คอพับ) ในกรณีพื้นปูน พื้นกระเบื้องเย็น หรืออากาศหนาว ปูผ้ารองตัวสัตว์เพื่อให้ความอบอุ่น\n๒. อย่าทำการป้อนอาหารป้อนน้ำให้แก่สัตว์ที่ยังไม่รู้สึกตัว รอให้สัตว์ฟื้นจากยาสลบดีแล้วจึงให้อาหารและน้ำ โดยให้สัตว์เดินไปกินด้วยตัวเอง\n๓. ในช่วงแรกของการฟื้นระยะแรก สัตว์ยังทรงตัวไม่ดี คอยระมัดระวังไม่ให้ส่วนศีรษะกระแทกพื้น\n๔. หลังการผ่าตัดไม่ให้สัตว์เลีย กัดแทะแผลผ่าตัด หรือ กระโดด ต้องใส่อุปกรณ์กันเลีย เช่น ปลอกคอกันเลีย เสื้อผ่าตัด เป็นต้น เนื่องจากว่าน้ำลายสัตว์มีแบคทีเรีย เมื่อมีการเลีย กัดแทะแผล จะทำให้เกิดการติดเชื้อจะทำให้แผลไม่ติดกันได้\n๕. ป้อนยาสัตว์ตามที่สัตวแพทย์สั่งอย่างเคร่งครัด เพื่อป้องกันการติดเชื้อและอักเสบหลังผ่าตัด\n๖. ห้ามโดนน้ำ ห้ามอาบน้ำ ห้ามให้สัตว์อยู่ในที่ชื้น เป็นเวลา ๗ วัน หรือ จนกว่าแผลจะหาย\n๗. ปิดแผลให้ครบ ๗ วันหรือจนกว่าจะตัดไหม ยกเว้นแผลเปียกน้ำ ถ้าแผลผ่าตัดมีอาการแฉะให้เปิดแผลและแต้มด้วยเบตาดีนเท่านั้น จากนั้นปิดแผลด้วยผ้าก็อตและเทปสำหรับปิดแผล ห้าม!!!ใช้แอลกอฮอล์ล้างแผลโดยเด็ดขาด เพราะจะทำให้เนื้อเยื่อบริเวณปากแผลตายและจะทำให้แผลไม่ติดกัน`
         }]);
         alert("ระบบได้ส่งคำแนะนำเข้าแชท LINE ของท่านแล้ว กรุณากลับไปตรวจสอบที่แชทครับ");
-    } catch (e) {
-        console.error(e);
-        alert("เกิดข้อผิดพลาด ไม่สามารถส่งข้อความได้");
-    }
+    } catch (e) { alert("เกิดข้อผิดพลาด ไม่สามารถส่งข้อความได้"); }
 }
 
-// [เพิ่มใหม่ เฟส 3] ฟังก์ชันแจ้งสัตว์สูญหาย
 window.reportLostPet = async function(docId) {
     const pet = window.myPetsData[docId];
     if(!pet) return;
-    if(confirm(`⚠️ ยืนยันการแจ้งประกาศว่าน้อง ${pet.pet_name} สูญหาย?\n(ข้อมูลของน้องจะถูกนำไปแสดงที่บอร์ดประกาศสัตว์หายสาธารณะเพื่อให้คนช่วยตามหา)`)) {
+    if(confirm(`⚠️ ยืนยันการแจ้งประกาศว่าน้อง ${pet.pet_name} สูญหาย?\n(ข้อมูลจะถูกนำไปแสดงที่บอร์ดสาธารณะ)`)) {
         try {
-            await updateDoc(doc(db, "pets", docId), { 
-                is_lost: true, 
-                lost_reported_at: serverTimestamp(), 
-                updated_at: serverTimestamp() 
-            });
+            await updateDoc(doc(db, "pets", docId), { is_lost: true, lost_reported_at: serverTimestamp(), updated_at: serverTimestamp() });
             alert("บันทึกข้อมูลการสูญหายแล้ว ขอให้น้องกลับมาไวๆ นะครับ 🤍");
             loadMyPets();
         } catch(e) { alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ"); }
     }
 }
 
-// [เพิ่มใหม่ เฟส 3] ฟังก์ชันแจ้งเจอสัตว์แล้ว
 window.reportFoundPet = async function(docId) {
     const pet = window.myPetsData[docId];
     if(!pet) return;
-    if(confirm(`🎉 ยืนยันว่าพบน้อง ${pet.pet_name} แล้วใช่หรือไม่?\n(ประกาศตามหาน้องจะถูกนำออกจากบอร์ดสาธารณะ)`)) {
+    if(confirm(`🎉 ยืนยันว่าพบน้อง ${pet.pet_name} แล้วใช่หรือไม่?`)) {
         try {
-            await updateDoc(doc(db, "pets", docId), { 
-                is_lost: false, 
-                updated_at: serverTimestamp() 
-            });
+            await updateDoc(doc(db, "pets", docId), { is_lost: false, updated_at: serverTimestamp() });
             alert("ยินดีด้วยครับ! ยกเลิกสถานะสูญหายเรียบร้อยแล้ว");
             loadMyPets();
         } catch(e) { alert("เกิดข้อผิดพลาดในการอัปเดตสถานะ"); }
