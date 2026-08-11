@@ -19,12 +19,9 @@ window.currentRawTab = "household";
 let adminRole = localStorage.getItem("adminRole"); 
 let adminMoo = localStorage.getItem("adminMoo");   
 
-// [เพิ่มใหม่] ตัวแปรสำหรับเก็บ Base64 ของโลโก้หน่วยงาน
 let currentAgencyLogoBase64 = ""; 
 const defaultLogoIcon = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336h24V272H216c-13.3 0-24-10.7-24-24s10.7-24 24-24h48c13.3 0 24 10.7 24 24v88h8c13.3 0 24 10.7 24 24s-10.7 24-24 24H216c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z'/%3E%3C/svg%3E";
-
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
-const legalConsentText = "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน (ออกให้โดยเทศบาลเมืองบางแก้วได้รับการวางยาสลบจากเจ้าหน้าที่ ปศุสัตว์จังหวัดสมุทรปราการ)";
 
 function formatThaiDate(dateStr) {
     if (!dateStr) return "-";
@@ -52,6 +49,36 @@ document.addEventListener("DOMContentLoaded", async () => {
         adminSignaturePad = new SignaturePad(canvasSig, { backgroundColor: 'rgb(224, 229, 236)' });
         document.getElementById("btn-clear-admin-sig")?.addEventListener("click", () => { adminSignaturePad.clear(); });
     }
+
+    // [ย้าย Event Listener ของ Modal มาไว้ใน DOMContentLoaded เพื่อให้ทำงานชัวร์ๆ]
+    document.getElementById("btn-confirm-stray-action")?.addEventListener("click", async () => {
+        const docId = document.getElementById('stray-modal-docid').value;
+        const dNeu = parseInt(document.getElementById('stray-act-dog-neu').value) || 0;
+        const dVac = parseInt(document.getElementById('stray-act-dog-vac').value) || 0;
+        const cNeu = parseInt(document.getElementById('stray-act-cat-neu').value) || 0;
+        const cVac = parseInt(document.getElementById('stray-act-cat-vac').value) || 0;
+        
+        const btn = document.getElementById("btn-confirm-stray-action");
+        btn.disabled = true; btn.textContent = "กำลังบันทึก...";
+        
+        try {
+            await updateDoc(doc(db, "stray_reports", docId), { 
+                status: 'completed',
+                dog_neu_done: dNeu,
+                dog_vac_done: dVac,
+                cat_neu_done: cNeu,
+                cat_vac_done: cVac,
+                updated_at: serverTimestamp()
+            });
+            document.getElementById('stray-action-modal').style.display = 'none';
+            window.loadStrayReports();
+        } catch(e) {
+            console.error(e);
+            alert("บันทึกไม่สำเร็จ");
+        } finally {
+            btn.disabled = false; btn.textContent = "บันทึกผล";
+        }
+    });
     
     try {
         await liff.init({ liffId: LIFF_ID });
@@ -104,9 +131,13 @@ function populateMooDropdowns() {
     let count = sysConfig?.moo_count || 16;
     let html = '<option value="">ทุกหมู่</option>';
     let htmlReq = '<option value="" disabled selected>เลือก</option>';
-    for(let i=1; i<=count; i++) { html += `<option value="${i}">หมู่ ${i}</option>`; htmlReq += `<option value="${i}">หมู่ ${i}</option>`; }
-    document.getElementById("search-moo").innerHTML = html;
-    document.getElementById("px-moo").innerHTML = htmlReq;
+    for(let i=1; i<=count; i++) { 
+        html += `<option value="${i}">หมู่ ${i}</option>`; 
+        htmlReq += `<option value="${i}">หมู่ ${i}</option>`; 
+    }
+    if(document.getElementById("search-moo")) document.getElementById("search-moo").innerHTML = html;
+    if(document.getElementById("px-moo")) document.getElementById("px-moo").innerHTML = htmlReq;
+    if(document.getElementById("raw-filter-moo")) document.getElementById("raw-filter-moo").innerHTML = html;
 }
 
 // ==========================================
@@ -172,8 +203,8 @@ function setupNavigation() {
     document.getElementById("menu-proxy").addEventListener("click", () => switchView('view-proxy'));
     document.getElementById("menu-settings").addEventListener("click", () => { loadSettingsToForm(); switchView('view-settings'); });
     document.getElementById("menu-report").addEventListener("click", () => { window.generateReport(); switchView('view-report'); });
-    document.getElementById("menu-stray-manage")?.addEventListener("click", () => { switchView('view-stray-manage'); window.loadStrayReports(); });
     document.getElementById("menu-raw-data").addEventListener("click", () => { window.switchRawTab('household'); switchView('view-raw-data'); });
+    document.getElementById("menu-stray-manage")?.addEventListener("click", () => { switchView('view-stray-manage'); window.loadStrayReports(); });
     document.getElementById("menu-logout").addEventListener("click", () => {
         if(confirm("ออกจากโหมดเจ้าหน้าที่?")) { localStorage.clear(); window.location.href = "registry.html"; }
     });
@@ -183,69 +214,73 @@ function setupNavigation() {
 // 4. ระบบค้นหา & Check-in 
 // ==========================================
 function setupSearchLogic() {
-    const input = document.getElementById("search-house");
-    const btn = document.getElementById("btn-search");
-    input.addEventListener("keypress", (e) => { if (e.key === "Enter") btn.click(); });
+    const searchInput = document.getElementById("search-house");
+    const searchBtn = document.getElementById("btn-search");
 
-    btn.addEventListener("click", async () => {
-        let rawInput = input.value.trim();
+    searchBtn.addEventListener("click", async () => {
+        let rawInput = searchInput.value.trim();
         let selectedMoo = document.getElementById("search-moo").value;
-        if(!rawInput) return alert("ระบุบ้านเลขที่");
+        if(!rawInput) return alert("ระบุบ้านเลขที่, ชื่อ หรือเบอร์โทร");
 
-        let houseNo = rawInput, targetMoo = selectedMoo;
-        if (rawInput.includes("-")) { const p = rawInput.split("-"); houseNo = p[0]; targetMoo = p[1]; }
-        if (!targetMoo) return alert("ระบุหมู่ด้วย");
-
-        if (adminRole === "volunteer" && targetMoo !== adminMoo) return alert(`⚠️ คุณค้นหาได้เฉพาะหมู่ ${adminMoo}`);
+        if (adminRole === "volunteer" && selectedMoo !== adminMoo) {
+            // อนุโลมให้ค้นหาชื่อข้ามหมู่ได้ แต่ถ้าจะลงทะเบียนให้ จะถูกบังคับหมู่เดิม
+        }
 
         const resContainer = document.getElementById("search-result-container");
         resContainer.innerHTML = "<p style='color:#D4AF37; text-align:center;'>กำลังค้นหา...</p>";
 
         try {
-            let houseKey = `${houseNo}-${targetMoo}`;
-            let userSnap = await getDocs(query(collection(db, "users"), where("house_village_search", ">=", houseKey), where("house_village_search", "<=", houseKey + '\uf8ff')));
-            let householdOwner = null;
-            if(!userSnap.empty) householdOwner = userSnap.docs[0].data();
+            // ถ้าพิมพ์เป็นแพทเทิร์น บ้านเลขที่-หมู่ (เช่น 51/2-8)
+            let houseKey = null;
+            if (rawInput.includes("-")) { 
+                const p = rawInput.split("-"); 
+                houseKey = `${p[0]}-${p[1]}`; 
+            } else if (selectedMoo) {
+                houseKey = `${rawInput}-${selectedMoo}`;
+            }
 
-            const petSnap = await getDocs(query(collection(db, "pets"), where("house_no", "==", houseNo), where("village_no", "==", targetMoo.toString())));
+            const petsRef = collection(db, "pets");
+            
+            // เตรียมคิวรี
+            const queries = [];
+            if (houseKey) queries.push(query(petsRef, where("house_village_search", ">=", houseKey), where("house_village_search", "<=", houseKey + '\uf8ff')));
+            queries.push(query(petsRef, where("phone_number", "==", rawInput)));
+            queries.push(query(petsRef, where("owner_name", ">=", rawInput), where("owner_name", "<=", rawInput + '\uf8ff')));
+
+            // ยิง Query พร้อมกัน
+            const snapshots = await Promise.all(queries.map(q => getDocs(q)));
+
+            // ผสานผลลัพธ์
+            const mergedResults = new Map();
+            snapshots.forEach(snap => {
+                snap.forEach(d => {
+                    if (!mergedResults.has(d.id)) mergedResults.set(d.id, d.data());
+                });
+            });
 
             resContainer.innerHTML = "";
 
-            if(householdOwner || !petSnap.empty) {
-                let ownerName = householdOwner ? householdOwner.owner_name : (petSnap.empty ? "ไม่ทราบชื่อ" : petSnap.docs[0].data().owner_name);
-                let phone = householdOwner ? householdOwner.phone_number : (petSnap.empty ? "-" : petSnap.docs[0].data().phone_number);
-                
-                resContainer.innerHTML = `
-                    <div style="background: rgba(80, 227, 194, 0.1); border: 1px solid #50E3C2; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                        <h3 style="color:#50E3C2; margin-bottom:5px;">🏠 ข้อมูลครัวเรือนที่ค้นพบ</h3>
-                        <p style="color:#E0E5EC; font-size:14px; margin-bottom:2px;">บ้านเลขที่ <b>${houseNo} หมู่ ${targetMoo}</b></p>
-                        <p style="color:#A0B0C0; font-size:13px;">เจ้าของ: ${ownerName} | โทร: ${phone}</p>
-                        <button class="neumorphic-btn gold-btn" style="margin-top:10px; padding: 8px; font-size:12px;" onclick="window.quickAddPet('${houseNo}', '${targetMoo}', '${ownerName}', '${phone}')">+ เพิ่มสัตว์เลี้ยงในบ้านนี้ (Proxy)</button>
-                    </div>
-                `;
-            } else {
+            if(mergedResults.size === 0) {
                 resContainer.innerHTML = `
                     <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; padding: 15px; border-radius: 12px; text-align: center;">
-                        <h3 style="color:#ff6b6b; margin-bottom:5px;">❌ ไม่พบข้อมูลครัวเรือน</h3>
-                        <p style="color:#E0E5EC; font-size:13px; margin-bottom:15px;">ไม่มีข้อมูลบ้านเลขที่ ${houseNo} หมู่ ${targetMoo} ในระบบ</p>
-                        <button class="neumorphic-btn gold-btn" onclick="window.createHouseholdProxy('${houseNo}', '${targetMoo}')">+ สร้างครัวเรือนใหม่ และเพิ่มสัตว์เลี้ยง</button>
+                        <h3 style="color:#ff6b6b; margin-bottom:5px;">❌ ไม่พบข้อมูลในระบบ</h3>
+                        <p style="color:#E0E5EC; font-size:13px; margin-bottom:15px;">ไม่มีข้อมูลที่ตรงกับ "${rawInput}"</p>
                     </div>
                 `;
                 return;
             }
 
             window.currentSearchPets = {};
-            let petCount = 0;
-            petSnap.forEach(d => {
-                const pet = d.data();
+            mergedResults.forEach((pet, docId) => {
                 if(pet.status === "cancelled" || pet.status === "deceased" || pet.status === "moved") return;
-                window.currentSearchPets[d.id] = pet; petCount++;
-                renderAdminCard(d.id, pet, resContainer);
+                window.currentSearchPets[docId] = pet;
+                renderAdminCard(docId, pet, resContainer);
             });
-            if(petCount===0) resContainer.insertAdjacentHTML('beforeend', "<p style='color:#ff6b6b; text-align:center;'>ยังไม่มีข้อมูลสัตว์เลี้ยงที่แอคทีฟ</p>");
 
-        } catch(e) { resContainer.innerHTML = `<p style='color:#ff6b6b;'>เกิดข้อผิดพลาด: ${e.message}</p>`; }
+        } catch(e) { console.error(e); resContainer.innerHTML = `<p style='color:#ff6b6b;'>เกิดข้อผิดพลาด</p>`; }
     });
+
+    searchInput.addEventListener("keypress", (e) => { if (e.key === "Enter") searchBtn.click(); });
 }
 
 window.quickAddPet = function(h, m, name, phone) {
@@ -272,7 +307,6 @@ function renderAdminCard(docId, pet, container) {
     
     let roomText = pet.room_no ? `<span style="color:#50E3C2; font-size:12px;">(ห้อง ${pet.room_no})</span>` : "";
     
-    // Auto Legacy Mapping
     let isVac = (pet.vaccine_status === "เคยฉีด" || pet.vaccine_status === "ฉีดแล้ว");
     let vacStr = isVac ? `<span class="badge-green">เคยฉีดแล้ว</span>` : `<span class="badge-red">ไม่เคยฉีด</span>`;
     let neuterStr = pet.neuter_status === "ทำหมันแล้ว" ? `<span class="badge-green">ทำหมันแล้ว</span>` : `<span class="badge-red">ยังไม่ทำหมัน</span>`;
@@ -292,6 +326,7 @@ function renderAdminCard(docId, pet, container) {
                 <img src="${pet.pet_photo_base64 || defaultPlaceholder}" class="pet-photo">
                 <div class="pet-info">
                     <div class="pet-name">${pet.pet_name} ${roomText}</div>
+                    <div style="color: #A0B0C0; font-size: 11px; margin-bottom: 2px;">👤 ${pet.owner_name} | 📞 ${pet.phone_number}</div>
                     <div style="color: #A0B0C0; margin-bottom: 5px;">${pet.pet_type} ${pet.pet_gender} | จอง: <span style="color:#D4AF37;">${pet.service_type || 'ไม่มี'}</span></div>
                     <div>${vacStr} | ${neuterStr}</div>
                 </div>
@@ -420,7 +455,8 @@ function setupProxyBatchLogic() {
             else {
                 await setDoc(doc(db, "users", ownerUid), {
                     owner_name: owner, phone_number: phone, house_no: house, village_no: moo, room_no: room, is_rental: !!room,
-                    house_village_search: searchKey, updated_at: serverTimestamp()
+                    house_village_search: searchKey, updated_at: serverTimestamp(),
+                    household_role: "head", head_uid: ownerUid
                 });
             }
 
@@ -430,6 +466,7 @@ function setupProxyBatchLogic() {
                     house_village_search: searchKey, pet_name: p.pet_name, pet_type: p.pet_type, pet_gender: p.pet_gender,
                     breed: p.breed, color: p.color, age_year: p.age_year, age_month: p.age_month, 
                     rearing_style: p.rearing_style, location: p.location,
+                    campaign_id: sysConfig ? sysConfig.campaign_id : "",
                     pet_photo_base64: p.photo === defaultPlaceholder ? "" : p.photo, registered_timestamp: serverTimestamp(), updated_at: serverTimestamp()
                 };
 
@@ -551,7 +588,6 @@ window.switchRawTab = async function(tabName) {
                 const p = d.data();
                 if(p.status === "cancelled" || p.status === "deceased" || p.status === "moved") return;
                 
-                // Auto Legacy Mapping สำหรับระบบ ROD
                 p._mapped_vac = (p.vaccine_status === "เคยฉีด" || p.vaccine_status === "ฉีดแล้ว") ? "เคยฉีด" : "ไม่เคยฉีด";
                 p._mapped_rear = p.rearing_style === "เลี้ยงระบบปิด (ในบ้านตลอด)" ? "เลี้ยงในพื้นที่จำกัดตลอดเวลา" : (p.rearing_style === "ปล่อยบางเวลา" ? "เลี้ยงในพื้นที่จำกัดบางเวลา" : (p.rearing_style === "เลี้ยงระบบเปิด (ปล่อยอิสระ)" ? "เลี้ยงแบบปล่อยตลอดเวลา" : (p.rearing_style || "-")));
                 p._mapped_loc = p.location || "บ้านพักอาศัย";
@@ -571,13 +607,17 @@ window.switchRawTab = async function(tabName) {
                     amphoe: sysConfig?.amphoe || "-",
                     tambon: sysConfig?.tambon || "-",
                     moo: r.moo || "-",
-                    loc: "สถานที่สาธารณะ/ที่จรจัด",
+                    loc: r.location_category || "สถานที่สาธารณะ/ที่จรจัด",
                     landmark: r.landmark || "-",
                     feeder_name: r.reporter_name || "-",
-                    card: "-",
+                    card: r.reporter_id_card || "-",
                     feeder_phone: r.reporter_phone || "-",
                     dog_count: r.dog_count || 0,
                     cat_count: r.cat_count || 0,
+                    dog_vac_done: r.dog_vac_done || 0,
+                    dog_neu_done: r.dog_neu_done || 0,
+                    cat_vac_done: r.cat_vac_done || 0,
+                    cat_neu_done: r.cat_neu_done || 0,
                     status: r.status
                 });
             });
@@ -586,7 +626,6 @@ window.switchRawTab = async function(tabName) {
             let count = 0;
             window.rawTableData.forEach(r => {
                 count++;
-                // [เฟส 3] ดึงค่าที่แอดมินกรอกจริงๆ (Actual Done) มาลงตาราง ROD 
                 let dVac = r.dog_vac_done || 0;
                 let dNeu = r.dog_neu_done || 0;
                 let cVac = r.cat_vac_done || 0;
@@ -596,7 +635,7 @@ window.switchRawTab = async function(tabName) {
             });
             if(count === 0) html = `<tr><td colspan="14" style="text-align:center;">ยังไม่มีข้อมูลเบาะแสสัตว์จรจัด</td></tr>`;
             tbody.innerHTML = html;
-            return; // จบการทำงานของ tab stray ทันที
+            return;
         }
     } catch(e) { tbody.innerHTML = `<tr><td colspan='24' style='color:#ff6b6b;'>Error: ${e.message}</td></tr>`; }
 }
@@ -641,9 +680,6 @@ window.renderRawTable = function() {
             count++;
             html += `<tr><td>${p.owner_name||'-'}</td><td>-</td><td>${p.phone_number||'-'}</td><td>${p.house_village_search||'-'}</td><td>${p.village_no||'-'}</td><td>${sysConfig?.tambon||'-'}</td><td>${sysConfig?.amphoe||'-'}</td><td>-</td><td>-</td><td>${p.pet_type||'-'}</td><td>${p.pet_name||'-'}</td><td>${p.pet_gender||'-'}</td><td>${p._mapped_vac}</td><td>${p.vaccine_year||'-'}</td><td>${p.neuter_status||'-'}</td><td>${p.age_year||0}</td><td>${p.age_month||0}</td><td>${p._mapped_rear}</td><td>${p._mapped_loc}</td></tr>`;
         });
-    } else if (window.currentRawTab === 'stray') {
-         html = "<tr><td colspan='14' style='text-align:center;'>ระบบข้อมูลสัตว์จรจัด จะเปิดให้ใช้งานในเฟสที่ 3 ครับ</td></tr>";
-         count = 1;
     }
 
     if(count === 0) html = `<tr><td colspan="24" style="text-align:center;">ไม่พบข้อมูลที่ค้นหา</td></tr>`;
@@ -652,16 +688,11 @@ window.renderRawTable = function() {
 
 function setupExcelExport() {
     document.getElementById("btn-export-excel").addEventListener("click", () => {
-        if(window.currentRawTab === 'stray') return alert("ไม่มีข้อมูลให้ส่งออก");
-        
         const table = document.getElementById("raw-table-content");
-        // แก้ไขปัญหาวันที่และเลข 0 หายด้วย raw: true
         const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1", raw: true});
-        
-        let tabTh = window.currentRawTab === 'household' ? 'รายงานบ้าน' : 'รายงานตัว';
+        let tabTh = window.currentRawTab === 'household' ? 'รายงานบ้าน' : (window.currentRawTab === 'stray' ? 'รายงานจร' : 'รายงานตัว');
         const dateStr = new Date().toISOString().split('T')[0];
         const fileName = `Export_${tabTh}_${dateStr}.xlsx`;
-        
         XLSX.writeFile(wb, fileName);
     });
 }
@@ -669,8 +700,6 @@ function setupExcelExport() {
 // ==========================================
 // 7. ตั้งค่าระบบ (Settings & Canvas Signature)
 // ==========================================
-
-// [เพิ่มใหม่] ฟังก์ชันจัดการรูปโลโก้หน่วยงาน
 document.getElementById("st-logo-upload")?.addEventListener("change", (e) => {
     const file = e.target.files[0]; if(!file) return;
     const reader = new FileReader();
@@ -698,12 +727,15 @@ function loadSettingsToForm() {
     if(sysConfig) {
         document.getElementById("st-moo-count").value = sysConfig.moo_count || 16;
         document.getElementById("st-agency").value = sysConfig.agency_name || "";
-        document.getElementById("st-campaign-id").value = sysConfig.campaign_id || "";
         
-        // [เพิ่มใหม่] โหลดรูปภาพโลโก้เดิมมาแสดง
         currentAgencyLogoBase64 = sysConfig.agency_logo_base64 || "";
         if(document.getElementById("st-logo-preview")) {
             document.getElementById("st-logo-preview").src = currentAgencyLogoBase64 || defaultLogoIcon;
+        }
+
+        // [เฟส 3] โหลด Campaign ID
+        if(document.getElementById("st-campaign-id")) {
+            document.getElementById("st-campaign-id").value = sysConfig.campaign_id || "";
         }
 
         document.getElementById("st-tambon").value = sysConfig.tambon || ""; document.getElementById("st-amphoe").value = sysConfig.amphoe || ""; document.getElementById("st-province").value = sysConfig.province || ""; document.getElementById("st-phone").value = sysConfig.phone || "";
@@ -737,14 +769,14 @@ function setupSettingsForm() {
         const btn = document.getElementById("btn-save-settings"); btn.disabled = true; btn.textContent = "กำลังบันทึก...";
         try {
             const updates = {
-                campaign_id: document.getElementById("st-campaign-id").value.trim(),
+                campaign_id: document.getElementById("st-campaign-id") ? document.getElementById("st-campaign-id").value.trim() : "",
                 moo_count: parseInt(document.getElementById("st-moo-count").value) || 16, max_neuter_per_house: parseInt(document.getElementById("st-max-neuter").value) || 2,
                 agency_name: document.getElementById("st-agency").value, tambon: document.getElementById("st-tambon").value, amphoe: document.getElementById("st-amphoe").value, province: document.getElementById("st-province").value, phone: document.getElementById("st-phone").value,
                 nt_start_reg: document.getElementById("st-start").value, nt_end_reg: document.getElementById("st-end").value, nt_date: document.getElementById("st-nt-date").value, nt_location: document.getElementById("st-nt-loc").value,
                 quota_neuter: parseInt(document.getElementById("st-q-neuter").value) || 100, quota_vaccine: parseInt(document.getElementById("st-q-vac").value) || 300,
                 current_vaccine_year: parseInt(document.getElementById("st-vac-year").value) || 2569, vaccine_brand: document.getElementById("st-vac-brand").value, vaccine_lot: document.getElementById("st-vac-lot").value, vaccine_exp: document.getElementById("st-vac-exp").value,
                 rep_name: document.getElementById("st-rep-name").value, rep_pos: document.getElementById("st-rep-pos").value, rev_name: document.getElementById("st-rev-name").value, rev_pos: document.getElementById("st-rev-pos").value, app_name: document.getElementById("st-app-name").value, app_pos: document.getElementById("st-app-pos").value,
-                agency_logo_base64: currentAgencyLogoBase64 // [เพิ่มใหม่] เซฟโลโก้
+                agency_logo_base64: currentAgencyLogoBase64
             };
             
             if(adminSignaturePad && !adminSignaturePad.isEmpty()) {
@@ -864,52 +896,6 @@ function setupReportAndPrint() {
             renderTable("table-checked-in", stats.c);
         } catch (e) { alert("ดึงข้อมูลรายงานไม่สำเร็จ: " + e.message); }
     }
-
-    document.getElementById("btn-print-all-consents").addEventListener("click", async () => {
-        const btn = document.getElementById("btn-print-all-consents"); btn.textContent = "กำลังประมวลผล..."; btn.disabled = true;
-        try {
-            const snap = await getDocs(collection(db, "pets")); let validPets = [];
-            snap.forEach(d => { const p = d.data(); if(p.status !== "cancelled" && p.signature_base64 && p.consent_agreed) validPets.push({ id: d.id, ...p }); });
-            validPets.sort((a, b) => (a.signed_timestamp?.toMillis() || 0) - (b.signed_timestamp?.toMillis() || 0));
-            if(validPets.length === 0) return alert("ไม่มีข้อมูลการเซ็นใบยินยอมในระบบ");
-
-            const container = document.getElementById("print-all-consents-container"); container.innerHTML = "";
-            const agency = sysConfig ? sysConfig.agency_name : "เทศบาล...";
-            
-            validPets.forEach((pet, index) => {
-                container.insertAdjacentHTML('beforeend', `
-                    <div class="consent-page">
-                        <div class="queue-badge">คิวที่: ${index + 1}</div>
-                        <h2 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 5px;">ใบยินยอมผ่าตัดทำหมัน</h2>
-                        <h3 style="text-align: center; font-size: 18px; margin-bottom: 30px;">กับ${agency} ร่วมกับปศุสัตว์จังหวัดสมุทรปราการ</h3>
-                        <div style="font-size: 16px; line-height: 2;">
-                            <p><strong>ข้าพเจ้า (ชื่อเจ้าของ):</strong> ${pet.owner_name}</p>
-                            <p><strong>เบอร์โทรศัพท์:</strong> ${pet.phone_number || "-"}</p>
-                            <p><strong>ที่อยู่ปัจจุบัน:</strong> บ้านเลขที่ ${pet.house_no} หมู่ที่ ${pet.village_no} ตำบลบางแก้ว อำเภอบางพลี จังหวัดสมุทรปราการ</p>
-                            <p style="margin-top: 15px;"><strong>มีความประสงค์ขอรับบริการทำหมัน/ฉีดวัคซีน ให้แก่สัตว์เลี้ยงดังนี้:</strong></p>
-                            <p>ชื่อสัตว์เลี้ยง: ${pet.pet_name} &nbsp;&nbsp; ประเภท: ${pet.pet_type} &nbsp;&nbsp; เพศ: ${pet.pet_gender}</p>
-                            <p style="margin-top: 30px; text-indent: 40px; text-align: justify;">${legalConsentText}</p>
-                        </div>
-                        <div style="margin-top: 50px; text-align: center;">
-                            <img src="${pet.signature_base64}" style="max-height: 100px; display: block; margin: 0 auto; border-bottom: 1px dotted #000;">
-                            <p style="margin-top: 10px;">(ลงชื่อ) .............................................................. ผู้ยินยอม</p>
-                            <p style="margin-top: 5px;">(${pet.owner_name})</p>
-                        </div>
-                    </div>
-                `);
-            });
-            
-            const pageStyle = document.createElement('style');
-            pageStyle.innerHTML = '@page { size: portrait; }';
-            document.head.appendChild(pageStyle);
-
-            document.body.classList.add('print-all-consents-mode'); 
-            window.print(); 
-            document.body.classList.remove('print-all-consents-mode');
-            
-            document.head.removeChild(pageStyle);
-        } catch(e) { alert("เกิดข้อผิดพลาด"); } finally { btn.textContent = "🖨️ พิมพ์ใบยินยอมทั้งหมด (Batch Print)"; btn.disabled = false; }
-    });
 }
 
 function renderTable(tableId, data) {
@@ -940,7 +926,6 @@ window.loadStrayReports = async function() {
         let reports = [];
         snap.forEach(d => { reports.push({ id: d.id, ...d.data() }); });
         
-        // เรียงจากใหม่ไปเก่า
         reports.sort((a,b) => (b.reported_at?.toMillis() || 0) - (a.reported_at?.toMillis() || 0));
 
         container.innerHTML = "";
@@ -960,7 +945,6 @@ window.loadStrayReports = async function() {
                 ? `<img src="${r.photo_base64}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #81A1C1; flex-shrink:0;">` 
                 : `<div style="width: 100px; height: 100px; background: rgba(0,0,0,0.2); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:#6A7A8A; font-size:10px; text-align:center;">ไม่มีรูปภาพ</div>`;
 
-            // [เปลี่ยนให้เปิด Modal แทนการบันทึกทันที]
             let actionBtn = isPending 
                 ? `<button class="btn-action-small" style="background: #50E3C2; color: #141E30; border-color: #50E3C2; font-weight:bold;" onclick="window.openStrayActionModal('${r.id}', ${r.dog_count}, ${r.cat_count})">✔️ มาร์คว่าจัดการแล้ว</button>`
                 : `<button class="btn-action-small" style="background: transparent; color: #A0B0C0; border-color: rgba(255,255,255,0.2);" onclick="window.updateStrayStatus('${r.id}', 'pending')">↩️ ย้อนกลับสถานะ</button>`;
@@ -1007,13 +991,11 @@ window.openGoogleMaps = function(lat, lng) {
     window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
 }
 
-// [เพิ่มใหม่ เฟส 3] ฟังก์ชันเปิดกล่องกรอกผลงาน
 window.openStrayActionModal = function(docId, repDog, repCat) {
     document.getElementById('stray-modal-docid').value = docId;
     document.getElementById('stray-modal-rep-dog').textContent = repDog;
     document.getElementById('stray-modal-rep-cat').textContent = repCat;
     
-    // ตั้งค่า Default เป็นเลขเดียวกับที่แจ้งมา เพื่อให้แอดมินไม่ต้องพิมพ์ใหม่ถ้าตัวเลขตรงกัน
     document.getElementById('stray-act-dog-neu').value = repDog;
     document.getElementById('stray-act-dog-vac').value = repDog;
     document.getElementById('stray-act-cat-neu').value = repCat;
@@ -1021,38 +1003,6 @@ window.openStrayActionModal = function(docId, repDog, repCat) {
 
     document.getElementById('stray-action-modal').style.display = 'flex';
 }
-
-// [เพิ่มใหม่ เฟส 3] ฟังก์ชันบันทึกผลงานลง Firebase
-document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("btn-confirm-stray-action")?.addEventListener("click", async () => {
-        const docId = document.getElementById('stray-modal-docid').value;
-        const dNeu = parseInt(document.getElementById('stray-act-dog-neu').value) || 0;
-        const dVac = parseInt(document.getElementById('stray-act-dog-vac').value) || 0;
-        const cNeu = parseInt(document.getElementById('stray-act-cat-neu').value) || 0;
-        const cVac = parseInt(document.getElementById('stray-act-cat-vac').value) || 0;
-        
-        const btn = document.getElementById("btn-confirm-stray-action");
-        btn.disabled = true; btn.textContent = "กำลังบันทึก...";
-        
-        try {
-            await updateDoc(doc(db, "stray_reports", docId), { 
-                status: 'completed',
-                dog_neu_done: dNeu,
-                dog_vac_done: dVac,
-                cat_neu_done: cNeu,
-                cat_vac_done: cVac,
-                updated_at: serverTimestamp()
-            });
-            document.getElementById('stray-action-modal').style.display = 'none';
-            window.loadStrayReports();
-        } catch(e) {
-            console.error(e);
-            alert("บันทึกไม่สำเร็จ");
-        } finally {
-            btn.disabled = false; btn.textContent = "บันทึกผล";
-        }
-    });
-});
 
 window.updateStrayStatus = async function(docId, newStatus) {
     if (newStatus === 'pending') {
