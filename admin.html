@@ -65,6 +65,7 @@
         <a href="#" id="menu-checkin">🏠 ค้นหา & จัดการหน้างาน</a>
         <a href="#" id="menu-proxy">📝 ลงทะเบียนแทน (Batch)</a>
         <a href="#" id="menu-report">📊 รายงานสรุปโครงการ</a>
+        <a href="#" id="menu-stray-manage" style="color: #ff6b6b;">🐕 จัดการเบาะแสจรจัด <span id="stray-badge" style="background: #ff6b6b; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; display: none;">New</span></a>
         <a href="#" id="menu-raw-data" class="admin-only">🗄️ ตารางข้อมูลดิบ (Data)</a>
         <a href="#" id="menu-settings" class="admin-only">⚙️ ตั้งค่าระบบ</a>
         <a href="#" id="menu-logout" style="color: #ff6b6b; margin-top: 20px; border-top: 1px dashed rgba(255,107,107,0.3);">🚪 ออกจากโหมดเจ้าหน้าที่</a>
@@ -195,7 +196,23 @@
                 </div>
             </div>
         </div>
-
+        
+        <!-- [เฟส 3] จัดการเบาะแสสัตว์จรจัด -->
+        <div id="view-stray-manage" class="container admin-view">
+            <h2 class="title" style="color: #ff6b6b; text-align: left; font-size: 18px;">🐕 จัดการเบาะแสสัตว์จรจัด</h2>
+            <div class="card neumorphic">
+                <div class="input-group" style="margin-bottom: 0;">
+                    <label>ตัวกรองสถานะเบาะแส</label>
+                    <select id="stray-filter-status" class="neumorphic-input" onchange="window.loadStrayReports()">
+                        <option value="pending" selected>🔴 รอดำเนินการ / ลงพื้นที่</option>
+                        <option value="completed">✅ จัดการเรียบร้อยแล้ว</option>
+                        <option value="all">แสดงทั้งหมด</option>
+                    </select>
+                </div>
+            </div>
+            <div id="stray-reports-container"></div>
+        </div>
+        
         <!-- 4. ตารางข้อมูลดิบ (Data) อิงตามตาราง ROD พร้อมระบบ Filter -->
         <div id="view-raw-data" class="container admin-view" style="max-width: 100%;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
