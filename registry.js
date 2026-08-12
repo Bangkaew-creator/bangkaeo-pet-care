@@ -239,15 +239,42 @@ function setupHouseholdForm() {
             if(isRental && roomNo) searchKey = `${hNo}-${vNo}-${roomNo}`;
 
             try {
-                const houseQ = query(collection(db, "users"), where("house_village_search", "==", searchKey), where("household_role", "==", "head"));
+                // [ปรับปรุง] ระบบจัดการข้อมูล Legacy (โอนย้ายสิทธิ์เมื่อพบข้อมูลเก่า)
+                const houseQ = query(collection(db, "users"), where("house_village_search", "==", searchKey));
                 const houseSnap = await getDocs(houseQ);
                 
                 let role = "head";
                 let headUid = userProfileData.userId;
+                let legacyUid = null;
                 
-                if(!houseSnap.empty) {
-                    role = "pending";
-                    headUid = houseSnap.docs[0].id; 
+                houseSnap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.household_role === "head") {
+                        role = "pending";
+                        headUid = doc.id; 
+                    } else if (data.household_role === "legacy") {
+                        legacyUid = doc.id; // พบข้อมูลดั้งเดิมที่นำเข้ามาจาก Excel
+                    }
+                });
+
+                // ถ้าระบบให้บัญชี LINE นี้เป็นเจ้าของบ้าน และตรวจพบข้อมูลเก่า ให้โอนย้ายสิทธิ์สัตว์เลี้ยงทันที
+                if (role === "head" && legacyUid) {
+                    const petsQ = query(collection(db, "pets"), where("owner_uid", "==", legacyUid));
+                    const petsSnap = await getDocs(petsQ);
+                    
+                    const updatePromises = [];
+                    petsSnap.forEach(petDoc => {
+                        updatePromises.push(updateDoc(doc(db, "pets", petDoc.id), {
+                            owner_uid: userProfileData.userId, // เปลี่ยนเจ้าของมาเป็นบัญชี LINE
+                            owner_name: name, // อัปเดตชื่อให้ตรงกับคนล็อกอิน
+                            phone_number: phone,
+                            updated_at: serverTimestamp()
+                        }));
+                    });
+                    await Promise.all(updatePromises);
+                    
+                    // ปิดการใช้งานบัญชี legacy ชั่วคราวเพื่อไม่ให้รกระบบ
+                    await updateDoc(doc(db, "users", legacyUid), { household_role: "merged_and_deleted" });
                 }
 
                 await setDoc(doc(db, "users", userProfileData.userId), {
@@ -260,11 +287,12 @@ function setupHouseholdForm() {
 
                 document.getElementById("household-setup-container").style.display = "none";
                 checkUserData(); 
-            } catch (e) { alert("เกิดข้อผิดพลาด"); } 
-            finally { btnRegHouse.disabled = false; }
-        });
-    }
-}
+            } catch (e) { 
+                console.error(e);
+                alert("เกิดข้อผิดพลาดในการลงทะเบียน"); 
+            } finally { 
+                btnRegHouse.disabled = false; 
+            }
 
 function setupPetForm() {
     document.getElementById("btn-show-add-pet")?.addEventListener("click", () => {
