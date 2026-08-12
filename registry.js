@@ -118,7 +118,16 @@ async function loadSystemConfig() {
 
             // [เพิ่มใหม่] อ่านค่า Theme และเปลี่ยนสีพื้นหลังให้ตรงกับที่แอดมินตั้ง
             document.body.classList.remove('theme-mourning', 'theme-gov', 'theme-rabies', 'theme-luxury');
-            if (sysConfig.theme && sysConfig.theme !== "default") {
+            if (sysConfig.theme === "custom" && sysConfig.custom_colors) {
+                // ดึงค่า Custom Colors มาใส่ในตัวแปร CSS ของทั้งเว็บ
+                const root = document.documentElement;
+                root.style.setProperty('--bg-main', sysConfig.custom_colors.bg_main || '#141E30');
+                root.style.setProperty('--bg-card', sysConfig.custom_colors.bg_card || '#1b2941');
+                root.style.setProperty('--text-main', sysConfig.custom_colors.text_main || '#E0E5EC');
+                root.style.setProperty('--text-muted', sysConfig.custom_colors.text_muted || '#A0B0C0');
+                root.style.setProperty('--accent-primary', sysConfig.custom_colors.accent_primary || '#D4AF37');
+                root.style.setProperty('--accent-success', sysConfig.custom_colors.accent_success || '#50E3C2');
+            } else if (sysConfig.theme && sysConfig.theme !== "default") {
                 document.body.classList.add("theme-" + sysConfig.theme);
             }
 
