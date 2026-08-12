@@ -17,8 +17,8 @@
             <p id="txt-agency-name">เทศบาล...</p>
         </div>
         <div class="card neumorphic">
-            <h3 class="section-title" style="color: #50E3C2;">🏠 ข้อมูลผู้ขึ้นทะเบียน</h3>
-            <p style="font-size: 13px; color: #A0B0C0; margin-bottom: 15px;">กรุณากรอกข้อมูลให้ครบถ้วน เพื่อใช้เป็นฐานข้อมูลในการรับสิทธิ์สวัสดิการต่างๆ จากเทศบาล</p>
+            <h3 class="section-title" style="color: var(--accent-success);">🏠 ข้อมูลผู้ขึ้นทะเบียน</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">กรุณากรอกข้อมูลให้ครบถ้วน เพื่อใช้เป็นฐานข้อมูลในการรับสิทธิ์สวัสดิการต่างๆ จากเทศบาล</p>
             <div class="input-group"><label>ชื่อ-นามสกุลเจ้าของ</label><input type="text" id="hh-name" class="neumorphic-input" placeholder="ระบุชื่อ-นามสกุล"></div>
             <div class="input-group"><label>เบอร์โทรศัพท์ติดต่อ</label><input type="tel" id="hh-phone" class="neumorphic-input" placeholder="08X-XXX-XXXX"></div>
             <div class="row">
@@ -47,28 +47,28 @@
             <div style="display: flex; gap: 10px; align-items: center;">
                 <img id="header-agency-logo" src="" style="width: 40px; height: 40px; border-radius: 50%; display: none; object-fit: cover;">
                 <div>
-                    <h3 style="font-size: 18px; color: #D4AF37;">สมุดประจำตัวสัตว์เลี้ยง</h3>
-                    <p id="display-household-info" style="color: #A0B0C0; font-size: 14px; margin-top: 2px;">กำลังโหลด...</p>
+                    <h3 style="font-size: 18px; color: var(--accent-primary);">สมุดประจำตัวสัตว์เลี้ยง</h3>
+                    <p id="display-household-info" style="color: var(--text-muted); font-size: 14px; margin-top: 2px;">กำลังโหลด...</p>
                 </div>
             </div>
-            <img id="user-profile-img" src="" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #D4AF37; display: none;">
+            <img id="user-profile-img" src="" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--accent-primary); display: none;">
         </div>
         
-        <div id="pending-member-msg" style="display: none; background: rgba(245, 166, 35, 0.1); border: 1px solid #F5A623; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-            <p style="color: #F5A623; font-size: 15px; font-weight: bold;">⏳ รอการอนุมัติสิทธิ์ครัวเรือน</p>
-            <p style="color: #E0E5EC; font-size: 13px; margin-top: 5px;">ท่านได้ลงทะเบียนด้วยบ้านเลขที่ที่มีในระบบแล้ว กรุณารอให้เจ้าของบ้าน (ผู้ลงทะเบียนคนแรก) กดยอมรับสิทธิ์ของท่านเพื่อเริ่มใช้งาน</p>
+        <div id="pending-member-msg" style="display: none; background: var(--bg-overlay); border: 1px solid var(--accent-warning); padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+            <p style="color: var(--accent-warning); font-size: 15px; font-weight: bold;">⏳ รอการอนุมัติสิทธิ์ครัวเรือน</p>
+            <p style="color: var(--text-main); font-size: 13px; margin-top: 5px;">ท่านได้ลงทะเบียนด้วยบ้านเลขที่ที่มีในระบบแล้ว กรุณารอให้เจ้าของบ้าน (ผู้ลงทะเบียนคนแรก) กดยอมรับสิทธิ์ของท่านเพื่อเริ่มใช้งาน</p>
         </div>
 
-        <div id="head-approval-box" class="card neumorphic" style="display: none; border-left: 5px solid #F5A623;">
-            <h4 style="color: #F5A623; font-size: 15px; margin-bottom: 10px;">🔔 คำขอเข้าร่วมบ้าน (รออนุมัติ)</h4>
+        <div id="head-approval-box" class="card neumorphic" style="display: none; border-left: 5px solid var(--accent-warning);">
+            <h4 style="color: var(--accent-warning); font-size: 15px; margin-bottom: 10px;">🔔 คำขอเข้าร่วมบ้าน (รออนุมัติ)</h4>
             <div id="pending-members-list"></div>
         </div>
         
-        <div id="campaign-banner-container" class="card neumorphic" style="display: none; margin-bottom: 20px; border-left: 5px solid #50E3C2; padding: 15px;">
-            <h4 style="color: #50E3C2; font-size: 16px; margin-bottom: 10px;">📊 สถานะคิวโครงการ <span id="txt-campaign-name" style="font-size:12px; color:#A0B0C0;"></span></h4>
-            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                <div style="font-size: 13px; color: #A0B0C0; margin-bottom: 5px;">📅 <b>กำหนดการ:</b> <span id="txt-service-date">-</span></div>
-                <div style="font-size: 13px; color: #A0B0C0;">📍 <b>สถานที่:</b> <span id="txt-service-location">-</span></div>
+        <div id="campaign-banner-container" class="card neumorphic" style="display: none; margin-bottom: 20px; border-left: 5px solid var(--accent-success); padding: 15px;">
+            <h4 style="color: var(--accent-success); font-size: 16px; margin-bottom: 10px;">📊 สถานะคิวโครงการ <span id="txt-campaign-name" style="font-size:12px; color:var(--text-muted);"></span></h4>
+            <div style="background: var(--bg-overlay); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 5px;">📅 <b>กำหนดการ:</b> <span id="txt-service-date">-</span></div>
+                <div style="font-size: 13px; color: var(--text-muted);">📍 <b>สถานที่:</b> <span id="txt-service-location">-</span></div>
             </div>
             <div class="progress-container">
                 <div class="progress-label"><span>คิวทำหมัน (สุนัขและแมว)</span><span id="txt-neuter-quota">กำลังโหลด...</span></div>
@@ -78,8 +78,8 @@
                 <div class="progress-label"><span>คิวฉีดวัคซีนอย่างเดียว</span><span id="txt-vaccine-quota">กำลังโหลด...</span></div>
                 <div class="progress-track"><div id="bar-vaccine" class="progress-fill vaccine" style="width: 0%;"></div></div>
             </div>
-            <div id="registration-closed-msg" style="display: none; background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; padding: 10px; border-radius: 8px; text-align: center; margin-top: 15px;">
-                <p style="color: #ff6b6b; font-size: 13px; font-weight: bold;">⚠️ สิ้นสุดการรับจองคิว หรือ โควตาเต็มแล้ว</p>
+            <div id="registration-closed-msg" style="display: none; background: var(--bg-overlay); border: 1px solid var(--accent-danger); padding: 10px; border-radius: 8px; text-align: center; margin-top: 15px;">
+                <p style="color: var(--accent-danger); font-size: 13px; font-weight: bold;">⚠️ สิ้นสุดการรับจองคิว หรือ โควตาเต็มแล้ว</p>
             </div>
         </div>
 
@@ -87,49 +87,49 @@
         <div id="pet-cards-container"></div>
         
         <div style="text-align: center; margin-top: 30px;">
-            <a href="public.html" style="color: #D4AF37; font-size: 15px; text-decoration: underline; cursor: pointer; display: block; margin-bottom: 15px;">🌐 ไปยังศูนย์ข้อมูลสาธารณะ / แจ้งเบาะแสจรจัด</a>
-            <a href="admin.html" style="color: #6A7A8A; font-size: 12px; text-decoration: underline; cursor: pointer;">สำหรับเจ้าหน้าที่เทศบาล / อสม.</a>
+            <a href="public.html" style="color: var(--accent-primary); font-size: 15px; text-decoration: underline; cursor: pointer; display: block; margin-bottom: 15px;">🌐 ไปยังศูนย์ข้อมูลสาธารณะ / แจ้งเบาะแสจรจัด</a>
+            <a href="admin.html" style="color: var(--text-placeholder); font-size: 12px; text-decoration: underline; cursor: pointer;">สำหรับเจ้าหน้าที่เทศบาล / อสม.</a>
         </div>
     </div>
 
     <!-- ================= ส่วนที่ 3: ฟอร์มเพิ่ม/แก้ไขสัตว์เลี้ยง ================= -->
     <div id="add-pet-container" class="container" style="display: none;">
-        <div class="project-header"><h3 id="form-title" style="color: #D4AF37;">+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่</h3></div>
+        <div class="project-header"><h3 id="form-title" style="color: var(--accent-primary);">+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่</h3></div>
         <div class="card neumorphic">
             <div style="text-align: center; margin-bottom: 25px;">
                 <h3 class="section-title">📷 รูปถ่ายสัตว์เลี้ยง</h3>
                 <img id="pet-image-preview" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E" 
-                     style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #D4AF37; margin-bottom: 10px; cursor: pointer; background: #1b2941;" 
+                     style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-primary); margin-bottom: 10px; cursor: pointer; background: var(--bg-card);" 
                      onclick="document.getElementById('pet-image-upload').click()">
                 <input type="file" id="pet-image-upload" accept="image/*" style="display: none;">
-                <p style="font-size: 12px; color: #6A7A8A;">แตะที่รูปเพื่ออัปโหลด</p>
+                <p style="font-size: 12px; color: var(--text-placeholder);">แตะที่รูปเพื่ออัปโหลด</p>
             </div>
             
             <h3 class="section-title">รายละเอียดข้อมูล</h3>
-            <div class="input-group"><label>ชื่อสัตว์เลี้ยง <span style="color:#ff6b6b">*</span></label><input type="text" id="p-name" class="neumorphic-input" required></div>
+            <div class="input-group"><label>ชื่อสัตว์เลี้ยง <span style="color:var(--accent-danger);">*</span></label><input type="text" id="p-name" class="neumorphic-input" required></div>
             <div class="row">
-                <div class="input-group half"><label>ประเภท <span style="color:#ff6b6b">*</span></label><select id="p-type" class="neumorphic-input" required><option value="สุนัข">สุนัข</option><option value="แมว">แมว</option></select></div>
-                <div class="input-group half"><label>เพศ <span style="color:#ff6b6b">*</span></label><select id="p-gender" class="neumorphic-input" required><option value="ตัวผู้">ตัวผู้</option><option value="ตัวเมีย">ตัวเมีย</option></select></div>
+                <div class="input-group half"><label>ประเภท <span style="color:var(--accent-danger);">*</span></label><select id="p-type" class="neumorphic-input" required><option value="สุนัข">สุนัข</option><option value="แมว">แมว</option></select></div>
+                <div class="input-group half"><label>เพศ <span style="color:var(--accent-danger);">*</span></label><select id="p-gender" class="neumorphic-input" required><option value="ตัวผู้">ตัวผู้</option><option value="ตัวเมีย">ตัวเมีย</option></select></div>
             </div>
             <div class="row">
                 <div class="input-group half"><label>สายพันธุ์</label><input type="text" id="p-breed" class="neumorphic-input" placeholder="เช่น ไทย, เปอร์เซีย"></div>
                 <div class="input-group half"><label>สี/ตำหนิ</label><input type="text" id="p-color" class="neumorphic-input" placeholder="เช่น ดำแดง, ขาวล้วน"></div>
             </div>
             <div class="row">
-                <div class="input-group half"><label>อายุ (ปี) <span style="color:#ff6b6b">*</span></label><input type="number" id="p-age-year" class="neumorphic-input" value="0" min="0"></div>
-                <div class="input-group half"><label>อายุ (เดือน) <span style="color:#ff6b6b">*</span></label><input type="number" id="p-age-month" class="neumorphic-input" value="0" min="0" max="11"></div>
+                <div class="input-group half"><label>อายุ (ปี) <span style="color:var(--accent-danger);">*</span></label><input type="number" id="p-age-year" class="neumorphic-input" value="0" min="0"></div>
+                <div class="input-group half"><label>อายุ (เดือน) <span style="color:var(--accent-danger);">*</span></label><input type="number" id="p-age-month" class="neumorphic-input" value="0" min="0" max="11"></div>
             </div>
-            <p style="font-size:11px; color:#50E3C2; margin-top:-10px; margin-bottom:15px;">*อายุจะถูกคำนวณบวกเพิ่มให้อัตโนมัติในแต่ละปี</p>
+            <p style="font-size:11px; color:var(--accent-success); margin-top:-10px; margin-bottom:15px;">*อายุจะถูกคำนวณบวกเพิ่มให้อัตโนมัติในแต่ละปี</p>
             
             <div class="row">
-                <div class="input-group half"><label>รูปแบบการเลี้ยง <span style="color:#ff6b6b">*</span></label>
+                <div class="input-group half"><label>รูปแบบการเลี้ยง <span style="color:var(--accent-danger);">*</span></label>
                     <select id="p-rearing" class="neumorphic-input" required>
                         <option value="เลี้ยงในพื้นที่จำกัดตลอดเวลา">เลี้ยงในพื้นที่จำกัดตลอดเวลา</option>
                         <option value="เลี้ยงในพื้นที่จำกัดบางเวลา">เลี้ยงในพื้นที่จำกัดบางเวลา</option>
                         <option value="เลี้ยงแบบปล่อยตลอดเวลา">เลี้ยงแบบปล่อยตลอดเวลา</option>
                     </select>
                 </div>
-                <div class="input-group half"><label>สถานที่เลี้ยง <span style="color:#ff6b6b">*</span></label>
+                <div class="input-group half"><label>สถานที่เลี้ยง <span style="color:var(--accent-danger);">*</span></label>
                     <select id="p-location" class="neumorphic-input" required>
                         <option value="บ้านพักอาศัย" selected>บ้านพักอาศัย</option>
                         <option value="เลี้ยงบริเวณหมู่บ้าน">เลี้ยงบริเวณหมู่บ้าน</option>
@@ -170,10 +170,10 @@
     <!-- ================= Modals ต่างๆ ================= -->
     <div id="breed-warning-modal" class="modal-overlay" style="display: none;">
         <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
-            <h3 class="section-title" style="color: #ff6b6b; border-bottom-color: rgba(255, 107, 107, 0.3);">⚠️ แจ้งเตือนเงื่อนไข</h3>
-            <p style="font-size: 14px; margin-bottom: 15px; color: #E0E5EC; line-height: 1.6; text-align: left;">
-                สงวนสิทธิ์ <strong style="color:#ff6b6b;">ไม่ทำหมัน</strong> ให้แก่สุนัขและแมว หน้าสั้น พันธุ์เล็ก เช่น ปอม ชิสุห์ ชิวาว่า เปอร์เซีย บริติสช็อตแฮร์ เป็นต้น <br><br>
-                <span style="color:#A0B0C0; font-size:12px;">* เนื่องจากมีความเสี่ยงสูงในการวางยาสลบ หากนำมาในวันงาน สัตวแพทย์มีสิทธิ์ปฏิเสธการผ่าตัด</span>
+            <h3 class="section-title" style="color: var(--accent-danger); border-bottom-color: var(--accent-danger);">⚠️ แจ้งเตือนเงื่อนไข</h3>
+            <p style="font-size: 14px; margin-bottom: 15px; color: var(--text-main); line-height: 1.6; text-align: left;">
+                สงวนสิทธิ์ <strong style="color:var(--accent-danger);">ไม่ทำหมัน</strong> ให้แก่สุนัขและแมว หน้าสั้น พันธุ์เล็ก เช่น ปอม ชิสุห์ ชิวาว่า เปอร์เซีย บริติสช็อตแฮร์ เป็นต้น <br><br>
+                <span style="color:var(--text-muted); font-size:12px;">* เนื่องจากมีความเสี่ยงสูงในการวางยาสลบ หากนำมาในวันงาน สัตวแพทย์มีสิทธิ์ปฏิเสธการผ่าตัด</span>
             </p>
             <button type="button" id="btn-accept-breed-warning" class="neumorphic-btn gold-btn" style="width: 100%;">รับทราบและดำเนินการต่อ</button>
             <button type="button" onclick="document.getElementById('breed-warning-modal').style.display='none'" class="neumorphic-btn outline-btn" style="width: 100%; margin-top: 10px;">ยกเลิก</button>
@@ -182,47 +182,47 @@
 
     <div id="consent-modal" class="modal-overlay" style="display: none;">
         <div class="card neumorphic" style="width: 100%; max-width: 400px; padding: 20px; text-align: center; max-height: 95vh; overflow-y: auto;">
-            <h3 style="color: #F5A623; margin-bottom: 10px;">📄 ใบยินยอมรับการบริการ</h3>
-            <p style="color: #A0B0C0; font-size: 13px; margin-bottom: 15px;">จองคิว <span id="consent-service-type" style="color: #50E3C2; font-weight:bold;">-</span> ให้น้อง: <span id="consent-pet-name" style="color: #D4AF37; font-weight: bold;">-</span></p>
-            <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; font-size: 12px; color: #A0B0C0; line-height: 1.6; max-height: 150px; overflow-y: auto; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); text-align: left;">
+            <h3 style="color: var(--accent-warning); margin-bottom: 10px;">📄 ใบยินยอมรับการบริการ</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">จองคิว <span id="consent-service-type" style="color: var(--accent-success); font-weight:bold;">-</span> ให้น้อง: <span id="consent-pet-name" style="color: var(--accent-primary); font-weight: bold;">-</span></p>
+            <div style="background: var(--bg-overlay); padding: 12px; border-radius: 8px; font-size: 12px; color: var(--text-muted); line-height: 1.6; max-height: 150px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--border-light); text-align: left;">
                 <p style="margin-top: 0; text-indent: 15px; text-align: justify;" id="consent-text"></p>
             </div>
-            <div class="input-group checkbox-group" style="margin-bottom: 15px; text-align: left; background: rgba(80, 227, 194, 0.1); padding: 10px; border-radius: 8px;">
+            <div class="input-group checkbox-group" style="margin-bottom: 15px; text-align: left; background: var(--bg-overlay); padding: 10px; border-radius: 8px;">
                 <input type="checkbox" id="accept-consent" class="neumorphic-checkbox">
-                <label for="accept-consent" style="color: #50E3C2; font-weight: bold;">ข้าพเจ้าได้อ่านและยอมรับเงื่อนไขทั้งหมด</label>
+                <label for="accept-consent" style="color: var(--accent-success); font-weight: bold;">ข้าพเจ้าได้อ่านและยอมรับเงื่อนไขทั้งหมด</label>
             </div>
             <div style="margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
-                    <label style="font-size: 13px; color: #A0B0C0;">เซ็นชื่อเจ้าของสัตว์ (ใช้นิ้ววาดลงในกรอบ)</label>
-                    <button type="button" id="btn-clear-signature" style="background: none; border: none; color: #ff6b6b; font-size: 12px; cursor: pointer; text-decoration: underline;">ล้างลายเซ็น</button>
+                    <label style="font-size: 13px; color: var(--text-muted);">เซ็นชื่อเจ้าของสัตว์ (ใช้นิ้ววาดลงในกรอบ)</label>
+                    <button type="button" id="btn-clear-signature" style="background: none; border: none; color: var(--accent-danger); font-size: 12px; cursor: pointer; text-decoration: underline;">ล้างลายเซ็น</button>
                 </div>
-                <canvas id="signature-pad" style="width: 100%; height: 150px; border-radius: 10px; background: #E0E5EC; border: 2px dashed rgba(212, 175, 55, 0.5); touch-action: none; cursor: crosshair;"></canvas>
+                <canvas id="signature-pad" style="width: 100%; height: 150px; border-radius: 10px; background: #FFF; border: 2px dashed var(--accent-primary); touch-action: none; cursor: crosshair;"></canvas>
             </div>
             <div class="row">
                 <button type="button" id="btn-close-consent" class="neumorphic-btn outline-btn half">ยกเลิก</button>
-                <button type="button" id="btn-confirm-booking" class="neumorphic-btn gold-btn half" style="background: #50E3C2; border-color: #50E3C2; color: #141E30;">ยืนยันจองคิว</button>
+                <button type="button" id="btn-confirm-booking" class="neumorphic-btn gold-btn half" style="background: var(--accent-success); border-color: var(--accent-success); color: var(--bg-main);">ยืนยันจองคิว</button>
             </div>
         </div>
     </div>
 
     <div id="ticket-modal" class="modal-overlay" style="display: none;">
-        <div class="card neumorphic" style="width: 100%; max-width: 360px; border: 2px solid #50E3C2; padding: 0; overflow: hidden; background: #141E30;">
-            <div style="background: rgba(80, 227, 194, 0.1); padding: 20px; text-align: center; border-bottom: 1px dashed rgba(80, 227, 194, 0.3);">
-                <div id="tk-header-title" style="color: #50E3C2; font-size: 16px; margin-bottom: 5px; font-weight: bold;">บัตรคิว: ทำหมันและวัคซีน</div>
-                <div id="tk-agency-name" style="color: #A0B0C0; font-size: 12px;">เทศบาล...</div>
-                <div style="background: rgba(20, 30, 48, 0.9); border: 1px solid #50E3C2; border-radius: 12px; padding: 20px; margin-top: 15px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
-                    <div style="font-size: 12px; color: #A0B0C0;">ลำดับคิวของท่าน</div>
-                    <div id="tk-queue-no" style="font-size: 60px; font-weight: bold; color: #50E3C2; line-height: 1.1; margin: 5px 0;">#00</div>
-                    <div id="tk-pet-name" style="font-size: 16px; color: #D4AF37; margin-top: 5px; font-weight: bold;">-</div>
+        <div class="card neumorphic" style="width: 100%; max-width: 360px; border: 2px solid var(--accent-success); padding: 0; overflow: hidden; background: var(--bg-main);">
+            <div style="background: var(--bg-overlay); padding: 20px; text-align: center; border-bottom: 1px dashed var(--accent-success);">
+                <div id="tk-header-title" style="color: var(--accent-success); font-size: 16px; margin-bottom: 5px; font-weight: bold;">บัตรคิว: ทำหมันและวัคซีน</div>
+                <div id="tk-agency-name" style="color: var(--text-muted); font-size: 12px;">เทศบาล...</div>
+                <div style="background: var(--bg-main); border: 1px solid var(--accent-success); border-radius: 12px; padding: 20px; margin-top: 15px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
+                    <div style="font-size: 12px; color: var(--text-muted);">ลำดับคิวของท่าน</div>
+                    <div id="tk-queue-no" style="font-size: 60px; font-weight: bold; color: var(--accent-success); line-height: 1.1; margin: 5px 0;">#00</div>
+                    <div id="tk-pet-name" style="font-size: 16px; color: var(--accent-primary); margin-top: 5px; font-weight: bold;">-</div>
                 </div>
             </div>
-            <div style="padding: 15px; font-size: 13px; line-height: 1.6; color: #E0E5EC; text-align: left;">
-                <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-                    <div style="margin-bottom: 5px;"><b style="color: #D4AF37;">📅 วันที่รับบริการ:</b> <span id="tk-date">-</span></div>
-                    <div style="margin-bottom: 5px;"><b style="color: #D4AF37;">📍 สถานที่:</b> <span id="tk-location">-</span></div>
-                    <div><b style="color: #D4AF37;">👤 เจ้าของ:</b> <span id="tk-owner">-</span></div>
+            <div style="padding: 15px; font-size: 13px; line-height: 1.6; color: var(--text-main); text-align: left;">
+                <div style="background: var(--bg-overlay); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="margin-bottom: 5px;"><b style="color: var(--accent-primary);">📅 วันที่รับบริการ:</b> <span id="tk-date">-</span></div>
+                    <div style="margin-bottom: 5px;"><b style="color: var(--accent-primary);">📍 สถานที่:</b> <span id="tk-location">-</span></div>
+                    <div><b style="color: var(--accent-primary);">👤 เจ้าของ:</b> <span id="tk-owner">-</span></div>
                 </div>
-                <div id="tk-warning-box" style="background: rgba(255, 107, 107, 0.1); border-left: 3px solid #ff6b6b; padding: 12px; border-radius: 4px; font-size: 11px; color: #ff6b6b; max-height: 160px; overflow-y: auto;"></div>
+                <div id="tk-warning-box" style="background: var(--bg-overlay); border-left: 3px solid var(--accent-danger); padding: 12px; border-radius: 4px; font-size: 11px; color: var(--accent-danger); max-height: 160px; overflow-y: auto;"></div>
             </div>
             <div style="padding: 0 15px 15px;">
                 <button type="button" onclick="document.getElementById('ticket-modal').style.display='none'" class="neumorphic-btn gold-btn" style="width: 100%;">ตกลง / ปิดหน้าต่าง</button>
@@ -235,35 +235,35 @@
             <div class="flip-card" id="pet-cert-card" onclick="this.classList.toggle('flipped')">
                 <div class="flip-card-inner">
                     <div class="flip-card-front">
-                        <h3 style="color: #D4AF37; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 10px; margin-bottom: 15px;">สมุดประจำตัวสัตว์เลี้ยง</h3>
-                        <img id="cert-img" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #D4AF37; margin: 0 auto 15px; background: #1b2941;">
-                        <h2 id="cert-pet-name" style="margin-bottom: 5px; color: #50E3C2;">-</h2>
-                        <p id="cert-pet-detail" style="font-size: 14px; margin-bottom: 20px; color: #A0B0C0;">-</p>
-                        <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; text-align: left; font-size: 13px; line-height: 1.6;">
-                            <div><b style="color: #D4AF37;">เจ้าของ:</b> <span id="cert-owner"></span></div>
-                            <div><b style="color: #D4AF37;">ที่อยู่:</b> <span id="cert-address"></span></div>
-                            <hr style="border-color: rgba(255,255,255,0.05); margin: 10px 0;">
-                            <div><b style="color: #50E3C2;">สถานะวัคซีน:</b> <span id="cert-vac-status"></span></div>
-                            <div style="color: #A0B0C0; font-size: 11px; margin-top: 3px;" id="cert-vac-detail">รออัปเดตจากหน้างาน</div>
+                        <h3 style="color: var(--accent-primary); border-bottom: 1px solid var(--border-light); padding-bottom: 10px; margin-bottom: 15px;">สมุดประจำตัวสัตว์เลี้ยง</h3>
+                        <img id="cert-img" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-primary); margin: 0 auto 15px; background: var(--bg-card);">
+                        <h2 id="cert-pet-name" style="margin-bottom: 5px; color: var(--accent-success);">-</h2>
+                        <p id="cert-pet-detail" style="font-size: 14px; margin-bottom: 20px; color: var(--text-muted);">-</p>
+                        <div style="background: var(--bg-overlay); padding: 12px; border-radius: 8px; text-align: left; font-size: 13px; line-height: 1.6;">
+                            <div><b style="color: var(--accent-primary);">เจ้าของ:</b> <span id="cert-owner"></span></div>
+                            <div><b style="color: var(--accent-primary);">ที่อยู่:</b> <span id="cert-address"></span></div>
+                            <hr style="border-color: var(--border-muted); margin: 10px 0;">
+                            <div><b style="color: var(--accent-success);">สถานะวัคซีน:</b> <span id="cert-vac-status"></span></div>
+                            <div style="color: var(--text-muted); font-size: 11px; margin-top: 3px;" id="cert-vac-detail">รออัปเดตจากหน้างาน</div>
                         </div>
-                        <p style="font-size: 12px; color: #A0B0C0; margin-top: auto;">👉 แตะที่บัตรเพื่อพลิกดูด้านหลัง</p>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: auto;">👉 แตะที่บัตรเพื่อพลิกดูด้านหลัง</p>
                     </div>
                     <div class="flip-card-back">
-                        <h4 style="text-align: center; margin-bottom: 15px; color: #141E30; border-bottom: 2px solid #D4AF37; padding-bottom: 10px;">ข้อกำหนดและเงื่อนไข</h4>
-                        <ul style="font-size: 12px; padding-left: 18px; line-height: 1.6; text-align: left; margin-bottom: 15px; color: #333;">
+                        <h4 style="text-align: center; margin-bottom: 15px; color: var(--bg-main); border-bottom: 2px solid var(--accent-primary); padding-bottom: 10px;">ข้อกำหนดและเงื่อนไข</h4>
+                        <ul style="font-size: 12px; padding-left: 18px; line-height: 1.6; text-align: left; margin-bottom: 15px; color: var(--text-main);">
                             <li>ใบรับรองนี้ออกโดย <span id="cert-back-agency">หน่วยงาน</span> เพื่อยืนยันประวัติปศุสัตว์</li>
                             <li>เจ้าของสัตว์มีหน้าที่ต้องนำสัตว์เลี้ยงมารับวัคซีนพิษสุนัขบ้าเป็นประจำทุกปี</li>
                             <li>หากสัตว์เสียชีวิต สูญหาย หรือย้าย กรุณาแจ้งเพื่อปรับปรุงฐานข้อมูล</li>
                         </ul>
-                        <div style="margin-top: auto; text-align: center; background: rgba(0,0,0,0.05); padding: 15px 10px; border-radius: 8px;">
-                            <p style="font-size: 11px; color: #666;">เจ้าหน้าที่ผู้บันทึกข้อมูล/ฉีดวัคซีน</p>
+                        <div style="margin-top: auto; text-align: center; background: var(--bg-overlay); padding: 15px 10px; border-radius: 8px;">
+                            <p style="font-size: 11px; color: var(--text-muted);">เจ้าหน้าที่ผู้บันทึกข้อมูล/ฉีดวัคซีน</p>
                             <img id="cert-admin-sig" src="" style="height: 40px; margin: 5px auto; display: none;">
-                            <p id="cert-admin-name" style="font-weight: bold; font-size: 14px; color: #141E30;">-</p>
+                            <p id="cert-admin-name" style="font-weight: bold; font-size: 14px; color: var(--text-main);">-</p>
                         </div>
                     </div>
                 </div>
             </div>
-            <button onclick="document.getElementById('cert-modal').style.display='none'" class="neumorphic-btn outline-btn" style="width: 200px; color: white;">✖ ปิดหน้าต่าง</button>
+            <button onclick="document.getElementById('cert-modal').style.display='none'" class="neumorphic-btn outline-btn" style="width: 200px; color: var(--text-main);">✖ ปิดหน้าต่าง</button>
         </div>
     </div>
 
