@@ -116,6 +116,12 @@ async function loadSystemConfig() {
                 if(logoImg) { logoImg.src = sysConfig.agency_logo_base64; logoImg.style.display = "block"; }
             }
 
+            // [เพิ่มใหม่] อ่านค่า Theme และเปลี่ยนสีพื้นหลังให้ตรงกับที่แอดมินตั้ง
+            document.body.classList.remove('theme-mourning', 'theme-gov', 'theme-rabies', 'theme-luxury');
+            if (sysConfig.theme && sysConfig.theme !== "default") {
+                document.body.classList.add("theme-" + sysConfig.theme);
+            }
+
             let mooCount = sysConfig.moo_count || 16;
             let hhMooSelect = document.getElementById("hh-village-no");
             if (hhMooSelect) {
@@ -152,7 +158,7 @@ async function checkUserData() {
                 const pendingMsg = document.getElementById("pending-member-msg");
                 if (pendingMsg) {
                     pendingMsg.style.display = "block";
-                    pendingMsg.innerHTML = `<p style="color: #ff6b6b; font-size: 15px; font-weight: bold;">❌ คำขอถูกปฏิเสธ</p><p style="color: #E0E5EC; font-size: 13px; margin-top: 5px;">เจ้าของบ้านไม่อนุมัติสิทธิ์ครัวเรือนของท่าน หากมีข้อสงสัยโปรดติดต่อเจ้าหน้าที่</p>`;
+                    pendingMsg.innerHTML = `<p style="color: var(--accent-danger); font-size: 15px; font-weight: bold;">❌ คำขอถูกปฏิเสธ</p><p style="color: var(--text-main); font-size: 13px; margin-top: 5px;">เจ้าของบ้านไม่อนุมัติสิทธิ์ครัวเรือนของท่าน หากมีข้อสงสัยโปรดติดต่อเจ้าหน้าที่</p>`;
                 }
                 document.getElementById("btn-show-add-pet").style.display = "none";
                 document.getElementById("pet-cards-container").innerHTML = "";
@@ -169,7 +175,10 @@ async function checkUserData() {
         } else {
             document.getElementById("household-setup-container").style.display = "block";
         }
-    } catch (error) { console.error("Error", error); }
+    } catch (error) { 
+        console.error("Error", error); 
+        document.getElementById("loading").innerHTML = `<div style="text-align:center; color:var(--accent-danger);">❌ ขัดข้อง: ${error.message}</div>`;
+    }
 }
 
 async function loadPendingMembers() {
@@ -187,13 +196,13 @@ async function loadPendingMembers() {
         snap.forEach(d => {
             const m = d.data();
             if(list) list.insertAdjacentHTML('beforeend', `
-                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(245, 166, 35, 0.2);">
-                    <div style="font-size: 13px; color: #E0E5EC;">
-                        👤 <b>${m.owner_name}</b><br>📞 <a href="tel:${m.phone_number}" style="color:#81A1C1;">${m.phone_number}</a>
+                <div style="background: var(--bg-overlay); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-light);">
+                    <div style="font-size: 13px; color: var(--text-main);">
+                        👤 <b>${m.owner_name}</b><br>📞 <a href="tel:${m.phone_number}" style="color:var(--accent-secondary);">${m.phone_number}</a>
                     </div>
                     <div style="display: flex; gap: 8px;">
-                        <button onclick="window.handleMember('${d.id}', 'member')" style="background: #50E3C2; border: none; color: #141E30; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);">✔️ รับ</button>
-                        <button onclick="window.handleMember('${d.id}', 'rejected')" style="background: transparent; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px;">❌ ปฏิเสธ</button>
+                        <button onclick="window.handleMember('${d.id}', 'member')" style="background: var(--accent-success); border: none; color: var(--bg-main); padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; box-shadow: 2px 2px 5px var(--shadow-dark);">✔️ รับ</button>
+                        <button onclick="window.handleMember('${d.id}', 'rejected')" style="background: transparent; border: 1px solid var(--accent-danger); color: var(--accent-danger); padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px;">❌ ปฏิเสธ</button>
                     </div>
                 </div>
             `);
@@ -448,7 +457,7 @@ async function loadQuotaAndDashboard() {
 
 async function loadMyPets() {
     const container = document.getElementById("pet-cards-container");
-    container.innerHTML = "<p style='color: #D4AF37; text-align: center;'>กำลังโหลดข้อมูลสัตว์เลี้ยง...</p>";
+    container.innerHTML = "<p style='color: var(--accent-primary); text-align: center;'>กำลังโหลดข้อมูลสัตว์เลี้ยง...</p>";
 
     try {
         const q = query(collection(db, "pets"), where("house_village_search", "==", currentHouseholdKey));
@@ -531,10 +540,10 @@ async function loadMyPets() {
             let isActiveBooking = (pet.status === "booked" || pet.status === "checked_in") && ((pet.campaign_id || "") === currentCamp);
 
             let isLost = pet.is_lost === true;
-            let lostBadge = isLost ? `<div style="color: #F5A623; font-size: 13px; font-weight: bold; margin-bottom: 5px;">📢 สถานะ: ประกาศตามหา (สูญหาย)</div>` : "";
+            let lostBadge = isLost ? `<div style="color: var(--accent-warning); font-size: 13px; font-weight: bold; margin-bottom: 5px;">📢 สถานะ: ประกาศตามหา (สูญหาย)</div>` : "";
             let lostBtn = isLost
-                ? `<button class="btn-action-small" style="color: #141E30; background: #50E3C2; border-color: #50E3C2; font-weight:bold;" onclick="window.reportFoundPet('${pet.id}')">🎉 เจอตัวแล้ว</button>`
-                : `<button class="btn-action-small" style="color: #F5A623; border-color: rgba(245, 166, 35, 0.4);" onclick="window.reportLostPet('${pet.id}')">📢 แจ้งสูญหาย</button>`;
+                ? `<button class="btn-action-small" style="color: var(--bg-main); background: var(--accent-success); border-color: var(--accent-success); font-weight:bold;" onclick="window.reportFoundPet('${pet.id}')">🎉 เจอตัวแล้ว</button>`
+                : `<button class="btn-action-small" style="color: var(--accent-warning); border-color: var(--border-light);" onclick="window.reportLostPet('${pet.id}')">📢 แจ้งสูญหาย</button>`;
 
             if (isActiveBooking) {
                 let statusIcon = pet.status === "checked_in" ? "✅ รับบริการแล้ว" : `🎫 บัตรคิว #${pet.queue_no || '-'}`;
@@ -550,7 +559,7 @@ async function loadMyPets() {
                 }
 
                 let postOpBtn = showPostOp 
-                                ? `<button class="btn-action-small" style="color: #50E3C2; border-color: #50E3C2; margin-top: 5px;" onclick="window.sendPostOpCare('${pet.pet_name}')">📥 รับคู่มือดูแลแผล</button>` 
+                                ? `<button class="btn-action-small" style="color: var(--accent-success); border-color: var(--accent-success); margin-top: 5px;" onclick="window.sendPostOpCare('${pet.pet_name}')">📥 รับคู่มือดูแลแผล</button>` 
                                 : "";
                 
                 actionBtn = `<button class="btn-action-small btn-neuter-ticket" onclick="window.viewNeuterTicket('${pet.id}')">${statusIcon}</button>${cancelBtn}${postOpBtn}`;
@@ -559,19 +568,19 @@ async function loadMyPets() {
                     if (myHouseNeuterCount < maxHouseNeuter) {
                         actionBtn = `<button class="btn-action-small btn-neuter" onclick="window.startBookingFlow('${pet.id}', 'ทำหมันและวัคซีน')">✂️ จองคิวทำหมัน</button>`;
                     } else {
-                        actionBtn = `<div style="font-size:11px; color:#ff6b6b; text-align:center; padding: 5px;">เต็มโควตาบ้าน (${maxHouseNeuter} ตัว) ในรอบนี้</div>`;
+                        actionBtn = `<div style="font-size:11px; color:var(--accent-danger); text-align:center; padding: 5px;">เต็มโควตาบ้าน (${maxHouseNeuter} ตัว) ในรอบนี้</div>`;
                     }
                 } else if (!needNeuter && needVaccine && currentBookedVaccine < currentTotalVaccineQuota) {
                     actionBtn = `<button class="btn-action-small btn-vaccine" onclick="window.startBookingFlow('${pet.id}', 'วัคซีนอย่างเดียว')">💉 จองคิววัคซีน</button>`;
                 } else if (!needNeuter && !needVaccine) {
-                    actionBtn = `<div style="font-size:12px; color:#50E3C2; text-align:center; padding: 5px; font-weight: bold;">✅ ประวัติครบถ้วน</div>`;
+                    actionBtn = `<div style="font-size:12px; color:var(--accent-success); text-align:center; padding: 5px; font-weight: bold;">✅ ประวัติครบถ้วน</div>`;
                 }
             } else if (!needNeuter && !needVaccine) {
-                actionBtn = `<div style="font-size:12px; color:#50E3C2; text-align:center; padding: 5px; font-weight: bold;">✅ ประวัติครบถ้วน</div>`;
+                actionBtn = `<div style="font-size:12px; color:var(--accent-success); text-align:center; padding: 5px; font-weight: bold;">✅ ประวัติครบถ้วน</div>`;
             }
 
             container.insertAdjacentHTML('beforeend', `
-                <div class="pet-card" ${isLost ? 'style="border-left-color: #F5A623;"' : ''}>
+                <div class="pet-card" ${isLost ? 'style="border-left-color: var(--accent-warning);"' : ''}>
                     <div class="pet-card-left">
                         <img src="${pet.pet_photo_base64 || defaultPlaceholder}" class="pet-photo">
                         <div class="pet-info">
@@ -586,7 +595,7 @@ async function loadMyPets() {
                     <div class="card-actions">
                         ${actionBtn}
                         ${lostBtn}
-                        <button class="btn-action-small" style="color: #D4AF37; border-color: rgba(212, 175, 55, 0.4);" onclick="window.viewCertificate('${pet.id}')">📄 ใบรับรอง</button>
+                        <button class="btn-action-small" style="color: var(--accent-primary); border-color: var(--border-light);" onclick="window.viewCertificate('${pet.id}')">📄 ใบรับรอง</button>
                         <button class="btn-action-small btn-edit" onclick="window.editPet('${pet.id}')">✏️ แก้ไข</button>
                         <button class="btn-action-small btn-delete" onclick="window.softDeletePet('${pet.id}')">แจ้งตาย/ย้าย</button>
                     </div>
@@ -594,7 +603,7 @@ async function loadMyPets() {
             `);
         });
 
-        if(count === 0) container.innerHTML = `<div style="text-align: center; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 10px;"><p style="color: #A0B0C0;">ยังไม่มีข้อมูลสัตว์เลี้ยงในสมุดทะเบียน</p></div>`;
+        if(count === 0) container.innerHTML = `<div style="text-align: center; padding: 20px; background: var(--bg-overlay-light); border-radius: 10px;"><p style="color: var(--text-muted);">ยังไม่มีข้อมูลสัตว์เลี้ยงในสมุดทะเบียน</p></div>`;
     } catch (e) { console.error(e); }
 }
 
@@ -658,12 +667,12 @@ window.viewCertificate = function(docId) {
         
         let isVac = (pet.vaccine_status === "เคยฉีด" || pet.vaccine_status === "ฉีดแล้ว");
         if (isVac) {
-            document.getElementById("cert-vac-status").innerHTML = `เคยฉีด (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:#E0E5EC;">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
-            document.getElementById("cert-vac-status").style.color = "#50E3C2";
+            document.getElementById("cert-vac-status").innerHTML = `เคยฉีด (ปี ${pet.vaccine_year}) <br><span style="font-size:11px; color:var(--text-main);">วันที่ฉีด: ${pet.vaccine_date || '-'}</span>`;
+            document.getElementById("cert-vac-status").style.color = "var(--accent-success)";
             document.getElementById("cert-vac-detail").innerHTML = `ยี่ห้อ: ${pet.vaccine_brand || '-'} (Lot: ${pet.vaccine_lot || '-'})<br>EXP: ${pet.vaccine_exp || '-'}`;
         } else {
             document.getElementById("cert-vac-status").textContent = "ไม่เคยฉีดวัคซีน";
-            document.getElementById("cert-vac-status").style.color = "#ff6b6b";
+            document.getElementById("cert-vac-status").style.color = "var(--accent-danger)";
             document.getElementById("cert-vac-detail").textContent = "-";
         }
         
@@ -673,14 +682,14 @@ window.viewCertificate = function(docId) {
         if (isVac) {
             if (pet.vaccinated_by_admin) {
                 nameElement.textContent = pet.vaccinated_by_admin;
-                nameElement.style.color = "#141E30"; 
+                nameElement.style.color = "var(--bg-main)"; 
                 if (sysConfig && sysConfig.admin_sig_base64) {
                     sigElement.src = sysConfig.admin_sig_base64;
                     sigElement.style.display = "block";
                 } else { sigElement.style.display = "none"; }
             } else {
                 nameElement.textContent = "ประวัติเดิม (ระบุโดยเจ้าของ)";
-                nameElement.style.color = "#81A1C1"; 
+                nameElement.style.color = "var(--accent-secondary)"; 
                 sigElement.style.display = "none";
             }
         } else {
