@@ -54,6 +54,11 @@ async function loadSystemConfig() {
                 if(logoImg) { logoImg.src = sysConfig.agency_logo_base64; logoImg.style.display = "block"; }
             }
 
+            // [เพิ่มใหม่] อ่านค่า Theme และเปลี่ยนสีพื้นหลังให้ตรงกับที่แอดมินตั้ง
+            if (sysConfig.theme && sysConfig.theme !== "default") {
+                document.body.classList.add("theme-" + sysConfig.theme);
+            }
+
             let mooCount = sysConfig.moo_count || 16;
             let mooSelect = document.getElementById("stray-moo");
             if(mooSelect) {
@@ -144,7 +149,7 @@ async function loadLostPets() {
         const snap = await getDocs(q);
 
         if (snap.empty) {
-            container.innerHTML = `<div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 15px; text-align: center;"><div style="color: #50E3C2; font-size: 14px;">ขณะนี้ไม่มีประกาศสัตว์สูญหาย</div></div>`;
+            container.innerHTML = `<div style="background: var(--bg-overlay); border-radius: 10px; padding: 15px; text-align: center;"><div style="color: var(--accent-success); font-size: 14px;">ขณะนี้ไม่มีประกาศสัตว์สูญหาย</div></div>`;
             return;
         }
 
@@ -154,13 +159,13 @@ async function loadLostPets() {
             if (pet.status === "cancelled" || pet.status === "deceased") return; 
 
             container.insertAdjacentHTML('beforeend', `
-                <div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 15px; margin-bottom: 15px; border-left: 5px solid #F5A623; display: flex; gap: 15px; align-items: center;">
-                    <img src="${pet.pet_photo_base64 || defaultPlaceholder}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; border: 2px solid #F5A623; flex-shrink: 0; background: #1b2941;">
+                <div style="background: var(--bg-overlay); border-radius: 10px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--accent-warning); display: flex; gap: 15px; align-items: center;">
+                    <img src="${pet.pet_photo_base64 || defaultPlaceholder}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; border: 2px solid var(--accent-warning); flex-shrink: 0; background: var(--bg-card);">
                     <div style="flex-grow: 1; text-align: left;">
-                        <div style="color: #F5A623; font-size: 16px; font-weight: bold; margin-bottom: 2px;">น้อง${pet.pet_name}</div>
-                        <div style="color: #E0E5EC; font-size: 12px; margin-bottom: 2px;">${pet.pet_type} ${pet.pet_gender} | พันธุ์: ${pet.breed || '-'}</div>
-                        <div style="background: rgba(212, 175, 55, 0.1); padding: 5px 10px; border-radius: 5px; display: inline-block; margin-top: 5px;">
-                            <a href="tel:${pet.phone_number}" style="color: #D4AF37; font-size: 12px; font-weight: bold; text-decoration: none;">📞 โทรแจ้งเบาะแส: ${pet.phone_number}</a>
+                        <div style="color: var(--accent-warning); font-size: 16px; font-weight: bold; margin-bottom: 2px;">น้อง${pet.pet_name}</div>
+                        <div style="color: var(--text-main); font-size: 12px; margin-bottom: 2px;">${pet.pet_type} ${pet.pet_gender} | พันธุ์: ${pet.breed || '-'}</div>
+                        <div style="background: var(--bg-overlay-light); padding: 5px 10px; border-radius: 5px; display: inline-block; margin-top: 5px; border: 1px solid var(--border-muted);">
+                            <a href="tel:${pet.phone_number}" style="color: var(--accent-primary); font-size: 12px; font-weight: bold; text-decoration: none;">📞 โทรแจ้งเบาะแส: ${pet.phone_number}</a>
                         </div>
                     </div>
                 </div>
@@ -181,7 +186,7 @@ async function initLeafletMapAndData() {
     try {
         const snap = await getDocs(collection(db, "stray_reports"));
         if (snap.empty) {
-            listContainer.innerHTML = "<p style='text-align: center; color: #A0B0C0; font-size: 12px;'>ยังไม่มีข้อมูลเบาะแสในพื้นที่</p>";
+            listContainer.innerHTML = "<p style='text-align: center; color: var(--text-muted); font-size: 12px;'>ยังไม่มีข้อมูลเบาะแสในพื้นที่</p>";
             return;
         }
 
@@ -207,19 +212,19 @@ async function initLeafletMapAndData() {
             listContainer.insertAdjacentHTML('beforeend', `
                 <div class="stray-list-item">
                     <div>
-                        <div style="font-weight: bold; color: #D4AF37;">📍 หมู่ ${r.moo} (${r.location_category || 'อื่นๆ'})</div>
-                        <div style="color: #A0B0C0; font-size: 11px;">${r.landmark} | 🐕 ${r.dog_count}, 🐈 ${r.cat_count}</div>
+                        <div style="font-weight: bold; color: var(--accent-primary);">📍 หมู่ ${r.moo} (${r.location_category || 'อื่นๆ'})</div>
+                        <div style="color: var(--text-muted); font-size: 11px;">${r.landmark} | 🐕 ${r.dog_count}, 🐈 ${r.cat_count}</div>
                     </div>
                     <div>${badge}</div>
                 </div>
             `);
         });
 
-        if(!hasData) listContainer.innerHTML = "<p style='text-align: center; color: #A0B0C0; font-size: 12px;'>ยังไม่มีข้อมูลเบาะแสในพื้นที่</p>";
+        if(!hasData) listContainer.innerHTML = "<p style='text-align: center; color: var(--text-muted); font-size: 12px;'>ยังไม่มีข้อมูลเบาะแสในพื้นที่</p>";
 
     } catch (e) {
         console.error("Error loading stray map:", e);
-        listContainer.innerHTML = "<p style='color: #ff6b6b;'>โหลดข้อมูลล้มเหลว</p>";
+        listContainer.innerHTML = "<p style='color: var(--accent-danger);'>โหลดข้อมูลล้มเหลว</p>";
     }
 }
 
