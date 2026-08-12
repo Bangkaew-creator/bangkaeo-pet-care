@@ -116,10 +116,9 @@ async function loadSystemConfig() {
                 if(logoImg) { logoImg.src = sysConfig.agency_logo_base64; logoImg.style.display = "block"; }
             }
 
-            // [เพิ่มใหม่] อ่านค่า Theme และเปลี่ยนสีพื้นหลังให้ตรงกับที่แอดมินตั้ง
+            // อ่านค่า Theme
             document.body.classList.remove('theme-mourning', 'theme-gov', 'theme-rabies', 'theme-luxury');
             if (sysConfig.theme === "custom" && sysConfig.custom_colors) {
-                // ดึงค่า Custom Colors มาใส่ในตัวแปร CSS ของทั้งเว็บ
                 const root = document.documentElement;
                 root.style.setProperty('--bg-main', sysConfig.custom_colors.bg_main || '#141E30');
                 root.style.setProperty('--bg-card', sysConfig.custom_colors.bg_card || '#1b2941');
@@ -257,7 +256,6 @@ function setupHouseholdForm() {
             if(isRental && roomNo) searchKey = `${hNo}-${vNo}-${roomNo}`;
 
             try {
-                // [ปรับปรุง] ระบบจัดการข้อมูล Legacy (โอนย้ายสิทธิ์เมื่อพบข้อมูลเก่า)
                 const houseQ = query(collection(db, "users"), where("house_village_search", "==", searchKey));
                 const houseSnap = await getDocs(houseQ);
                 
@@ -309,9 +307,9 @@ function setupHouseholdForm() {
             } finally { 
                 btnRegHouse.disabled = false; 
             }
-        }); // ปิด addEventListener
-    } // ปิด if(btnRegHouse)
-} // ปิด function setupHouseholdForm()
+        }); 
+    } 
+} 
 
 function setupPetForm() {
     document.getElementById("btn-show-add-pet")?.addEventListener("click", () => {
@@ -428,16 +426,20 @@ async function loadQuotaAndDashboard() {
     const currentCamp = sysConfig.campaign_id || "";
 
     try {
-        const petsRef = collection(db, "pets");
-        const snap = await getDocs(petsRef);
-        
-        snap.forEach(d => {
-            const p = d.data();
-            if ((p.campaign_id || "") === currentCamp && (p.status === "booked" || p.status === "checked_in")) {
-                if (p.service_type === "ทำหมันและวัคซีน") currentBookedNeuter++;
-                if (p.service_type === "วัคซีนอย่างเดียว") currentBookedVaccine++;
-            }
-        });
+        if (currentCamp !== "") {
+            const petsRef = collection(db, "pets");
+            // 🚀 [ปรับปรุงความเร็ว] ดึงเฉพาะสัตว์ที่อยู่ในรอบโครงการปัจจุบันเท่านั้น ไม่โหลดมาทั้ง 5700 ตัว
+            const campQ = query(petsRef, where("campaign_id", "==", currentCamp));
+            const snap = await getDocs(campQ);
+
+            snap.forEach(d => {
+                const p = d.data();
+                if (p.status === "booked" || p.status === "checked_in") {
+                    if (p.service_type === "ทำหมันและวัคซีน") currentBookedNeuter++;
+                    if (p.service_type === "วัคซีนอย่างเดียว") currentBookedVaccine++;
+                }
+            });
+        }
     } catch(e) { console.error("Quota Error:", e); }
 
     const today = new Date().toISOString().split('T')[0];
@@ -742,19 +744,21 @@ async function submitBooking() {
 
     try {
         const petsRef = collection(db, "pets"); 
-        const snapAll = await getDocs(petsRef);
-        
         let maxQueue = 0; 
         const currentCamp = sysConfig?.campaign_id || "";
 
-        snapAll.forEach(d => {
-            const p = d.data();
-            if (p.service_type === serviceType && (p.campaign_id || "") === currentCamp) {
-                if (p.queue_no && p.queue_no > maxQueue) {
+        if (currentCamp !== "") {
+            // 🚀 [ปรับปรุงความเร็ว] ค้นหาคิวล่าสุดเฉพาะจากข้อมูลในรอบโครงการปัจจุบัน ไม่ดึงทั้งหมดมาหาค่า
+            const campQ = query(petsRef, where("campaign_id", "==", currentCamp));
+            const snapCamp = await getDocs(campQ);
+
+            snapCamp.forEach(d => {
+                const p = d.data();
+                if (p.service_type === serviceType && p.queue_no && p.queue_no > maxQueue) {
                     maxQueue = p.queue_no;
                 }
-            }
-        });
+            });
+        }
         
         const nextQueueNo = maxQueue + 1;
 
