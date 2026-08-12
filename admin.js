@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     document.getElementById("btn-auto-cancel")?.addEventListener("click", async () => {
         const currentCamp = sysConfig?.campaign_id || "";
-        const serviceDateStr = sysConfig?.nt_date || "";
+        const serviceDateStr = sysConfig?.nt_date || ""; 
         
         if (!currentCamp || !serviceDateStr) {
             return alert("กรุณาตั้งชื่อรอบโครงการ และ 'วันให้บริการ (เช่น 2026-08-05)' ในหน้าตั้งค่าก่อนครับ");
@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 document.getElementById("admin-login-modal").style.display = "flex";
             }
         }
-    } catch (err) { document.getElementById("loading").innerHTML = `<div style="text-align:center; color:#ff6b6b;">❌ ขัดข้อง: ${err.message}</div>`; }
+    } catch (err) { document.getElementById("loading").innerHTML = `<div style="text-align:center; color:var(--accent-danger);">❌ ขัดข้อง: ${err.message}</div>`; }
 });
 
 async function loadSystemConfig() {
@@ -172,7 +172,16 @@ async function loadSystemConfig() {
         
         // โหลดและปรับธีมสี
         document.body.classList.remove('theme-mourning', 'theme-gov', 'theme-rabies', 'theme-luxury');
-        if (sysConfig.theme && sysConfig.theme !== "default") {
+        if (sysConfig.theme === "custom" && sysConfig.custom_colors) {
+            // ดึงค่า Custom Colors มาใส่ในตัวแปร CSS ของทั้งเว็บ
+            const root = document.documentElement;
+            root.style.setProperty('--bg-main', sysConfig.custom_colors.bg_main || '#141E30');
+            root.style.setProperty('--bg-card', sysConfig.custom_colors.bg_card || '#1b2941');
+            root.style.setProperty('--text-main', sysConfig.custom_colors.text_main || '#E0E5EC');
+            root.style.setProperty('--text-muted', sysConfig.custom_colors.text_muted || '#A0B0C0');
+            root.style.setProperty('--accent-primary', sysConfig.custom_colors.accent_primary || '#D4AF37');
+            root.style.setProperty('--accent-success', sysConfig.custom_colors.accent_success || '#50E3C2');
+        } else if (sysConfig.theme && sysConfig.theme !== "default") {
             document.body.classList.add("theme-" + sysConfig.theme);
         }
     }
@@ -768,10 +777,33 @@ document.getElementById("btn-clear-logo")?.addEventListener("click", () => {
     currentAgencyLogoBase64 = ""; document.getElementById("st-logo-preview").src = defaultLogoIcon;
 });
 
+// ฟังก์ชันเปิด/ปิดกล่องสีเมื่อเลือก "ปรับแต่งสีเอง"
+document.getElementById("st-theme-selector")?.addEventListener("change", (e) => {
+    const customBox = document.getElementById("custom-color-settings");
+    if(customBox) {
+        customBox.style.display = e.target.value === "custom" ? "block" : "none";
+    }
+});
+
 function loadSettingsToForm() {
     if(sysConfig) {
         if(document.getElementById("st-theme-selector")) {
             document.getElementById("st-theme-selector").value = sysConfig.theme || "default";
+            
+            // โหลดสีที่เคยจิ้มไว้ (ถ้ามี) กลับมาใส่ใน Color Picker
+            if (sysConfig.theme === "custom") {
+                document.getElementById("custom-color-settings").style.display = "block";
+                if(sysConfig.custom_colors) {
+                    document.getElementById("c-bg-main").value = sysConfig.custom_colors.bg_main || "#141E30";
+                    document.getElementById("c-bg-card").value = sysConfig.custom_colors.bg_card || "#1b2941";
+                    document.getElementById("c-text-main").value = sysConfig.custom_colors.text_main || "#E0E5EC";
+                    document.getElementById("c-text-muted").value = sysConfig.custom_colors.text_muted || "#A0B0C0";
+                    document.getElementById("c-accent-primary").value = sysConfig.custom_colors.accent_primary || "#D4AF37";
+                    document.getElementById("c-accent-success").value = sysConfig.custom_colors.accent_success || "#50E3C2";
+                }
+            } else {
+                document.getElementById("custom-color-settings").style.display = "none";
+            }
         }
 
         document.getElementById("st-moo-count").value = sysConfig.moo_count || 16;
@@ -816,8 +848,9 @@ function setupSettingsForm() {
     document.getElementById("btn-save-settings").addEventListener("click", async () => {
         const btn = document.getElementById("btn-save-settings"); btn.disabled = true; btn.textContent = "กำลังบันทึก...";
         try {
+            const themeSelected = document.getElementById("st-theme-selector") ? document.getElementById("st-theme-selector").value : "default";
             const updates = {
-                theme: document.getElementById("st-theme-selector") ? document.getElementById("st-theme-selector").value : "default",
+                theme: themeSelected,
                 campaign_id: document.getElementById("st-campaign-id") ? document.getElementById("st-campaign-id").value.trim() : "",
                 moo_count: parseInt(document.getElementById("st-moo-count").value) || 16, max_neuter_per_house: parseInt(document.getElementById("st-max-neuter").value) || 2,
                 agency_name: document.getElementById("st-agency").value, tambon: document.getElementById("st-tambon").value, amphoe: document.getElementById("st-amphoe").value, province: document.getElementById("st-province").value, phone: document.getElementById("st-phone").value,
@@ -828,6 +861,18 @@ function setupSettingsForm() {
                 agency_logo_base64: currentAgencyLogoBase64
             };
             
+            // ดึงค่าสีที่จิ้มเองไปบันทึก
+            if (themeSelected === "custom") {
+                updates.custom_colors = {
+                    bg_main: document.getElementById("c-bg-main").value,
+                    bg_card: document.getElementById("c-bg-card").value,
+                    text_main: document.getElementById("c-text-main").value,
+                    text_muted: document.getElementById("c-text-muted").value,
+                    accent_primary: document.getElementById("c-accent-primary").value,
+                    accent_success: document.getElementById("c-accent-success").value
+                };
+            }
+
             if(adminSignaturePad && !adminSignaturePad.isEmpty()) {
                 updates.admin_sig_base64 = adminSignaturePad.toDataURL("image/png");
             }
