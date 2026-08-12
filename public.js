@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, getDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, addDoc, getDocs, doc, getDoc, serverTimestamp, query, where, getCountFromServer, getAggregateFromServer, sum } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // ==========================================
 // 1. ตั้งค่า Firebase
