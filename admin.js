@@ -80,10 +80,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // [เพิ่มใหม่] ฟังก์ชันเคลียร์คนไม่มาตามนัด (เลยวันนัด 3 วัน)
     document.getElementById("btn-auto-cancel")?.addEventListener("click", async () => {
         const currentCamp = sysConfig?.campaign_id || "";
-        const serviceDateStr = sysConfig?.nt_date || ""; // ต้องเป็นฟอร์แมต YYYY-MM-DD
+        const serviceDateStr = sysConfig?.nt_date || "";
         
         if (!currentCamp || !serviceDateStr) {
             return alert("กรุณาตั้งชื่อรอบโครงการ และ 'วันให้บริการ (เช่น 2026-08-05)' ในหน้าตั้งค่าก่อนครับ");
@@ -170,6 +169,12 @@ async function loadSystemConfig() {
     if(snap.exists()) {
         sysConfig = snap.data();
         document.getElementById("txt-header-agency").textContent = sysConfig.agency_name || "หน่วยงาน";
+        
+        // โหลดและปรับธีมสี
+        document.body.classList.remove('theme-mourning', 'theme-gov', 'theme-rabies', 'theme-luxury');
+        if (sysConfig.theme && sysConfig.theme !== "default") {
+            document.body.classList.add("theme-" + sysConfig.theme);
+        }
     }
     const secSnap = await getDoc(doc(db, "system_config", "secrets"));
     if(secSnap.exists()) secretsConfig = secSnap.data();
@@ -271,7 +276,7 @@ function setupSearchLogic() {
         if(!rawInput) return alert("ระบุบ้านเลขที่, ชื่อ หรือเบอร์โทร");
 
         const resContainer = document.getElementById("search-result-container");
-        resContainer.innerHTML = "<p style='color:#D4AF37; text-align:center;'>กำลังค้นหา...</p>";
+        resContainer.innerHTML = "<p style='color:var(--accent-primary); text-align:center;'>กำลังค้นหา...</p>";
 
         try {
             let houseKey = null;
@@ -302,9 +307,9 @@ function setupSearchLogic() {
 
             if(mergedResults.size === 0) {
                 resContainer.innerHTML = `
-                    <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid #ff6b6b; padding: 15px; border-radius: 12px; text-align: center;">
-                        <h3 style="color:#ff6b6b; margin-bottom:5px;">❌ ไม่พบข้อมูลในระบบ</h3>
-                        <p style="color:#E0E5EC; font-size:13px; margin-bottom:15px;">ไม่มีข้อมูลที่ตรงกับ "${rawInput}"</p>
+                    <div style="background: var(--bg-danger-light); border: 1px solid var(--accent-danger); padding: 15px; border-radius: 12px; text-align: center;">
+                        <h3 style="color:var(--accent-danger); margin-bottom:5px;">❌ ไม่พบข้อมูลในระบบ</h3>
+                        <p style="color:var(--text-main); font-size:13px; margin-bottom:15px;">ไม่มีข้อมูลที่ตรงกับ "${rawInput}"</p>
                     </div>
                 `;
                 return;
@@ -317,7 +322,7 @@ function setupSearchLogic() {
                 renderAdminCard(docId, pet, resContainer);
             });
 
-        } catch(e) { console.error(e); resContainer.innerHTML = `<p style='color:#ff6b6b;'>เกิดข้อผิดพลาด</p>`; }
+        } catch(e) { console.error(e); resContainer.innerHTML = `<p style='color:var(--accent-danger);'>เกิดข้อผิดพลาด</p>`; }
     });
 
     searchInput.addEventListener("keypress", (e) => { if (e.key === "Enter") searchBtn.click(); });
@@ -345,7 +350,7 @@ function renderAdminCard(docId, pet, container) {
     const isCheckedIn = pet.status === "checked_in";
     const cardClass = isCheckedIn ? "admin-card checked" : "admin-card";
     
-    let roomText = pet.room_no ? `<span style="color:#50E3C2; font-size:12px;">(ห้อง ${pet.room_no})</span>` : "";
+    let roomText = pet.room_no ? `<span style="color:var(--accent-success); font-size:12px;">(ห้อง ${pet.room_no})</span>` : "";
     
     let isVac = (pet.vaccine_status === "เคยฉีด" || pet.vaccine_status === "ฉีดแล้ว");
     let vacStr = isVac ? `<span class="badge-green">เคยฉีดแล้ว</span>` : `<span class="badge-red">ไม่เคยฉีด</span>`;
@@ -357,7 +362,7 @@ function renderAdminCard(docId, pet, container) {
     } else if (pet.status === "checked_in") {
         actionBtn = `<button class="btn-action-small btn-uncheckin" onclick="window.toggleCheckin('${docId}', '${pet.service_type}', false)">ยกเลิกติ๊กถูก</button>`;
     } else {
-        actionBtn = `<button class="btn-action-small btn-checkin" style="background:transparent; color:#50E3C2; border: 1px dashed #50E3C2;" onclick="window.walkinVaccine('${docId}')">💉 Walk-in วัคซีน</button>`;
+        actionBtn = `<button class="btn-action-small btn-checkin" style="background:transparent; color:var(--accent-success); border: 1px dashed var(--accent-success);" onclick="window.walkinVaccine('${docId}')">💉 Walk-in วัคซีน</button>`;
     }
 
     container.insertAdjacentHTML('beforeend', `
@@ -366,15 +371,15 @@ function renderAdminCard(docId, pet, container) {
                 <img src="${pet.pet_photo_base64 || defaultPlaceholder}" class="pet-photo">
                 <div class="pet-info">
                     <div class="pet-name">${pet.pet_name} ${roomText}</div>
-                    <div style="color: #A0B0C0; font-size: 11px; margin-bottom: 2px;">👤 ${pet.owner_name} | 📞 ${pet.phone_number}</div>
-                    <div style="color: #A0B0C0; margin-bottom: 5px;">${pet.pet_type} ${pet.pet_gender} | จอง: <span style="color:#D4AF37;">${pet.service_type || 'ไม่มี'}</span></div>
+                    <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 2px;">👤 ${pet.owner_name} | 📞 ${pet.phone_number}</div>
+                    <div style="color: var(--text-muted); margin-bottom: 5px;">${pet.pet_type} ${pet.pet_gender} | จอง: <span style="color:var(--accent-primary);">${pet.service_type || 'ไม่มี'}</span></div>
                     <div>${vacStr} | ${neuterStr}</div>
                 </div>
             </div>
             <div class="action-buttons">
                 ${actionBtn}
                 <button class="btn-action-small btn-print" onclick="window.printConsentA4('${docId}')">🖨️ พิมพ์ใบยินยอม</button>
-                <button class="btn-action-small btn-uncheckin" style="color: #F5A623; border-color: rgba(245,166,35,0.4);" onclick="window.softDeleteAdmin('${docId}')">แจ้งตาย/ย้าย</button>
+                <button class="btn-action-small btn-uncheckin" style="color: var(--accent-warning); border-color: rgba(245,166,35,0.4);" onclick="window.softDeleteAdmin('${docId}')">แจ้งตาย/ย้าย</button>
             </div>
         </div>
     `);
@@ -536,9 +541,9 @@ window.renderProxyBatchList = function() {
     const list = document.getElementById("proxy-pet-list");
     list.innerHTML = "";
     window.proxyPetsBatch.forEach((p, i) => {
-        list.insertAdjacentHTML('beforeend', `<div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-bottom: 5px; display:flex; justify-content:space-between; align-items:center;">
-            <div style="font-size: 13px; color:#E0E5EC;"><strong style="color:#D4AF37;">${i+1}. ${p.pet_name}</strong> (${p.pet_type} ${p.pet_gender})<br><span style="color:#A0B0C0; font-size:11px;">ทำ: ${p.service}</span></div>
-            <button onclick="window.proxyPetsBatch.splice(${i},1); window.renderProxyBatchList()" style="background:none; border:none; color:#ff6b6b; cursor:pointer; font-size:12px;">❌ ลบ</button>
+        list.insertAdjacentHTML('beforeend', `<div style="background: var(--bg-overlay-light); padding: 10px; border-radius: 8px; margin-bottom: 5px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size: 13px; color:var(--text-main);"><strong style="color:var(--accent-primary);">${i+1}. ${p.pet_name}</strong> (${p.pet_type} ${p.pet_gender})<br><span style="color:var(--text-muted); font-size:11px;">ทำ: ${p.service}</span></div>
+            <button onclick="window.proxyPetsBatch.splice(${i},1); window.renderProxyBatchList()" style="background:none; border:none; color:var(--accent-danger); cursor:pointer; font-size:12px;">❌ ลบ</button>
         </div>`);
     });
     document.getElementById("btn-submit-proxy-batch").style.display = window.proxyPetsBatch.length > 0 ? "block" : "none";
@@ -677,7 +682,7 @@ window.switchRawTab = async function(tabName) {
             tbody.innerHTML = html;
             return;
         }
-    } catch(e) { tbody.innerHTML = `<tr><td colspan='24' style='color:#ff6b6b;'>Error: ${e.message}</td></tr>`; }
+    } catch(e) { tbody.innerHTML = `<tr><td colspan='24' style='color:var(--accent-danger);'>Error: ${e.message}</td></tr>`; }
 }
 
 window.renderRawTable = function() {
@@ -765,6 +770,10 @@ document.getElementById("btn-clear-logo")?.addEventListener("click", () => {
 
 function loadSettingsToForm() {
     if(sysConfig) {
+        if(document.getElementById("st-theme-selector")) {
+            document.getElementById("st-theme-selector").value = sysConfig.theme || "default";
+        }
+
         document.getElementById("st-moo-count").value = sysConfig.moo_count || 16;
         document.getElementById("st-agency").value = sysConfig.agency_name || "";
         
@@ -797,7 +806,7 @@ function renderVolunteerSecretInputs() {
     let html = "";
     for(let i=1; i<=count; i++) {
         let val = vols[i] || "";
-        html += `<div style="display:flex; flex-direction:column;"><label style="font-size:12px; color:#81A1C1;">หมู่ ${i}</label><input type="text" id="st-vol-${i}" class="neumorphic-input" style="padding: 5px; font-size:13px;" value="${val}"></div>`;
+        html += `<div style="display:flex; flex-direction:column;"><label style="font-size:12px; color:var(--accent-secondary);">หมู่ ${i}</label><input type="text" id="st-vol-${i}" class="neumorphic-input" style="padding: 5px; font-size:13px;" value="${val}"></div>`;
     }
     document.getElementById("st-volunteer-secrets-container").innerHTML = html;
 }
@@ -808,6 +817,7 @@ function setupSettingsForm() {
         const btn = document.getElementById("btn-save-settings"); btn.disabled = true; btn.textContent = "กำลังบันทึก...";
         try {
             const updates = {
+                theme: document.getElementById("st-theme-selector") ? document.getElementById("st-theme-selector").value : "default",
                 campaign_id: document.getElementById("st-campaign-id") ? document.getElementById("st-campaign-id").value.trim() : "",
                 moo_count: parseInt(document.getElementById("st-moo-count").value) || 16, max_neuter_per_house: parseInt(document.getElementById("st-max-neuter").value) || 2,
                 agency_name: document.getElementById("st-agency").value, tambon: document.getElementById("st-tambon").value, amphoe: document.getElementById("st-amphoe").value, province: document.getElementById("st-province").value, phone: document.getElementById("st-phone").value,
@@ -1015,7 +1025,7 @@ function renderTable(tableId, data) {
     tbody.innerHTML = `
         <tr><td style="text-align: left;">ทำหมัน + วัคซีน</td><td>${n.d.m}</td><td>${n.d.f}</td><td>${n.c.m}</td><td>${n.c.f}</td><td style="font-weight: bold;">${tn}</td></tr>
         <tr><td style="text-align: left;">วัคซีนอย่างเดียว</td><td>${v.d.m}</td><td>${v.d.f}</td><td>${v.c.m}</td><td>${v.c.f}</td><td style="font-weight: bold;">${tv}</td></tr>
-        <tr style="background: rgba(212, 175, 55, 0.1); font-weight: bold;"><td>รวมสุทธิ</td><td>${n.d.m + v.d.m}</td><td>${n.d.f + v.d.f}</td><td>${n.c.m + v.c.m}</td><td>${n.c.f + v.c.f}</td><td style="color: #D4AF37; font-size: 16px;">${tn + tv}</td></tr>
+        <tr style="background: var(--bg-overlay-light); font-weight: bold;"><td>รวมสุทธิ</td><td>${n.d.m + v.d.m}</td><td>${n.d.f + v.d.f}</td><td>${n.c.m + v.c.m}</td><td>${n.c.f + v.c.f}</td><td style="color: var(--accent-primary); font-size: 16px;">${tn + tv}</td></tr>
     `;
 }
 
@@ -1025,7 +1035,7 @@ function renderTable(tableId, data) {
 window.loadStrayReports = async function() {
     const container = document.getElementById("stray-reports-container");
     const filter = document.getElementById("stray-filter-status").value;
-    container.innerHTML = "<p style='color:#D4AF37; text-align:center;'>กำลังดึงข้อมูลเบาะแส...</p>";
+    container.innerHTML = "<p style='color:var(--accent-primary); text-align:center;'>กำลังดึงข้อมูลเบาะแส...</p>";
 
     try {
         const q = query(collection(db, "stray_reports"));
@@ -1046,41 +1056,41 @@ window.loadStrayReports = async function() {
             count++;
 
             const isPending = r.status === "pending";
-            const cardStyle = isPending ? "border-left: 5px solid #ff6b6b;" : "border-left: 5px solid #50E3C2; background: rgba(80, 227, 194, 0.05);";
-            const badge = isPending ? `<span style="background: rgba(255,107,107,0.2); color: #ff6b6b; padding: 2px 6px; border-radius: 4px; font-size: 11px;">🔴 รอดำเนินการ</span>` : `<span style="background: rgba(80,227,194,0.2); color: #50E3C2; padding: 2px 6px; border-radius: 4px; font-size: 11px;">✅ ดำเนินการแล้ว</span>`;
+            const cardStyle = isPending ? "border-left: 5px solid var(--accent-danger);" : "border-left: 5px solid var(--accent-success); background: var(--bg-overlay-light);";
+            const badge = isPending ? `<span style="background: var(--bg-danger-light); color: var(--accent-danger); padding: 2px 6px; border-radius: 4px; font-size: 11px;">🔴 รอดำเนินการ</span>` : `<span style="background: var(--bg-success-light); color: var(--accent-success); padding: 2px 6px; border-radius: 4px; font-size: 11px;">✅ ดำเนินการแล้ว</span>`;
             
             let photoHtml = r.photo_base64 && r.photo_base64 !== "" 
-                ? `<img src="${r.photo_base64}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #81A1C1; flex-shrink:0;">` 
-                : `<div style="width: 100px; height: 100px; background: rgba(0,0,0,0.2); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:#6A7A8A; font-size:10px; text-align:center;">ไม่มีรูปภาพ</div>`;
+                ? `<img src="${r.photo_base64}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid var(--accent-secondary); flex-shrink:0;">` 
+                : `<div style="width: 100px; height: 100px; background: var(--bg-overlay); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:var(--text-placeholder); font-size:10px; text-align:center;">ไม่มีรูปภาพ</div>`;
 
             let actionBtn = isPending 
-                ? `<button class="btn-action-small" style="background: #50E3C2; color: #141E30; border-color: #50E3C2; font-weight:bold;" onclick="window.openStrayActionModal('${r.id}', ${r.dog_count}, ${r.cat_count})">✔️ มาร์คว่าจัดการแล้ว</button>`
-                : `<button class="btn-action-small" style="background: transparent; color: #A0B0C0; border-color: rgba(255,255,255,0.2);" onclick="window.updateStrayStatus('${r.id}', 'pending')">↩️ ย้อนกลับสถานะ</button>`;
+                ? `<button class="btn-action-small" style="background: var(--accent-success); color: var(--bg-main); border-color: var(--accent-success); font-weight:bold;" onclick="window.openStrayActionModal('${r.id}', ${r.dog_count}, ${r.cat_count})">✔️ มาร์คว่าจัดการแล้ว</button>`
+                : `<button class="btn-action-small" style="background: transparent; color: var(--text-muted); border-color: var(--border-light);" onclick="window.updateStrayStatus('${r.id}', 'pending')">↩️ ย้อนกลับสถานะ</button>`;
 
             container.insertAdjacentHTML('beforeend', `
                 <div class="card neumorphic" style="padding: 15px; margin-bottom: 15px; ${cardStyle}">
                     <div style="display: flex; gap: 15px;">
                         ${photoHtml}
-                        <div style="flex-grow: 1; font-size: 13px; line-height: 1.6; color: #E0E5EC;">
+                        <div style="flex-grow: 1; font-size: 13px; line-height: 1.6; color: var(--text-main);">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                <b style="color: #D4AF37; font-size: 15px;">แจ้งพบที่: หมู่ ${r.moo}</b>
+                                <b style="color: var(--accent-primary); font-size: 15px;">แจ้งพบที่: หมู่ ${r.moo}</b>
                                 ${badge}
                             </div>
-                            <div style="color: #A0B0C0;">📍 ${r.landmark}</div>
-                            <div style="margin-top: 5px;">🐕 สุนัขแจ้ง: <b style="color:#FFF;">${r.dog_count}</b> | 🐈 แมวแจ้ง: <b style="color:#FFF;">${r.cat_count}</b></div>
-                            ${!isPending ? `<div style="margin-top: 5px; color: #50E3C2;">✅ ผลงานทำจริง: (หมาหมัน ${r.dog_neu_done}, หมาวัคซีน ${r.dog_vac_done}) (แมวหมัน ${r.cat_neu_done}, แมววัคซีน ${r.cat_vac_done})</div>` : ''}
-                            <div style="margin-top: 5px; font-size: 12px; color: #81A1C1;">👤 ผู้แจ้ง: ${r.reporter_name} <a href="tel:${r.reporter_phone}" style="color: #D4AF37;">(📞 ${r.reporter_phone})</a></div>
+                            <div style="color: var(--text-muted);">📍 ${r.landmark}</div>
+                            <div style="margin-top: 5px;">🐕 สุนัขแจ้ง: <b style="color:var(--text-bright);">${r.dog_count}</b> | 🐈 แมวแจ้ง: <b style="color:var(--text-bright);">${r.cat_count}</b></div>
+                            ${!isPending ? `<div style="margin-top: 5px; color: var(--accent-success);">✅ ผลงานทำจริง: (หมาหมัน ${r.dog_neu_done}, หมาวัคซีน ${r.dog_vac_done}) (แมวหมัน ${r.cat_neu_done}, แมววัคซีน ${r.cat_vac_done})</div>` : ''}
+                            <div style="margin-top: 5px; font-size: 12px; color: var(--accent-secondary);">👤 ผู้แจ้ง: ${r.reporter_name} <a href="tel:${r.reporter_phone}" style="color: var(--accent-primary);">(📞 ${r.reporter_phone})</a></div>
                         </div>
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        <button class="btn-action-small" style="color: #81A1C1; border-color: rgba(129,161,193,0.4);" onclick="window.openGoogleMaps(${r.lat}, ${r.lng})">🗺️ นำทาง Google Maps</button>
+                        <button class="btn-action-small" style="color: var(--accent-secondary); border-color: rgba(129,161,193,0.4);" onclick="window.openGoogleMaps(${r.lat}, ${r.lng})">🗺️ นำทาง Google Maps</button>
                         ${actionBtn}
                     </div>
                 </div>
             `);
         });
 
-        if (count === 0) container.innerHTML = `<p style="text-align:center; color:#A0B0C0;">ไม่พบข้อมูลเบาะแสในหมวดหมู่นี้</p>`;
+        if (count === 0) container.innerHTML = `<p style="text-align:center; color:var(--text-muted);">ไม่พบข้อมูลเบาะแสในหมวดหมู่นี้</p>`;
 
         const badgeEl = document.getElementById("stray-badge");
         if (badgeEl) {
@@ -1090,7 +1100,7 @@ window.loadStrayReports = async function() {
 
     } catch (e) {
         console.error(e);
-        container.innerHTML = `<p style="color:#ff6b6b; text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
+        container.innerHTML = `<p style="color:var(--accent-danger); text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
     }
 }
 
