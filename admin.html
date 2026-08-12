@@ -234,7 +234,6 @@
                 <button class="tab-btn" onclick="window.switchRawTab('stray')">รายงานจร (Stray)</button>
             </div>
 
-            <!-- กล่องควบคุมการค้นหาและฟิลเตอร์ -->
             <div class="card neumorphic" style="margin-bottom: 15px; padding: 15px;">
                 <div class="row" style="flex-wrap: wrap; gap: 10px;">
                     <div style="flex: 1; min-width: 200px;">
@@ -295,8 +294,27 @@
                         <option value="gov">🔵 ธีมราชการ (ฟ้า-ขาว)</option>
                         <option value="rabies">🟠 ธีมสัตว์ปลอดโรค (ส้ม-ขาว)</option>
                         <option value="luxury">✨ ธีมหรูหรา (ขาว-ทอง)</option>
+                        <option value="custom">🎨 ปรับแต่งสีเอง (Custom Colors)</option>
                     </select>
-                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">*เมื่อกดบันทึก ธีมสีจะเปลี่ยนไปทั้งระบบ (ทั้งฝั่งประชาชนและแอดมิน)</p>
+
+                    <!-- แผงควบคุมสีจิ้มเอง (ซ่อนไว้ จะแสดงเมื่อเลือก Custom) -->
+                    <div id="custom-color-settings" style="display: none; margin-top: 15px; padding: 15px; background: var(--bg-card); border-radius: 8px; border: 1px dashed var(--accent-secondary);">
+                        <label style="color: var(--accent-primary); font-weight: bold; display: block; margin-bottom: 10px;">คลิกที่กรอบสีเพื่อเปลี่ยนสีทั้ง 6 ส่วน</label>
+                        <div class="row">
+                            <div class="input-group half"><label>1. สีพื้นหลังหลัก</label><input type="color" id="c-bg-main" class="neumorphic-input" style="padding: 5px; height: 40px; cursor: pointer;" value="#141E30"></div>
+                            <div class="input-group half"><label>2. สีพื้นหลังการ์ด</label><input type="color" id="c-bg-card" class="neumorphic-input" style="padding: 5px; height: 40px; cursor: pointer;" value="#1b2941"></div>
+                        </div>
+                        <div class="row">
+                            <div class="input-group half"><label>3. สีตัวอักษรหลัก</label><input type="color" id="c-text-main" class="neumorphic-input" style="padding: 5px; height: 40px; cursor: pointer;" value="#E0E5EC"></div>
+                            <div class="input-group half"><label>4. สีตัวอักษรรอง</label><input type="color" id="c-text-muted" class="neumorphic-input" style="padding: 5px; height: 40px; cursor: pointer;" value="#A0B0C0"></div>
+                        </div>
+                        <div class="row">
+                            <div class="input-group half"><label>5. สีเน้น (หัวข้อ/ทอง)</label><input type="color" id="c-accent-primary" class="neumorphic-input" style="padding: 5px; height: 40px; cursor: pointer;" value="#D4AF37"></div>
+                            <div class="input-group half"><label>6. สีแอคชัน (เขียว)</label><input type="color" id="c-accent-success" class="neumorphic-input" style="padding: 5px; height: 40px; cursor: pointer;" value="#50E3C2"></div>
+                        </div>
+                    </div>
+
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 12px;">*เมื่อกดบันทึก ธีมสีจะเปลี่ยนไปทั้งระบบ (ทั้งฝั่งประชาชนและแอดมิน)</p>
                 </div>
 
                 <h3 class="section-title">1. ความปลอดภัยและสิทธิ์ (Secrets)</h3>
