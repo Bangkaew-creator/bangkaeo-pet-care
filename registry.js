@@ -253,11 +253,10 @@ function setupHouseholdForm() {
                         role = "pending";
                         headUid = doc.id; 
                     } else if (data.household_role === "legacy") {
-                        legacyUid = doc.id; // พบข้อมูลดั้งเดิมที่นำเข้ามาจาก Excel
+                        legacyUid = doc.id; 
                     }
                 });
 
-                // ถ้าระบบให้บัญชี LINE นี้เป็นเจ้าของบ้าน และตรวจพบข้อมูลเก่า ให้โอนย้ายสิทธิ์สัตว์เลี้ยงทันที
                 if (role === "head" && legacyUid) {
                     const petsQ = query(collection(db, "pets"), where("owner_uid", "==", legacyUid));
                     const petsSnap = await getDocs(petsQ);
@@ -265,15 +264,14 @@ function setupHouseholdForm() {
                     const updatePromises = [];
                     petsSnap.forEach(petDoc => {
                         updatePromises.push(updateDoc(doc(db, "pets", petDoc.id), {
-                            owner_uid: userProfileData.userId, // เปลี่ยนเจ้าของมาเป็นบัญชี LINE
-                            owner_name: name, // อัปเดตชื่อให้ตรงกับคนล็อกอิน
+                            owner_uid: userProfileData.userId, 
+                            owner_name: name, 
                             phone_number: phone,
                             updated_at: serverTimestamp()
                         }));
                     });
                     await Promise.all(updatePromises);
                     
-                    // ปิดการใช้งานบัญชี legacy ชั่วคราวเพื่อไม่ให้รกระบบ
                     await updateDoc(doc(db, "users", legacyUid), { household_role: "merged_and_deleted" });
                 }
 
@@ -293,6 +291,9 @@ function setupHouseholdForm() {
             } finally { 
                 btnRegHouse.disabled = false; 
             }
+        }); // ปิด addEventListener
+    } // ปิด if(btnRegHouse)
+} // ปิด function setupHouseholdForm()
 
 function setupPetForm() {
     document.getElementById("btn-show-add-pet")?.addEventListener("click", () => {
@@ -728,7 +729,6 @@ async function submitBooking() {
         let maxQueue = 0; 
         const currentCamp = sysConfig?.campaign_id || "";
 
-        // [แก้ปัญหาคิวไหล] 
         snapAll.forEach(d => {
             const p = d.data();
             if (p.service_type === serviceType && (p.campaign_id || "") === currentCamp) {
