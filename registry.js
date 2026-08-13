@@ -1,5 +1,5 @@
 import { db } from "./firebase-config.js";
-import { collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc, serverTimestamp, query, where, getCountFromServer, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // ==========================================
 // 1. ตั้งค่าตัวแปรระบบ
@@ -428,17 +428,15 @@ async function loadQuotaAndDashboard() {
     try {
         if (currentCamp !== "") {
             const petsRef = collection(db, "pets");
-            // 🚀 [ปรับปรุงความเร็ว] ดึงเฉพาะสัตว์ที่อยู่ในรอบโครงการปัจจุบันเท่านั้น ไม่โหลดมาทั้ง 5700 ตัว
-            const campQ = query(petsRef, where("campaign_id", "==", currentCamp));
-            const snap = await getDocs(campQ);
+            
+            // 🚀 อุดรูรั่ว: ให้เซิร์ฟเวอร์นับจำนวนให้ (ใช้อ่านข้อมูลแค่ 2 ครั้ง แทนการโหลดหลายร้อยครั้ง)
+            const qN = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "ทำหมันและวัคซีน"));
+            const snapN = await getCountFromServer(qN);
+            currentBookedNeuter = snapN.data().count;
 
-            snap.forEach(d => {
-                const p = d.data();
-                if (p.status === "booked" || p.status === "checked_in") {
-                    if (p.service_type === "ทำหมันและวัคซีน") currentBookedNeuter++;
-                    if (p.service_type === "วัคซีนอย่างเดียว") currentBookedVaccine++;
-                }
-            });
+            const qV = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "วัคซีนอย่างเดียว"));
+            const snapV = await getCountFromServer(qV);
+            currentBookedVaccine = snapV.data().count;
         }
     } catch(e) { console.error("Quota Error:", e); }
 
@@ -748,16 +746,13 @@ async function submitBooking() {
         const currentCamp = sysConfig?.campaign_id || "";
 
         if (currentCamp !== "") {
-            // 🚀 [ปรับปรุงความเร็ว] ค้นหาคิวล่าสุดเฉพาะจากข้อมูลในรอบโครงการปัจจุบัน ไม่ดึงทั้งหมดมาหาค่า
-            const campQ = query(petsRef, where("campaign_id", "==", currentCamp));
+            // 🚀 อุดรูรั่ว: สั่งเรียงลำดับคิวจากมากไปน้อย แล้วดึงมาแค่ "1 ตัวแรก" (ประหยัดโควตาสูงสุด)
+            const campQ = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", serviceType), orderBy("queue_no", "desc"), limit(1));
             const snapCamp = await getDocs(campQ);
 
-            snapCamp.forEach(d => {
-                const p = d.data();
-                if (p.service_type === serviceType && p.queue_no && p.queue_no > maxQueue) {
-                    maxQueue = p.queue_no;
-                }
-            });
+            if (!snapCamp.empty) {
+                maxQueue = snapCamp.docs[0].data().queue_no || 0;
+            }
         }
         
         const nextQueueNo = maxQueue + 1;
