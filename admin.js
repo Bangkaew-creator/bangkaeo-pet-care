@@ -716,6 +716,15 @@ window.switchRawTab = async function(tabName) {
     const thead = document.querySelector("#raw-table-content thead");
     tbody.innerHTML = "<tr><td colspan='24' style='text-align:center;'>กำลังประมวลผลข้อมูล...</td></tr>";
 
+    // 🚀 เพิ่มกลไกป้องกัน: แจ้งเตือนก่อนดึงข้อมูลดิบ 5,700 ตัว
+    if (tabName !== 'stray') {
+        if(!confirm("⚠️ คำเตือน: การเปิดตารางข้อมูลดิบจะดึงข้อมูลสัตว์เลี้ยงทั้งหมดกว่า 5,000+ รายการ ซึ่งจะกินโควตาฐานข้อมูลจำนวนมาก!\n\nคุณแน่ใจหรือไม่ว่าต้องการโหลดข้อมูลตอนนี้? (แนะนำให้ทำเฉพาะตอนจะ Export Excel เท่านั้น)")) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            tbody.innerHTML = "<tr><td colspan='24' style='text-align:center; color: var(--accent-warning);'>ยกเลิกการโหลดข้อมูลเพื่อประหยัดโควตา</td></tr>";
+            return;
+        }
+    }
+
     try {
         if(tabName === 'household') {
             thead.innerHTML = "<tr><th>อำเภอ</th><th>แขวง</th><th>หมู่ที่</th><th>สถานที่อาศัย</th><th>บ้านเลขที่</th><th>ผู้ให้ข้อมูล</th><th>หมายเลขบัตร</th><th>เบอร์โทรศัพท์</th><th>สุุนัข-ผู้ ยอดจริง</th><th>สุนัข-ผู้-วัคซีน ยอดจริง</th><th>สุนัข-ผู้-ทำหมัน ยอดจริง</th><th>ลูกผู้</th><th>สุุนัข-เมีย ยอดจริง</th><th>สุนัข-เมีย-วัคซีน ยอดจริง</th><th>สุนัข-เมีย-ทำหมัน ยอดจริง</th><th>ลูกเมีย</th><th>แมว-ผู้ ยอดจริง</th><th>แมว-ผู้-วัคซีน ยอดจริง</th><th>แมว-ผู้-ทำหมัน ยอดจริง</th><th>ลูกแมวผู้</th><th>แมว-เมีย ยอดจริง</th><th>แมว-เมีย-วัคซีน ยอดจริง</th><th>แมว-เมีย-ทำหมัน ยอดจริง</th><th>ลูกแมวเมีย</th></tr>";
