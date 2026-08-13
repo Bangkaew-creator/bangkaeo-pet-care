@@ -121,13 +121,14 @@ async function loadPublicStats() {
         const vacSnap = await getCountFromServer(vacQ);
         totalVaccinatedThisYear = vacSnap.data().count;
 
-        // ดึงเฉพาะตัวที่มีจองคิวรอบปัจจุบันมานับ (ข้อมูลน้อย ไม่กี่ตัว)
-        const bookedQ = query(petsRef, where("campaign_id", "==", currentCamp), where("status", "in", ["booked", "checked_in"]));
-        const bookedDocs = await getDocs(bookedQ);
-        bookedDocs.forEach(d => {
-            const p = d.data();
-            if(p.service_type === "ทำหมันและวัคซีน") curN_booking++;
-            if(p.service_type === "วัคซีนอย่างเดียว") curV_booking++;
+        // 🚀 อุดรูรั่ว: ใช้ getCountFromServer นับยอดคนจองคิว แทนการดาวน์โหลดทั้งก้อน
+        const qN = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "ทำหมันและวัคซีน"));
+        const snapN = await getCountFromServer(qN);
+        curN_booking = snapN.data().count;
+
+        const qV = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "วัคซีนอย่างเดียว"));
+        const snapV = await getCountFromServer(qV);
+        curV_booking = snapV.data().count;
         });
 
         document.getElementById("stat-total-pets").textContent = totalPets;
