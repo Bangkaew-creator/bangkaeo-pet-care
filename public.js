@@ -129,7 +129,7 @@ async function loadPublicStats() {
         const qV = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "วัคซีนอย่างเดียว"));
         const snapV = await getCountFromServer(qV);
         curV_booking = snapV.data().count;
-        });
+      
 
         document.getElementById("stat-total-pets").textContent = totalPets;
         
