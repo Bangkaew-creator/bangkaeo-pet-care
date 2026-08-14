@@ -280,16 +280,13 @@ function setupPetForm() {
         
         document.getElementById("dashboard-container").style.display = "none";
         document.getElementById("add-pet-container").style.display = "block";
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // เพิ่มบรรทัดนี้ลงไป
-        
-        // 🚀 พระเอกของเรา: สั่งให้จอเลื่อนกลับไปบนสุดเสมอ
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     document.getElementById("btn-cancel-add")?.addEventListener("click", () => {
         document.getElementById("add-pet-container").style.display = "none";
         document.getElementById("dashboard-container").style.display = "block";
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // เลื่อนกลับขึ้นบนสุด
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     document.getElementById("p-vac-status")?.addEventListener("change", (e) => {
@@ -367,7 +364,7 @@ function setupPetForm() {
             
             document.getElementById("add-pet-container").style.display = "none"; 
             document.getElementById("dashboard-container").style.display = "block"; 
-            window.scrollTo({ top: 0, behavior: 'smooth' }); // เลื่อนกลับขึ้นบนสุด
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             
             loadMyPets();
         } catch (e) { 
@@ -617,6 +614,7 @@ window.editPet = function(docId) {
     
     currentPetBase64 = pet.pet_photo_base64 || ""; document.getElementById("pet-image-preview").src = currentPetBase64 || defaultPlaceholder;
     document.getElementById("dashboard-container").style.display = "none"; document.getElementById("add-pet-container").style.display = "block";
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 window.softDeletePet = async function(docId) {
