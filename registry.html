@@ -6,6 +6,20 @@
     <title>สมุดประจำตัวสัตว์เลี้ยง - เทศบาลเมืองบางแก้ว</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* บังคับให้ body ขยายเต็มจอและยืดหยุ่นเสมอ ป้องกันปัญหาจอขาว/จอดำทับ */
+        body { 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            background: var(--bg-main); 
+            margin: 0; 
+            padding: 0;
+        }
+        .container { 
+            flex: 1; /* ดันเนื้อหาให้เต็มพื้นที่ที่เหลือเสมอ */
+        }
+    </style>
 </head>
 <body>
     <div id="loading" class="loading-screen">กำลังโหลดข้อมูล...</div>
@@ -86,9 +100,10 @@
         <button type="button" id="btn-show-add-pet" class="neumorphic-btn gold-btn" style="margin-bottom: 20px; width: 100%;">+ เพิ่มสัตว์เลี้ยงใหม่ในบ้าน</button>
         <div id="pet-cards-container"></div>
         
-        <div style="text-align: center; margin-top: 30px;">
+        <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
             <a href="https://liff.line.me/2010813512-UqwFMq5V" style="color: var(--accent-primary); font-size: 15px; text-decoration: underline; cursor: pointer; display: block; margin-bottom: 15px;"> ศูนย์ข้อมูลสาธารณะ / แจ้งเบาะแสจรจัด</a>
-<a href="https://liff.line.me/2010813512-cqJiXCIj" style="color: var(--text-placeholder); font-size: 12px; text-decoration: underline; cursor: pointer;">สำหรับเจ้าหน้าที่เทศบาล / อสม.</a>
+            <a href="https://liff.line.me/2010813512-cqJiXClj" style="color: var(--text-placeholder); font-size: 12px; text-decoration: underline; cursor: pointer;">สำหรับเจ้าหน้าที่เทศบาล / อสม.</a>
+        </div>
     </div>
 
     <!-- ================= ส่วนที่ 3: ฟอร์มเพิ่ม/แก้ไขสัตว์เลี้ยง ================= -->
@@ -160,7 +175,7 @@
                 </select>
             </div>
         </div>
-        <div class="row">
+        <div class="row" style="margin-bottom: 30px;">
             <button type="button" id="btn-cancel-add" class="neumorphic-btn half outline-btn">⬅ ยกเลิก</button>
             <button type="button" id="btn-save-pet" class="neumorphic-btn gold-btn half">💾 บันทึกทะเบียน</button>
         </div>
