@@ -281,7 +281,6 @@ function setupPetForm() {
         document.getElementById("dashboard-container").style.display = "none";
         document.getElementById("add-pet-container").style.display = "block";
         window.scrollTo({ top: 0, behavior: 'smooth' }); // เพิ่มบรรทัดนี้ลงไป
-}
         
         // 🚀 พระเอกของเรา: สั่งให้จอเลื่อนกลับไปบนสุดเสมอ
         window.scrollTo({ top: 0, behavior: 'smooth' });
