@@ -1,15 +1,11 @@
 import { db } from "./firebase-config.js";
 import { collection, addDoc, getDocs, doc, setDoc, getDoc, updateDoc, serverTimestamp, query, where, getCountFromServer, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// ==========================================
-// 1. ตั้งค่าตัวแปรระบบ
-// ==========================================
-const LIFF_ID = "2010813512-828tVQ1b"; // LIFF ID สำหรับหน้าสมุดสัตว์เลี้ยง
+const LIFF_ID = "2010813512-828tVQ1b"; 
 let userProfileData = null;
 let currentHouseholdKey = "";
 let currentPetBase64 = ""; 
 let sysConfig = null; 
-
 let currentUserRole = "head"; 
 
 window.currentEditPetId = null; 
@@ -41,9 +37,6 @@ function formatThaiDate(dateStr) {
     return dateStr; 
 }
 
-// ==========================================
-// 2. เริ่มทำงานเมื่อโหลดหน้าเว็บ
-// ==========================================
 document.addEventListener("DOMContentLoaded", () => {
     initSignaturePad();
     setupEventListeners();
@@ -85,9 +78,6 @@ function setupEventListeners() {
     setupPetForm();
 }
 
-// ==========================================
-// 3. LIFF & โหลดข้อมูลเบื้องต้น
-// ==========================================
 async function initializeLiff() {
     try {
         await liff.init({ liffId: LIFF_ID });
@@ -116,7 +106,6 @@ async function loadSystemConfig() {
                 if(logoImg) { logoImg.src = sysConfig.agency_logo_base64; logoImg.style.display = "block"; }
             }
 
-            // อ่านค่า Theme
             document.body.classList.remove('theme-mourning', 'theme-gov', 'theme-rabies', 'theme-luxury');
             if (sysConfig.theme === "custom" && sysConfig.custom_colors) {
                 const root = document.documentElement;
@@ -143,6 +132,7 @@ async function loadSystemConfig() {
 
 async function checkUserData() {
     try {
+        console.log("Checking User Data...");
         const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
         document.getElementById("loading").style.display = "none";
         
@@ -177,8 +167,6 @@ async function checkUserData() {
                 
                 await loadQuotaAndDashboard(); 
                 loadMyPets();
-                
-                if (currentUserRole === "head") { loadPendingMembers(); }
             }
         } else {
             document.getElementById("household-setup-container").style.display = "block";
@@ -189,49 +177,6 @@ async function checkUserData() {
     }
 }
 
-async function loadPendingMembers() {
-    try {
-        const q = query(collection(db, "users"), where("head_uid", "==", userProfileData.userId), where("household_role", "==", "pending"));
-        const snap = await getDocs(q);
-        const box = document.getElementById("head-approval-box");
-        const list = document.getElementById("pending-members-list");
-        
-        if(snap.empty) { if(box) box.style.display = "none"; return; }
-        
-        if(box) box.style.display = "block";
-        if(list) list.innerHTML = "";
-        
-        snap.forEach(d => {
-            const m = d.data();
-            if(list) list.insertAdjacentHTML('beforeend', `
-                <div style="background: var(--bg-overlay); padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-light);">
-                    <div style="font-size: 13px; color: var(--text-main);">
-                        👤 <b>${m.owner_name}</b><br>📞 <a href="tel:${m.phone_number}" style="color:var(--accent-secondary);">${m.phone_number}</a>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button onclick="window.handleMember('${d.id}', 'member')" style="background: var(--accent-success); border: none; color: var(--bg-main); padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; box-shadow: 2px 2px 5px var(--shadow-dark);">✔️ รับ</button>
-                        <button onclick="window.handleMember('${d.id}', 'rejected')" style="background: transparent; border: 1px solid var(--accent-danger); color: var(--accent-danger); padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px;">❌ ปฏิเสธ</button>
-                    </div>
-                </div>
-            `);
-        });
-    } catch (error) { console.error("Error loading pending members", error); }
-}
-
-window.handleMember = async function(uid, status) {
-    const actionText = status === 'member' ? 'ยอมรับให้เป็นสมาชิกในบ้าน?' : 'ปฏิเสธคำขอนี้?';
-    if(confirm(`ยืนยันการ${actionText}`)) {
-        try {
-            await updateDoc(doc(db, "users", uid), { household_role: status, updated_at: serverTimestamp() });
-            alert("อัปเดตสิทธิ์เรียบร้อยแล้ว");
-            loadPendingMembers();
-        } catch(e) { alert("เกิดข้อผิดพลาดในการอัปเดตสิทธิ์"); }
-    }
-}
-
-// ==========================================
-// 4. ระบบขึ้นทะเบียนบ้านและสัตว์เลี้ยง
-// ==========================================
 function setupHouseholdForm() {
     document.getElementById("hh-is-rental")?.addEventListener("change", (e) => {
         document.getElementById("hh-room-group").style.display = e.target.checked ? "block" : "none";
@@ -313,6 +258,7 @@ function setupHouseholdForm() {
 
 function setupPetForm() {
     document.getElementById("btn-show-add-pet")?.addEventListener("click", () => {
+        console.log("Click Add Pet");
         window.currentEditPetId = null; 
         document.getElementById("form-title").textContent = "+ ขึ้นทะเบียนสัตว์เลี้ยงใหม่";
         document.getElementById("p-name").value = ""; 
@@ -334,13 +280,11 @@ function setupPetForm() {
         
         document.getElementById("dashboard-container").style.display = "none";
         document.getElementById("add-pet-container").style.display = "block";
-        window.scrollTo(0, 0); // เลื่อนหน้าจอกลับขึ้นด้านบนสุด
     });
 
     document.getElementById("btn-cancel-add")?.addEventListener("click", () => {
         document.getElementById("add-pet-container").style.display = "none";
         document.getElementById("dashboard-container").style.display = "block";
-        window.scrollTo(0, 0); // เลื่อนหน้าจอกลับขึ้นด้านบนสุด
     });
 
     document.getElementById("p-vac-status")?.addEventListener("change", (e) => {
@@ -368,6 +312,7 @@ function setupPetForm() {
     });
 
     document.getElementById("btn-save-pet")?.addEventListener("click", async () => {
+        console.log("Saving Pet Data...");
         const pName = document.getElementById("p-name").value.trim();
         const pType = document.getElementById("p-type").value;
         const pGender = document.getElementById("p-gender").value;
@@ -401,6 +346,7 @@ function setupPetForm() {
 
             if (window.currentEditPetId) {
                 await updateDoc(doc(db, "pets", window.currentEditPetId), petData);
+                console.log("Update Success!");
             } else {
                 const userSnap = await getDoc(doc(db, "users", userProfileData.userId));
                 const u = userSnap.data();
@@ -409,11 +355,14 @@ function setupPetForm() {
                 petData.house_village_search = u.house_village_search; 
                 petData.status = "registered"; petData.registered_timestamp = serverTimestamp();
                 await addDoc(collection(db, "pets"), petData);
+                console.log("Add Success!");
             }
+            
+            alert("บันทึกข้อมูลสัตว์เลี้ยงเรียบร้อยแล้ว!"); // เด้งเตือนว่าผ่านฉลุย
             
             document.getElementById("add-pet-container").style.display = "none"; 
             document.getElementById("dashboard-container").style.display = "block"; 
-            window.scrollTo(0, 0); // เลื่อนหน้าจอกลับขึ้นด้านบนสุด
+            
             loadMyPets();
         } catch (e) { 
             console.error("Save Pet Error:", e);
@@ -443,7 +392,6 @@ async function loadQuotaAndDashboard() {
         if (currentCamp !== "") {
             const petsRef = collection(db, "pets");
             
-            // ใช้คำสั่ง getCountFromServer เพื่อประหยัดโควตา
             const qN = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "ทำหมันและวัคซีน"));
             const snapN = await getCountFromServer(qN);
             currentBookedNeuter = snapN.data().count;
@@ -479,6 +427,7 @@ async function loadQuotaAndDashboard() {
 }
 
 async function loadMyPets() {
+    console.log("Loading My Pets...");
     const container = document.getElementById("pet-cards-container");
     container.innerHTML = "<p style='color: var(--accent-primary); text-align: center;'>กำลังโหลดข้อมูลสัตว์เลี้ยง...</p>";
 
@@ -627,7 +576,11 @@ async function loadMyPets() {
         });
 
         if(count === 0) container.innerHTML = `<div style="text-align: center; padding: 20px; background: var(--bg-overlay-light); border-radius: 10px;"><p style="color: var(--text-muted);">ยังไม่มีข้อมูลสัตว์เลี้ยงในสมุดทะเบียน</p></div>`;
-    } catch (e) { console.error("Load My Pets Error:", e); }
+        console.log("Load My Pets Finished!");
+    } catch (e) { 
+        console.error("Load My Pets Error:", e); 
+        container.innerHTML = `<p style='color: var(--accent-danger); text-align: center;'>เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
+    }
 }
 
 // ==========================================
@@ -658,7 +611,6 @@ window.editPet = function(docId) {
     
     currentPetBase64 = pet.pet_photo_base64 || ""; document.getElementById("pet-image-preview").src = currentPetBase64 || defaultPlaceholder;
     document.getElementById("dashboard-container").style.display = "none"; document.getElementById("add-pet-container").style.display = "block";
-    window.scrollTo(0, 0); // เลื่อนหน้าจอกลับขึ้นด้านบนสุด
 }
 
 window.softDeletePet = async function(docId) {
@@ -761,7 +713,6 @@ async function submitBooking() {
         const currentCamp = sysConfig?.campaign_id || "";
 
         if (currentCamp !== "") {
-            // ดึงคิวล่าสุดมาอ้างอิง เพื่อรันลำดับคิว
             const campQ = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", serviceType), orderBy("queue_no", "desc"), limit(1));
             const snapCamp = await getDocs(campQ);
             if (!snapCamp.empty) {
