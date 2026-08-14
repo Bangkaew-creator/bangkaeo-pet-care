@@ -379,6 +379,7 @@ function renderAdminCard(docId, pet, container) {
     } else {
         actionBtn = `<button class="btn-action-small btn-checkin" style="background:transparent; color:var(--accent-success); border: 1px dashed var(--accent-success);" onclick="window.walkinVaccine('${docId}')">💉 Walk-in วัคซีน</button>`;
     }
+    actionBtn += `<button class="btn-action-small" style="color: var(--bg-main); background: var(--accent-success); border-color: var(--accent-success); margin-top: 5px;" onclick="window.openVaccineUpdateModal('${docId}')">💉 บันทึกรับวัคซีน</button>`;
 
     container.insertAdjacentHTML('beforeend', `
         <div class="${cardClass}">
@@ -1341,3 +1342,72 @@ window.updateStrayStatus = async function(docId, newStatus) {
         }
     }
 }
+
+// ==========================================
+// ระบบอัปเดตวัคซีนประจำปี (นอกรอบ / รับไปฉีดเอง)
+// ==========================================
+window.openVaccineUpdateModal = function(docId) {
+    const pet = window.currentSearchPets[docId];
+    if(!pet) return;
+    
+    document.getElementById("vac-modal-docid").value = docId;
+    document.getElementById("vac-modal-pet-name").textContent = pet.pet_name;
+    
+    // ตั้งค่าวันที่ปัจจุบันอัตโนมัติ
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById("vac-modal-date").value = today;
+    
+    // ดึงข้อมูลวัคซีนจากระบบส่วนกลางมาใส่ให้เลย (จะได้ไม่ต้องพิมพ์บ่อย)
+    document.getElementById("vac-modal-brand").value = sysConfig ? (sysConfig.vaccine_brand || "") : "";
+    document.getElementById("vac-modal-lot").value = sysConfig ? (sysConfig.vaccine_lot || "") : "";
+    document.getElementById("vac-modal-exp").value = sysConfig ? (sysConfig.vaccine_exp || "") : "";
+    document.getElementById("vac-modal-injector").value = "admin"; // ค่าเริ่มต้นคือเจ้าหน้าที่ฉีดให้
+    
+    document.getElementById("vaccine-update-modal").style.display = "flex";
+}
+
+document.getElementById("btn-save-vaccine-update")?.addEventListener("click", async () => {
+    const docId = document.getElementById("vac-modal-docid").value;
+    const dateVal = document.getElementById("vac-modal-date").value;
+    const brand = document.getElementById("vac-modal-brand").value.trim();
+    const lot = document.getElementById("vac-modal-lot").value.trim();
+    const exp = document.getElementById("vac-modal-exp").value.trim();
+    const injector = document.getElementById("vac-modal-injector").value;
+    
+    if(!dateVal) return alert("กรุณาระบุวันที่ฉีดหรือวันที่มารับวัคซีน");
+    
+    const btn = document.getElementById("btn-save-vaccine-update");
+    btn.disabled = true; btn.textContent = "กำลังบันทึก...";
+    
+    try {
+        const dateObj = new Date(dateVal);
+        const yearTH = dateObj.getFullYear() + 543;
+        const formattedDate = dateObj.toLocaleDateString('th-TH', { year:'numeric', month:'2-digit', day:'2-digit' });
+        
+        let injectorName = adminRealName; 
+        if (injector === "owner") {
+            injectorName = "เจ้าของรับวัคซีนไปฉีดเอง";
+        }
+        
+        await updateDoc(doc(db, "pets", docId), {
+            vaccine_status: "เคยฉีด",
+            vaccine_year: yearTH,
+            vaccine_date: formattedDate,
+            vaccine_brand: brand,
+            vaccine_lot: lot,
+            vaccine_exp: exp,
+            vaccinated_by_admin: injectorName,
+            updated_at: serverTimestamp()
+        });
+        
+        alert("อัปเดตประวัติวัคซีนลงใบรับรองเรียบร้อยแล้ว!");
+        document.getElementById("vaccine-update-modal").style.display = "none";
+        document.getElementById("btn-search").click(); // รีเฟรชการ์ดหน้าจอแอดมิน
+        
+    } catch(e) {
+        console.error(e);
+        alert("เกิดข้อผิดพลาด: " + e.message);
+    } finally {
+        btn.disabled = false; btn.textContent = "💾 บันทึกข้อมูล";
+    }
+});
