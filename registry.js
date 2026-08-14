@@ -280,11 +280,17 @@ function setupPetForm() {
         
         document.getElementById("dashboard-container").style.display = "none";
         document.getElementById("add-pet-container").style.display = "block";
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // เพิ่มบรรทัดนี้ลงไป
+}
+        
+        // 🚀 พระเอกของเรา: สั่งให้จอเลื่อนกลับไปบนสุดเสมอ
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     document.getElementById("btn-cancel-add")?.addEventListener("click", () => {
         document.getElementById("add-pet-container").style.display = "none";
         document.getElementById("dashboard-container").style.display = "block";
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // เลื่อนกลับขึ้นบนสุด
     });
 
     document.getElementById("p-vac-status")?.addEventListener("change", (e) => {
@@ -358,10 +364,11 @@ function setupPetForm() {
                 console.log("Add Success!");
             }
             
-            alert("บันทึกข้อมูลสัตว์เลี้ยงเรียบร้อยแล้ว!"); // เด้งเตือนว่าผ่านฉลุย
+            alert("บันทึกข้อมูลสัตว์เลี้ยงเรียบร้อยแล้ว!"); 
             
             document.getElementById("add-pet-container").style.display = "none"; 
             document.getElementById("dashboard-container").style.display = "block"; 
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // เลื่อนกลับขึ้นบนสุด
             
             loadMyPets();
         } catch (e) { 
