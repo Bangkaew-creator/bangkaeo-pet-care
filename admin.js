@@ -52,28 +52,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupLoginLogic();
     setupEditModalLogic();
     
-    // ตั้งค่ากระดานลายเซ็น แอดมิน
     const canvasSig = document.getElementById('admin-signature-pad');
     if(canvasSig && typeof SignaturePad !== 'undefined') {
         adminSignaturePad = new SignaturePad(canvasSig, { backgroundColor: 'rgb(224, 229, 236)' });
         document.getElementById("btn-clear-admin-sig")?.addEventListener("click", () => { adminSignaturePad.clear(); });
     }
 
-    // ตั้งค่ากระดานลายเซ็น วัคซีนสำหรับประชาชน
     const vacCanvas = document.getElementById('vac-signature-pad');
     if(vacCanvas && typeof SignaturePad !== 'undefined') {
         window.vacSignaturePad = new SignaturePad(vacCanvas, { backgroundColor: 'rgb(224, 229, 236)' });
         document.getElementById("btn-clear-vac-sig")?.addEventListener("click", () => { window.vacSignaturePad.clear(); });
     }
 
-    // ตั้งค่ากระดานลายเซ็น จองคิวทำหมันสำหรับประชาชน
     const neuterCanvas = document.getElementById('neuter-signature-pad');
     if(neuterCanvas && typeof SignaturePad !== 'undefined') {
         window.neuterSignaturePad = new SignaturePad(neuterCanvas, { backgroundColor: 'rgb(224, 229, 236)' });
         document.getElementById("btn-clear-neuter-sig")?.addEventListener("click", () => { window.neuterSignaturePad.clear(); });
     }
 
-    // ฟังก์ชันสำหรับ Modal จองคิวทำหมัน
     document.getElementById("btn-confirm-neuter-booking")?.addEventListener("click", async () => {
         const isAgreed = document.getElementById('neuter-accept-consent').checked;
         if (!isAgreed) return alert("กรุณากดยอมรับเงื่อนไข");
@@ -85,7 +81,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             await executeSingleNeuterSave(window.currentNeuterPetId, signatureData);
         } else if (window.currentNeuterBookingMode === 'batch') {
             document.getElementById('neuter-consent-modal').style.display = 'none';
-            await executeBatchSave(signatureData); // ไปรันฟังก์ชันบันทึกตะกร้าต่อ
+            await executeBatchSave(signatureData);
         }
     });
 
@@ -207,6 +203,53 @@ async function loadSystemConfig() {
     }
     const secSnap = await getDoc(doc(db, "system_config", "secrets"));
     if(secSnap.exists()) secretsConfig = secSnap.data();
+
+    await loadCampaignStatus(); // โหลดสถานะโควตาโปรเกรสบาร์
+}
+
+async function loadCampaignStatus() {
+    const banner = document.getElementById("campaign-banner-container");
+    const activeContent = document.getElementById("campaign-active-content");
+    const emptyContent = document.getElementById("campaign-empty-content");
+    if(!banner) return;
+
+    banner.style.display = "block"; 
+
+    const currentCamp = sysConfig?.campaign_id || "";
+    if (!currentCamp || currentCamp.trim() === "") {
+        if(activeContent) activeContent.style.display = "none";
+        if(emptyContent) emptyContent.style.display = "block";
+        document.getElementById("txt-campaign-name").textContent = "";
+        return;
+    }
+
+    if(activeContent) activeContent.style.display = "block";
+    if(emptyContent) emptyContent.style.display = "none";
+    document.getElementById("txt-campaign-name").textContent = `(${currentCamp})`;
+    document.getElementById("txt-service-date").textContent = formatThaiDate(sysConfig.nt_date || sysConfig.service_date);
+    document.getElementById("txt-service-location").textContent = sysConfig.nt_location || sysConfig.service_location || "-";
+
+    let currentTotalNeuterQuota = sysConfig.quota_neuter || 100;
+    let currentTotalVaccineQuota = sysConfig.quota_vaccine || 300; 
+    let currentBookedNeuter = 0; 
+    let currentBookedVaccine = 0;
+
+    try {
+        const petsRef = collection(db, "pets");
+        const qN = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "ทำหมันและวัคซีน"));
+        const snapN = await getDocs(qN);
+        currentBookedNeuter = snapN.size;
+
+        const qV = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "วัคซีนอย่างเดียว"));
+        const snapV = await getDocs(qV);
+        currentBookedVaccine = snapV.size;
+    } catch(e) { console.error("Quota Error:", e); }
+
+    document.getElementById("txt-neuter-quota").textContent = `${currentBookedNeuter} / ${currentTotalNeuterQuota} คิว`;
+    document.getElementById("bar-neuter").style.width = `${Math.min((currentBookedNeuter / currentTotalNeuterQuota) * 100, 100)}%`;
+
+    document.getElementById("txt-vaccine-quota").textContent = `${currentBookedVaccine} / ${currentTotalVaccineQuota} คิว`;
+    document.getElementById("bar-vaccine").style.width = `${Math.min((currentBookedVaccine / currentTotalVaccineQuota) * 100, 100)}%`;
 }
 
 function populateMooDropdowns() {
@@ -715,7 +758,6 @@ function setupProxyBatchLogic() {
         if(!owner || !house || !moo) return alert("กรุณากรอกชื่อเจ้าของ บ้านเลขที่ และหมู่ให้ครบถ้วน");
         if(window.proxyPetsBatch.length === 0) return alert("กรุณาเพิ่มสัตว์เลี้ยงลงตะกร้าอย่างน้อย 1 ตัว");
 
-        // ตรวจสอบว่ามีการจองทำหมันไหม ถ้ามีต้องเด้งให้เซ็นชื่อก่อน
         const needsNeuter = window.proxyPetsBatch.some(p => p.service === "ทำหมันและวัคซีน");
         if (needsNeuter) {
             window.currentNeuterBookingMode = 'batch';
@@ -733,10 +775,9 @@ function setupProxyBatchLogic() {
                     window.neuterSignaturePad.clear();
                 }
             }, 200);
-            return; // หยุดไว้ก่อน รอเซ็นเสร็จ
+            return; 
         }
 
-        // ถ้าไม่มีการจองทำหมัน ให้บันทึกปกติได้เลย
         window.executeBatchSave(null);
     });
 }
@@ -772,7 +813,7 @@ window.executeBatchSave = async function(neuterSignatureData) {
         let currentQueueNo = 0;
         
         if (currentCamp && window.proxyPetsBatch.some(p => p.service === "ทำหมันและวัคซีน")) {
-            const campQ = query(collection(db, "pets"), where("campaign_id", "==", currentCamp), where("service_type", "==", "ทำหมันและวัคซีน"), orderBy("queue_no", "desc"), limit(1));
+            const campQ = query(collection(db, "pets"), where("campaign_id", "==", currentCamp), where("service_type", "ทำหมันและวัคซีน"), orderBy("queue_no", "desc"), limit(1));
             const snapCamp = await getDocs(campQ);
             if (!snapCamp.empty) currentQueueNo = snapCamp.docs[0].data().queue_no || 0;
         }
