@@ -4,7 +4,7 @@ import { collection, addDoc, getDocs, doc, getDoc, updateDoc, setDoc, serverTime
 // ==========================================
 // 1. ตั้งค่าตัวแปรระบบ
 // ==========================================
-const LIFF_ID = "2010813512-cqJiXClj"; 
+const LIFF_ID = "2010813512-cqJiXCIj"; 
 let currentUser = null;
 let sysConfig = null;
 let secretsConfig = null;
