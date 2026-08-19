@@ -12,6 +12,13 @@
         .public-view { display: none; }
         .public-view.active { display: block; animation: fadeIn 0.4s; }
         .gps-box { background: var(--bg-overlay); padding: 10px; border-radius: 8px; font-size: 12px; color: var(--accent-success); margin-top: 10px; word-break: break-all; text-align: center; border: 1px dashed var(--accent-success); }
+        
+        /* สไตล์สำหรับ Progress Bar (สถานะโครงการ) */
+        .progress-container { margin-bottom: 10px; }
+        .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-main); margin-bottom: 5px; font-weight: bold; }
+        .progress-track { width: 100%; height: 8px; background: var(--bg-overlay-light); border-radius: 4px; overflow: hidden; border: 1px solid var(--border-light); }
+        .progress-fill { height: 100%; background: var(--accent-success); border-radius: 4px; transition: width 0.5s ease-in-out; }
+        .progress-fill.vaccine { background: var(--accent-primary); }
     </style>
 </head>
 <body>
@@ -71,15 +78,32 @@
 
                 <hr style="border-color: var(--border-muted); margin: 20px 0;">
 
-                <h3 class="section-title" style="font-size: 15px;">โควตาการให้บริการรอบปัจจุบัน</h3>
-                <div class="progress-container">
-                    <div class="progress-label"><span>ทำหมัน</span><span id="pb-neuter-text">กำลังโหลด...</span></div>
-                    <div class="progress-track"><div id="pb-neuter-bar" class="progress-fill" style="width: 0%;"></div></div>
+                <!-- ================= ใหม่: กล่องสถานะคิวโครงการ ================= -->
+                <div id="campaign-banner-container" style="display: none;">
+                    <h3 class="section-title" style="font-size: 16px; margin-bottom: 15px;">📊 สถานะคิวโครงการ <span id="txt-campaign-name" style="font-size:12px; color:var(--text-muted);"></span></h3>
+                    
+                    <div id="campaign-active-content" style="display: none;">
+                        <div style="background: var(--bg-overlay); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 5px;">📅 <b>กำหนดการ:</b> <span id="txt-service-date">-</span></div>
+                            <div style="font-size: 13px; color: var(--text-muted);">📍 <b>สถานที่:</b> <span id="txt-service-location">-</span></div>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-label"><span>คิวทำหมัน (สุนัขและแมว)</span><span id="txt-neuter-quota">กำลังโหลด...</span></div>
+                            <div class="progress-track"><div id="bar-neuter" class="progress-fill" style="width: 0%;"></div></div>
+                        </div>
+                        <div class="progress-container" style="margin-top: 15px;">
+                            <div class="progress-label"><span>คิวฉีดวัคซีนอย่างเดียว</span><span id="txt-vaccine-quota">กำลังโหลด...</span></div>
+                            <div class="progress-track"><div id="bar-vaccine" class="progress-fill vaccine" style="width: 0%;"></div></div>
+                        </div>
+                    </div>
+
+                    <div id="campaign-empty-content" style="display: none; background: var(--bg-overlay); border: 1px dashed var(--accent-warning); padding: 20px; border-radius: 8px; text-align: center;">
+                        <p style="color: var(--accent-warning); font-size: 15px; font-weight: bold; margin-bottom: 5px;">⏳ ยังไม่มีโครงการทำหมันสุนัขและแมวในรอบปีงบประมาณนี้</p>
+                        <p style="color: var(--text-muted); font-size: 13px; margin: 0;">กรุณารอติดตามการประชาสัมพันธ์เปิดรับลงทะเบียนในรอบถัดไป</p>
+                    </div>
                 </div>
-                <div class="progress-container" style="margin-top: 15px;">
-                    <div class="progress-label"><span>ฉีดวัคซีนอย่างเดียว</span><span id="pb-vaccine-text">กำลังโหลด...</span></div>
-                    <div class="progress-track"><div id="pb-vaccine-bar" class="progress-fill vaccine" style="width: 0%;"></div></div>
-                </div>
+                <!-- ============================================================== -->
+
             </div>
         </div>
 
