@@ -13,26 +13,42 @@
         .log-error { color: #ff5e5e; }
         .log-success { color: #50E3C2; }
         .log-skip { color: #A0B0C0; }
+        
+        /* สไตล์สำหรับกล่องเลือกโหมด */
+        .mode-selector { background: var(--bg-overlay); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed var(--accent-primary); }
+        .mode-selector label { display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px; font-size: 14px; }
+        .mode-selector input[type="radio"] { transform: scale(1.2); accent-color: var(--accent-primary); }
     </style>
 </head>
 <body>
     <div class="dev-container">
         <h2 style="color: var(--accent-primary); border-bottom: 1px solid var(--border-light); padding-bottom: 10px;">🛠️ เครื่องมือนักพัฒนา (Dev Tools)</h2>
-        <p style="color: var(--text-muted); font-size: 14px;">ระบบอัปเดตรายชื่อเจ้าของบ้านทับข้อมูลเดิม ("ข้อมูลโอนย้ายจาก excel") โดยข้ามบ้านที่ประชาชนยืนยันตัวตนแล้ว</p>
+        <p style="color: var(--text-muted); font-size: 14px;">ระบบประมวลผลและซ่อมแซมฐานข้อมูล Firebase แบบกลุ่ม (Batch Update) ด้วยไฟล์ Excel</p>
         
+        <div class="mode-selector">
+            <h4 style="color: var(--accent-primary); margin-top: 0; margin-bottom: 15px; font-size: 15px;">⚙️ เลือกโหมดการทำงาน:</h4>
+            <label>
+                <input type="radio" name="sync_mode" value="household" checked> 
+                <span><b>โหมด 1:</b> อัปเดตชื่อเจ้าของบ้าน (ต้องการคอลัมน์: บ้านเลขที่, หมู่ที่, ชื่อเจ้าของ)</span>
+            </label>
+            <label>
+                <input type="radio" name="sync_mode" value="stray"> 
+                <span><b>โหมด 2:</b> ซ่อมแซม 'หมู่' ให้สัตว์จรจัด (ต้องการคอลัมน์: LocationDesc, FeederName, หมู่) *รองรับเลขไทย*</span>
+            </label>
+        </div>
+
         <div style="background: var(--bg-overlay-light); padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p style="font-size: 12px; color: var(--accent-secondary); margin-bottom: 10px;"><b>รูปแบบ Excel ที่รองรับ:</b> คอลัมน์ "บ้านเลขที่" | "หมู่ที่" | "ชื่อเจ้าของ"</p>
+            <p style="font-size: 12px; color: var(--accent-secondary); margin-bottom: 10px;">เลือกไฟล์ Excel ตามโหมดที่เลือกด้านบน:</p>
             <input type="file" id="excel-file" accept=".xlsx, .xls" class="neumorphic-input" style="padding: 10px;">
         </div>
 
-        <button id="btn-start-sync" class="neumorphic-btn gold-btn" style="width: 100%;">🚀 เริ่มการซิงค์ข้อมูลลงฐานข้อมูล</button>
+        <button id="btn-start-sync" class="neumorphic-btn gold-btn" style="width: 100%;">🚀 เริ่มการประมวลผลข้อมูล</button>
         <button id="btn-clear-log" class="neumorphic-btn outline-btn" style="width: 100%; margin-top: 10px; border-color: var(--accent-danger); color: var(--accent-danger);">🗑️ ล้างหน้าจอ Log</button>
 
         <h3 style="margin-top: 30px; font-size: 16px;">Console Log</h3>
         <div id="log-output" class="log-box">รอรับคำสั่ง...</div>
     </div>
 
-    <!-- โหลดไลบรารีอ่าน Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script type="module" src="dev_tools.js"></script>
 </body>
