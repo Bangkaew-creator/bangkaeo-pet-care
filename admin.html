@@ -158,9 +158,7 @@
                 <div class="input-group" style="margin-top: 15px;"><label style="color:var(--accent-success);">สถานะบริการที่จะทำ</label>
                     <select id="px-service" class="neumorphic-input">
                         <option value="none">แค่บันทึกประวัติ (ไม่จองคิว)</option>
-                        <option value="ทำหมันและวัคซีน">จองคิว "ทำหมันและวัคซีน"</option>
-                        <option value="วัคซีนอย่างเดียว">จองคิว "วัคซีนอย่างเดียว"</option>
-                        <option value="checked_in_vaccine">✔️ Walk-in ฉีดวัคซีนหน้างาน (เสร็จแล้ว)</option>
+                        <option value="ทำหมันและวัคซีน">จองคิว "ทำหมัน"</option>
                     </select>
                 </div>
                 <button type="button" id="btn-add-proxy-pet" class="neumorphic-btn outline-btn" style="color: var(--accent-primary); border-color: var(--accent-primary); margin-top: 10px;">+ เพิ่มสัตว์ตัวนี้ลงตะกร้า</button>
@@ -205,7 +203,7 @@
             </div>
         </div>
 
-        <!-- [เฟส 3] จัดการเบาะแสสัตว์จรจัด -->
+        <!-- จัดการเบาะแสสัตว์จรจัด -->
         <div id="view-stray-manage" class="container admin-view">
             <h2 class="title" style="color: var(--accent-danger); text-align: left; font-size: 18px;">🐕 จัดการเบาะแสสัตว์จรจัด</h2>
             <div class="card neumorphic">
@@ -311,8 +309,6 @@
                             <div class="input-group half"><label>6. สีแอคชัน (เขียว)</label><input type="color" id="c-accent-success" class="neumorphic-input" style="padding: 5px; height: 40px; cursor: pointer;" value="#50E3C2"></div>
                         </div>
                     </div>
-
-                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 12px;">*เมื่อกดบันทึก ธีมสีจะเปลี่ยนไปทั้งระบบ (ทั้งฝั่งประชาชนและแอดมิน)</p>
                 </div>
 
                 <h3 class="section-title">1. ความปลอดภัยและสิทธิ์ (Secrets)</h3>
@@ -336,18 +332,18 @@
                 <div class="row"><div class="input-group half"><label>ตำบล</label><input type="text" id="st-tambon" class="neumorphic-input"></div><div class="input-group half"><label>อำเภอ</label><input type="text" id="st-amphoe" class="neumorphic-input"></div></div>
                 <div class="row"><div class="input-group half"><label>จังหวัด</label><input type="text" id="st-province" class="neumorphic-input"></div><div class="input-group half"><label>เบอร์โทร</label><input type="text" id="st-phone" class="neumorphic-input"></div></div>
 
-                <h3 class="section-title" style="margin-top: 25px;">3. กำหนดการและโควตา</h3>
+                <h3 class="section-title" style="margin-top: 25px;">3. กำหนดการและโควตา (ทำหมัน)</h3>
                 <div class="input-group" style="background: var(--bg-overlay-light); padding: 10px; border-radius: 8px; border: 1px dashed var(--accent-primary);">
-                    <label style="color: var(--accent-primary); font-weight: bold;">ชื่อรอบโครงการ (Campaign ID) <span style="font-size: 11px; color:var(--text-muted);">*เมื่อเปลี่ยนชื่อรอบ โควตาของประชาชนจะถูกรีเซตใหม่*</span></label>
-                    <input type="text" id="st-campaign-id" class="neumorphic-input" placeholder="เช่น รอบที่ 1/2569 หรือ Round_1_2569">
+                    <label style="color: var(--accent-primary); font-weight: bold;">ชื่อรอบโครงการ (Campaign ID) <span style="font-size: 11px; color:var(--text-muted);">*เปลี่ยนชื่อรอบ โควตาจะรีเซต*</span></label>
+                    <input type="text" id="st-campaign-id" class="neumorphic-input" placeholder="เช่น รอบที่ 1/2569">
                 </div>
                 <div class="input-group"><label>จำนวนทำหมันสูงสุดต่อบ้าน</label><input type="number" id="st-max-neuter" class="neumorphic-input" value="2"></div>
                 <div class="row"><div class="input-group half"><label>เริ่มลงทะเบียน</label><input type="date" id="st-start" class="neumorphic-input"></div><div class="input-group half"><label>สิ้นสุด</label><input type="date" id="st-end" class="neumorphic-input"></div></div>
                 <div class="input-group"><label>วันให้บริการ (ข้อความ)</label><input type="text" id="st-nt-date" class="neumorphic-input" placeholder="เช่น 2026-08-05"></div>
                 <div class="input-group"><label>สถานที่ให้บริการ</label><input type="text" id="st-nt-loc" class="neumorphic-input"></div>
-                <div class="row"><div class="input-group half"><label>โควตาทำหมันรวม</label><input type="number" id="st-q-neuter" class="neumorphic-input"></div><div class="input-group half"><label>โควตาวัคซีนรวม</label><input type="number" id="st-q-vac" class="neumorphic-input"></div></div>
+                <div class="input-group"><label>โควตาทำหมันรวมทั้งหมด</label><input type="number" id="st-q-neuter" class="neumorphic-input"></div>
 
-                <h3 class="section-title" style="margin-top: 25px;">4. ข้อมูลวัคซีน (สำหรับใบรับรอง)</h3>
+                <h3 class="section-title" style="margin-top: 25px;">4. ข้อมูลวัคซีนประจำปี (สำหรับใบรับรอง)</h3>
                 <div class="input-group"><label>ปีปัจจุบัน (พ.ศ.)</label><input type="number" id="st-vac-year" class="neumorphic-input"></div>
                 <div class="row"><div class="input-group half"><label>ยี่ห้อ (Brand)</label><input type="text" id="st-vac-brand" class="neumorphic-input"></div><div class="input-group half"><label>ล๊อต (Lot No.)</label><input type="text" id="st-vac-lot" class="neumorphic-input"></div></div>
                 <div class="input-group"><label>วันหมดอายุ (EXP)</label><input type="text" id="st-vac-exp" class="neumorphic-input" placeholder="เช่น 2027-12-31"></div>
@@ -408,7 +404,6 @@
         </div>
     </div>
 
-    <!-- Modal อัปเดตผลการจัดการสัตว์จรจัด (ROD) -->
     <div id="stray-action-modal" class="modal-overlay" style="display: none; z-index: 3000;">
         <div class="card neumorphic" style="width: 90%; max-width: 400px;">
             <h3 class="section-title" style="color: var(--accent-success);">✅ บันทึกผลการลงพื้นที่ (ROD)</h3>
@@ -432,7 +427,6 @@
         </div>
     </div>
 
-    <!-- Modal ตัวเลือกการพิมพ์ใบยินยอม -->
     <div id="print-options-modal" class="modal-overlay" style="display: none; z-index: 3000;">
         <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
             <h3 class="section-title" style="color: var(--accent-secondary);">🖨️ ตัวเลือกการพิมพ์ใบยินยอม</h3>
@@ -449,7 +443,6 @@
         </div>
     </div>
 
-    <!-- ================== ส่วนเพิ่มใหม่: Modal แก้ไขข้อมูลด่วน (แอดมิน/อสม.) ================== -->
     <div id="edit-data-modal" class="modal-overlay" style="display: none; z-index: 3000;">
         <div class="card neumorphic" style="width: 95%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
             <h3 class="section-title" style="color: var(--accent-primary);">✏️ แก้ไขข้อมูล (บ้านและสัตว์เลี้ยง)</h3>
@@ -502,41 +495,55 @@
             </div>
         </div>
     </div>
-<!-- ================== Modal อัปเดตประวัติวัคซีน (นอกรอบ / รับไปฉีดเอง) ================== -->
+
+    <!-- ================== Modal อัปเดตประวัติวัคซีนและรับความยินยอม ================== -->
     <div id="vaccine-update-modal" class="modal-overlay" style="display: none; z-index: 3500;">
-        <div class="card neumorphic" style="width: 90%; max-width: 400px; max-height: 90vh; overflow-y: auto;">
-            <h3 class="section-title" style="color: var(--accent-success);">💉 บันทึกประวัติวัคซีน</h3>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">อัปเดตข้อมูลให้น้อง <strong id="vac-modal-pet-name" style="color:var(--accent-primary);"></strong></p>
+        <div class="card neumorphic" style="width: 90%; max-width: 450px; max-height: 90vh; overflow-y: auto;">
+            <h3 class="section-title" style="color: var(--accent-success);">💉 บันทึกการจ่าย/ฉีดวัคซีน</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">สัตว์เลี้ยง: <strong id="vac-modal-pet-name" style="color:var(--accent-primary);"></strong></p>
             
             <input type="hidden" id="vac-modal-docid">
             
+            <div style="background: var(--bg-overlay-light); padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; color: var(--text-main); border: 1px dashed var(--accent-success);">
+                <div style="margin-bottom: 5px;"><b>ยี่ห้อวัคซีน:</b> <span id="vac-modal-brand-txt" style="color: var(--accent-primary);">-</span></div>
+                <div style="margin-bottom: 5px;"><b>Lot No:</b> <span id="vac-modal-lot-txt">-</span></div>
+                <div><b>หมดอายุ (EXP):</b> <span id="vac-modal-exp-txt">-</span></div>
+                <div style="color: var(--accent-danger); font-size: 11px; margin-top: 8px; text-align: center;">* ข้อมูลดึงจากฐานข้อมูลส่วนกลางโดยอัตโนมัติ</div>
+            </div>
+
             <div class="input-group">
-                <label>วันที่ฉีด/รับวัคซีน</label>
+                <label>วันที่รับบริการ</label>
                 <input type="date" id="vac-modal-date" class="neumorphic-input">
             </div>
-            <div class="row">
-                <div class="input-group half"><label>ยี่ห้อวัคซีน</label><input type="text" id="vac-modal-brand" class="neumorphic-input"></div>
-                <div class="input-group half"><label>Lot No.</label><input type="text" id="vac-modal-lot" class="neumorphic-input"></div>
-            </div>
-            <div class="input-group">
-                <label>วันหมดอายุ (EXP)</label>
-                <input type="text" id="vac-modal-exp" class="neumorphic-input" placeholder="เช่น 2027-12-31">
-            </div>
-            <div class="input-group" style="background: var(--bg-overlay-light); padding: 10px; border-radius: 8px;">
-                <label style="color: var(--accent-primary);">ผู้รับผิดชอบการฉีด</label>
+            
+            <div class="input-group" style="background: var(--bg-overlay); padding: 10px; border-radius: 8px;">
+                <label style="color: var(--accent-primary);">รูปแบบการรับบริการ</label>
                 <select id="vac-modal-injector" class="neumorphic-input" style="font-weight: bold;">
                     <option value="admin">👨‍⚕️ เจ้าหน้าที่/อสม. เป็นผู้ฉีดให้</option>
                     <option value="owner">🏠 เจ้าของรับวัคซีนไปฉีดเอง</option>
                 </select>
             </div>
+
+            <div style="background: var(--bg-overlay); border: 1px solid var(--border-light); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <p style="font-size: 11px; color: var(--text-muted); line-height: 1.6; text-align: justify; margin: 0;">
+                    "ข้าพเจ้าได้รับทราบข้อมูลการเคลื่อนย้าย การเก็บรักษา และวิธีการฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าจากเจ้าหน้าที่อย่างครบถ้วน และเข้าใจวิธีการปฏิบัติหลังการฉีดตามหลักวิชาการที่ถูกต้องแล้ว ข้าพเจ้าจะเป็นผู้รับผิดชอบดูแลสัตว์เลี้ยงอย่างใกล้ชิด หากเกิดอาการแพ้ ผลข้างเคียง หรือความผิดพลาดใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือดำเนินคดีทั้งทางแพ่งและอาญากับเจ้าหน้าที่และเทศบาลเมืองบางแก้วแต่อย่างใด"
+                </p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
+                    <label style="font-size: 13px; color: var(--accent-primary);">ให้ประชาชนเซ็นชื่อรับรอง</label>
+                    <button type="button" id="btn-clear-vac-sig" style="background: none; border: none; color: var(--accent-danger); font-size: 12px; cursor: pointer; text-decoration: underline;">ล้างลายเซ็น</button>
+                </div>
+                <canvas id="vac-signature-pad" style="width: 100%; height: 150px; border-radius: 10px; background: #FFF; border: 2px dashed var(--accent-primary); touch-action: none; cursor: crosshair;"></canvas>
+            </div>
             
-            <div class="row" style="margin-top: 20px;">
+            <div class="row">
                 <button type="button" class="neumorphic-btn half outline-btn" onclick="document.getElementById('vaccine-update-modal').style.display='none'">ยกเลิก</button>
-                <button type="button" id="btn-save-vaccine-update" class="neumorphic-btn gold-btn half" style="background:var(--accent-success); border-color:var(--accent-success); color:var(--bg-main);">💾 บันทึกข้อมูล</button>
+                <button type="button" id="btn-save-vaccine-update" class="neumorphic-btn gold-btn half" style="background:var(--accent-success); border-color:var(--accent-success); color:var(--bg-main);">💾 บันทึกและยอมรับ</button>
             </div>
         </div>
     </div>
-    
 
     <!-- ฟอร์ม A4 สำหรับพิมพ์ (ซ่อนไว้) -->
     <div id="print-all-consents-container" style="display: none;"></div>
