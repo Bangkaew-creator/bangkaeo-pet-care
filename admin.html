@@ -22,6 +22,13 @@
         .btn-uncheckin { background: transparent; color: var(--accent-danger); border-color: var(--accent-danger); font-weight: bold; }
         .btn-print { background: transparent; color: var(--accent-secondary); border-color: var(--accent-secondary); }
 
+        /* Progress Bar (สถานะโครงการ) */
+        .progress-container { margin-bottom: 10px; }
+        .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-main); margin-bottom: 5px; font-weight: bold; }
+        .progress-track { width: 100%; height: 8px; background: var(--bg-overlay-light); border-radius: 4px; overflow: hidden; border: 1px solid var(--border-light); }
+        .progress-fill { height: 100%; background: var(--accent-success); border-radius: 4px; transition: width 0.5s ease-in-out; }
+        .progress-fill.vaccine { background: var(--accent-primary); }
+
         body.role-volunteer #menu-settings { display: none !important; }
         body.role-volunteer #menu-raw-data { display: none !important; }
         body.role-volunteer .admin-only { display: none !important; }
@@ -81,6 +88,31 @@
         <div id="view-checkin" class="container admin-view">
             <h2 class="title" style="color: var(--accent-success); text-align: left; font-size: 18px;">🔍 ค้นหา & จัดการคิว</h2>
             
+            <!-- แบนเนอร์สถานะโครงการ -->
+            <div id="campaign-banner-container" class="card neumorphic" style="margin-bottom: 20px; border-left: 5px solid var(--accent-success); padding: 15px; display: none;">
+                <h4 style="color: var(--accent-success); font-size: 16px; margin-bottom: 10px;">📊 สถานะคิวโครงการ <span id="txt-campaign-name" style="font-size:12px; color:var(--text-muted);"></span></h4>
+                
+                <div id="campaign-active-content" style="display: none;">
+                    <div style="background: var(--bg-overlay); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 5px;">📅 <b>กำหนดการ:</b> <span id="txt-service-date">-</span></div>
+                        <div style="font-size: 13px; color: var(--text-muted);">📍 <b>สถานที่:</b> <span id="txt-service-location">-</span></div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label"><span>คิวทำหมัน (สุนัขและแมว)</span><span id="txt-neuter-quota">กำลังโหลด...</span></div>
+                        <div class="progress-track"><div id="bar-neuter" class="progress-fill" style="width: 0%;"></div></div>
+                    </div>
+                    <div class="progress-container" style="margin-top: 15px;">
+                        <div class="progress-label"><span>คิวฉีดวัคซีนอย่างเดียว</span><span id="txt-vaccine-quota">กำลังโหลด...</span></div>
+                        <div class="progress-track"><div id="bar-vaccine" class="progress-fill vaccine" style="width: 0%;"></div></div>
+                    </div>
+                </div>
+
+                <div id="campaign-empty-content" style="display: none; background: var(--bg-overlay); border: 1px dashed var(--accent-warning); padding: 20px; border-radius: 8px; text-align: center;">
+                    <p style="color: var(--accent-warning); font-size: 15px; font-weight: bold; margin-bottom: 5px;">⏳ ขณะนี้ยังไม่มีกำหนดการจัดโครงการทำหมันในรอบปีงบประมาณนี้</p>
+                    <p style="color: var(--text-muted); font-size: 13px; margin: 0;">กรุณารอติดตามการประชาสัมพันธ์เปิดรับลงทะเบียนในรอบถัดไป</p>
+                </div>
+            </div>
+
             <div class="row admin-only" style="margin-bottom: 20px;">
                 <button type="button" onclick="document.getElementById('print-options-modal').style.display='flex'" class="neumorphic-btn outline-btn half" style="color: var(--accent-secondary); border-color: var(--accent-secondary);">🖨️ พิมพ์ใบยินยอมรอบปัจจุบัน</button>
                 <button type="button" id="btn-auto-cancel" class="neumorphic-btn outline-btn half" style="color: var(--accent-danger); border-color: var(--accent-danger);">🗑️ เคลียร์คิวตกหล่น (เลยกำหนด)</button>
@@ -176,8 +208,8 @@
                 
                 <div class="input-group" style="margin-top: 15px; background: var(--bg-overlay); padding: 10px; border-radius: 8px;"><label style="color:var(--accent-success);">สถานะบริการที่จะทำ (ในโครงการนี้)</label>
                     <select id="px-service" class="neumorphic-input">
-                        <option value="none">แค่บันทึกประวัติ (ไม่จองคิว)</option>
-                        <option value="ทำหมันและวัคซีน">จองคิว "ทำหมันและวัคซีน"</option>
+                        <option value="none" selected>แค่บันทึกประวัติ (ไม่จองคิว)</option>
+                        <!-- จะถูกปรับด้วย JS หากไม่มีรอบโครงการ -->
                     </select>
                 </div>
                 <button type="button" id="btn-add-proxy-pet" class="neumorphic-btn outline-btn" style="color: var(--accent-primary); border-color: var(--accent-primary); margin-top: 10px;">+ เพิ่มสัตว์ตัวนี้ลงตะกร้า</button>
