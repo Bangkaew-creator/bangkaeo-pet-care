@@ -156,7 +156,6 @@
                     </div>
                 </div>
 
-                <!-- ส่วนประวัติเดิม (เพิ่มเข้ามาใหม่) -->
                 <h4 style="font-size: 14px; color: var(--accent-secondary); margin-top: 15px; margin-bottom: 10px;">ประวัติทางปศุสัตว์เดิม</h4>
                 <div class="row">
                     <div class="input-group half">
@@ -486,6 +485,38 @@
             <div class="row">
                 <button type="button" class="neumorphic-btn half outline-btn" onclick="document.getElementById('vaccine-update-modal').style.display='none'">ยกเลิก</button>
                 <button type="button" id="btn-save-vaccine-update" class="neumorphic-btn gold-btn half" style="background:var(--accent-success); border-color:var(--accent-success); color:var(--bg-main);">💾 บันทึกและยอมรับ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================== Modal ใบยินยอมทำหมัน (ใหม่) ================== -->
+    <div id="neuter-consent-modal" class="modal-overlay" style="display: none; z-index: 3500;">
+        <div class="card neumorphic" style="width: 100%; max-width: 450px; padding: 20px; text-align: center; max-height: 95vh; overflow-y: auto;">
+            <h3 style="color: var(--accent-warning); margin-bottom: 10px;">📄 ใบยินยอมรับการบริการ (ทำหมัน)</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">จองคิวให้น้อง: <strong id="neuter-modal-pet-name" style="color:var(--accent-primary);"></strong></p>
+
+            <!-- สำหรับกรณีจองแทนแบบ Batch จะแสดงข้อความว่ากำลังจองหลายตัว -->
+            <p id="neuter-modal-batch-msg" style="display: none; color: var(--accent-primary); font-size: 13px; margin-bottom: 15px;"></p>
+            
+            <div style="background: var(--bg-overlay); padding: 12px; border-radius: 8px; font-size: 12px; color: var(--text-muted); line-height: 1.6; max-height: 150px; overflow-y: auto; margin-bottom: 15px; border: 1px solid var(--border-light); text-align: left;">
+                <p style="margin-top: 0; text-indent: 15px; text-align: justify;">
+                    "ข้าพเจ้ายินยอมให้เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการทำการวางยาสลบเพื่อการผ่าตัดสัตว์ ซึ่งการวางยาสลบอาจมีผลข้างเคียงของยาเกิดขึ้น หากสัตว์ดังกล่าวได้รับอันตรายถึงชีวิตและเจ้าหน้าที่ได้ให้ความช่วยเหลืออย่างเต็มที่แล้ว ภายใต้จรรยาบรรณของการประกอบวิชาชีพสัตวแพทย์ ข้าพเจ้าจะรับผิดชอบดูแลแผลหลังการผ่าตัดตามคำแนะนำการดูแลสัตว์ภายหลังการผ่าตัดอย่างเคร่งครัด หากเกิดการผิดพลาดในการวางยาสลบ การผ่าตัด และไม่ว่าในกรณีใดๆ ข้าพเจ้าจะไม่เรียกร้องหรือฟ้องดำเนินคดีในทางอาญาและทางแพ่งกับเจ้าหน้าที่และส่วนราชการสังกัดของกรมปศุสัตว์แต่อย่างใด เจ้าหน้าที่ของปศุสัตว์จังหวัดสมุทรปราการ ได้อธิบายและข้าพเจ้าได้อ่านข้อความเข้าใจโดยตลอดแล้ว จึงลงลายมือไว้เป็นหลักฐาน"
+                </p>
+            </div>
+            <div class="input-group checkbox-group" style="margin-bottom: 15px; text-align: left; background: var(--bg-overlay); padding: 10px; border-radius: 8px;">
+                <input type="checkbox" id="neuter-accept-consent" class="neumorphic-checkbox">
+                <label for="neuter-accept-consent" style="color: var(--accent-success); font-weight: bold;">ข้าพเจ้าได้อ่านและยอมรับเงื่อนไขทั้งหมด</label>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
+                    <label style="font-size: 13px; color: var(--accent-primary);">ให้ประชาชนเซ็นชื่อรับรอง</label>
+                    <button type="button" id="btn-clear-neuter-sig" style="background: none; border: none; color: var(--accent-danger); font-size: 12px; cursor: pointer; text-decoration: underline;">ล้างลายเซ็น</button>
+                </div>
+                <canvas id="neuter-signature-pad" style="width: 100%; height: 150px; border-radius: 10px; background: #FFF; border: 2px dashed var(--accent-primary); touch-action: none; cursor: crosshair;"></canvas>
+            </div>
+            <div class="row">
+                <button type="button" class="neumorphic-btn half outline-btn" onclick="document.getElementById('neuter-consent-modal').style.display='none'">ยกเลิก</button>
+                <button type="button" id="btn-confirm-neuter-booking" class="neumorphic-btn gold-btn half" style="background: var(--accent-success); border-color: var(--accent-success); color: var(--bg-main);">ยืนยันและรันคิว</button>
             </div>
         </div>
     </div>
