@@ -4,7 +4,7 @@ import { collection, addDoc, getDocs, doc, getDoc, updateDoc, setDoc, serverTime
 // ==========================================
 // 1. ตั้งค่าตัวแปรระบบ
 // ==========================================
-const LIFF_ID = "2010813512-cqJiXCIj"; 
+const LIFF_ID = "2010813512-cqJiXClj"; 
 let currentUser = null;
 let sysConfig = null;
 let secretsConfig = null;
@@ -338,17 +338,64 @@ function setupSearchLogic() {
                     <div style="background: var(--bg-danger-light); border: 1px solid var(--accent-danger); padding: 15px; border-radius: 12px; text-align: center;">
                         <h3 style="color:var(--accent-danger); margin-bottom:5px;">❌ ไม่พบข้อมูลในระบบ</h3>
                         <p style="color:var(--text-main); font-size:13px; margin-bottom:15px;">ไม่มีข้อมูลที่ตรงกับ "${rawInput}" (หรือคุณไม่มีสิทธิ์ค้นหาข้ามหมู่บ้าน)</p>
-                        <button class="neumorphic-btn outline-btn" style="color: var(--accent-primary); border-color: var(--accent-primary); padding: 10px;" onclick="window.createHouseholdProxy('${proxyHouseParam}', '${proxyMooParam}')">📝 เพิ่มข้อมูลเข้าสู่ระบบ / ลงทะเบียนแทนเลย</button>
+                        <button class="neumorphic-btn outline-btn" style="color: var(--accent-primary); border-color: var(--accent-primary); padding: 10px;" onclick="window.createPetForExistingHouse('', '${proxyHouseParam}', '${proxyMooParam}', '', '', '')">📝 เพิ่มข้อมูลเข้าสู่ระบบ / ลงทะเบียนแทนเลย</button>
                     </div>
                 `;
                 return;
             }
 
+            // จัดกลุ่มสัตว์เลี้ยงตามบ้านเลขที่
+            const groupedPets = {};
             window.currentSearchPets = {};
+            
             mergedResults.forEach((pet, docId) => {
                 if(pet.status === "cancelled" || pet.status === "deceased" || pet.status === "moved") return;
                 window.currentSearchPets[docId] = pet;
-                renderAdminCard(docId, pet, resContainer);
+                
+                const key = pet.house_village_search || `${pet.house_no}-${pet.village_no}`;
+                if (!groupedPets[key]) {
+                    groupedPets[key] = {
+                        house_no: pet.house_no,
+                        village_no: pet.village_no,
+                        room_no: pet.room_no,
+                        owner_name: pet.owner_name,
+                        phone_number: pet.phone_number,
+                        owner_uid: pet.owner_uid,
+                        pets: {}
+                    };
+                }
+                groupedPets[key].pets[docId] = pet;
+            });
+
+            if (Object.keys(groupedPets).length === 0) {
+                resContainer.innerHTML = `<p style="text-align:center; color:var(--text-muted);">สัตว์เลี้ยงในบ้านนี้ถูกยกเลิก เสียชีวิต หรือย้ายไปแล้ว</p>`;
+                return;
+            }
+
+            // วาดกล่องรายบ้าน
+            let groupIndex = 0;
+            Object.keys(groupedPets).forEach(key => {
+                groupIndex++;
+                const group = groupedPets[key];
+                let groupHtml = `
+                    <div class="card neumorphic" style="padding: 0; overflow: hidden; margin-bottom: 25px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-overlay); padding: 15px; border-bottom: 2px solid var(--accent-primary);">
+                            <div>
+                                <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 2px;">ข้อมูลบ้าน/ครัวเรือน</div>
+                                <div style="color: var(--accent-primary); font-size: 16px; font-weight: bold;">บ้านเลขที่ ${group.house_no} หมู่ ${group.village_no} ${group.room_no ? '(ห้อง ' + group.room_no + ')' : ''}</div>
+                                <div style="color: var(--text-main); font-size: 13px;">👤 ${group.owner_name} | 📞 ${group.phone_number}</div>
+                            </div>
+                            <button class="neumorphic-btn gold-btn" style="padding: 8px 12px; font-size: 12px; width: auto;" onclick="window.createPetForExistingHouse('${group.owner_uid}', '${group.house_no}', '${group.village_no}', '${group.room_no || ''}', '${group.owner_name}', '${group.phone_number}')">➕ เพิ่มสัตว์เลี้ยง</button>
+                        </div>
+                        <div id="group-pets-${groupIndex}" style="padding: 15px; padding-bottom: 0;"></div>
+                    </div>
+                `;
+                resContainer.insertAdjacentHTML('beforeend', groupHtml);
+                
+                const petContainer = document.getElementById(`group-pets-${groupIndex}`);
+                Object.keys(group.pets).forEach(docId => {
+                    renderAdminCard(docId, group.pets[docId], petContainer);
+                });
             });
 
         } catch(e) { console.error(e); resContainer.innerHTML = `<p style='color:var(--accent-danger);'>เกิดข้อผิดพลาด</p>`; }
@@ -357,13 +404,30 @@ function setupSearchLogic() {
     searchInput.addEventListener("keypress", (e) => { if (e.key === "Enter") searchBtn.click(); });
 }
 
-window.createHouseholdProxy = function(h, m) {
+// ฟังก์ชันสำหรับปุ่ม "เพิ่มสัตว์เลี้ยงในบ้าน"
+window.createPetForExistingHouse = function(uid, house, moo, room, name, phone) {
     switchView('view-proxy');
-    document.getElementById("px-house").value = h;
-    document.getElementById("px-moo").value = m;
-    document.getElementById("px-name").value = "";
-    document.getElementById("px-phone").value = "";
-    document.getElementById("px-name").focus();
+    document.getElementById("px-name").value = name || "";
+    document.getElementById("px-phone").value = phone || "";
+    document.getElementById("px-house").value = house || "";
+    document.getElementById("px-moo").value = moo || "";
+    
+    if (room && room.trim() !== "") {
+        document.getElementById("px-is-rental").checked = true;
+        document.getElementById("px-room-group").style.display = 'block';
+        document.getElementById("px-room").value = room;
+    } else {
+        document.getElementById("px-is-rental").checked = false;
+        document.getElementById("px-room-group").style.display = 'none';
+        document.getElementById("px-room").value = "";
+    }
+    
+    window.proxyPetsBatch = [];
+    window.renderProxyBatchList();
+    
+    setTimeout(() => {
+        document.getElementById("proxy-pet-form").scrollIntoView({ behavior: 'smooth' });
+    }, 300);
 }
 
 function renderAdminCard(docId, pet, container) {
@@ -377,10 +441,24 @@ function renderAdminCard(docId, pet, container) {
     let neuterStr = pet.neuter_status === "ทำหมันแล้ว" ? `<span class="badge-green">ทำหมันแล้ว</span>` : `<span class="badge-red">ยังไม่ทำหมัน</span>`;
 
     let actionBtn = "";
+    let isCurrentCamp = sysConfig && pet.campaign_id === sysConfig.campaign_id;
+
     if (pet.status === "booked") {
         actionBtn = `<button class="btn-action-small btn-checkin" onclick="window.toggleCheckin('${docId}', '${pet.service_type}', true)">✔️ รับบริการ (โครงการ)</button>`;
     } else if (pet.status === "checked_in") {
-        actionBtn = `<button class="btn-action-small btn-uncheckin" onclick="window.toggleCheckin('${docId}', '${pet.service_type}', false)">ยกเลิกติ๊กถูก</button>`;
+        let showCancel = true;
+        
+        if (!isCurrentCamp) {
+            showCancel = false; 
+        } else if (pet.updated_at) {
+            const updatedDate = pet.updated_at.toDate();
+            const diffDays = Math.ceil(Math.abs(new Date() - updatedDate) / (1000 * 60 * 60 * 24));
+            if (diffDays > 14) showCancel = false; 
+        }
+
+        if (showCancel) {
+            actionBtn = `<button class="btn-action-small btn-uncheckin" onclick="window.toggleCheckin('${docId}', '${pet.service_type}', false)">ยกเลิกติ๊กถูก</button>`;
+        }
     }
     
     actionBtn += `<button class="btn-action-small" style="color: var(--bg-main); background: var(--accent-success); border-color: var(--accent-success); margin-top: 5px;" onclick="window.openVaccineUpdateModal('${docId}')">💉 จ่าย/ฉีดวัคซีน</button>`;
@@ -391,7 +469,6 @@ function renderAdminCard(docId, pet, container) {
                 <img src="${pet.pet_photo_base64 || defaultPlaceholder}" class="pet-photo">
                 <div class="pet-info">
                     <div class="pet-name">${pet.pet_name} ${roomText}</div>
-                    <div style="color: var(--text-muted); font-size: 11px; margin-bottom: 2px;">👤 ${pet.owner_name} | 📞 ${pet.phone_number}</div>
                     <div style="color: var(--text-muted); margin-bottom: 5px;">${pet.pet_type} ${pet.pet_gender} | จอง: <span style="color:var(--accent-primary);">${pet.service_type || 'ไม่มี'}</span></div>
                     <div>${vacStr} | ${neuterStr}</div>
                 </div>
@@ -1016,8 +1093,6 @@ window.printConsentA4 = async function(docId) {
 
         document.body.classList.add('print-consent-mode');
         
-        // เราสามารถใช้ element เดิมถ้ามี หรือสร้างหน้าพิมพ์แบบ BatchPrint
-        // เพื่อความชัวร์ ใช้ระบบ Print แบบ Batch 1 ตัว
         const container = document.getElementById("print-all-consents-container"); 
         container.innerHTML = "";
         const agency = sysConfig ? sysConfig.agency_name : "เทศบาล...";
