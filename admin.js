@@ -181,6 +181,17 @@ async function loadSystemConfig() {
         sysConfig = snap.data();
         document.getElementById("txt-header-agency").textContent = sysConfig.agency_name || "หน่วยงาน";
         
+        // 🔒 ซ่อนตัวเลือกจองคิวทำหมันในฟอร์มลงทะเบียนแทน หากไม่มีรอบโครงการ
+        const pxService = document.getElementById("px-service");
+        if (pxService) {
+            if (!sysConfig.campaign_id || sysConfig.campaign_id.trim() === "") {
+                pxService.innerHTML = '<option value="none" selected>แค่บันทึกประวัติ (ยังไม่มีรอบโครงการให้จอง)</option>';
+            } else {
+                pxService.innerHTML = `<option value="none" selected>แค่บันทึกประวัติ (ไม่จองคิว)</option>
+                                       <option value="ทำหมันและวัคซีน">จองคิว "ทำหมัน" (รอบ: ${sysConfig.campaign_id})</option>`;
+            }
+        }
+
         document.body.classList.remove('theme-mourning', 'theme-gov', 'theme-rabies', 'theme-luxury');
         if (sysConfig.theme === "custom" && sysConfig.custom_colors) {
             const root = document.documentElement;
@@ -433,7 +444,7 @@ function renderAdminCard(docId, pet, container) {
         } else if (pet.updated_at) {
             const updatedDate = pet.updated_at.toDate();
             const diffDays = Math.ceil(Math.abs(new Date() - updatedDate) / (1000 * 60 * 60 * 24));
-            if (diffDays > 14) showCancel = false; // เกิน 14 วัน ลบปุ่มทิ้ง
+            if (diffDays > 14) showCancel = false; 
         }
         if (showCancel) {
             actionBtn += `<button class="btn-action-small btn-uncheckin" onclick="window.toggleCheckin('${docId}', '${pet.service_type}', false)">ยกเลิกติ๊กถูก</button>`;
