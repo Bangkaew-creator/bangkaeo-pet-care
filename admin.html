@@ -103,6 +103,7 @@
             <h2 class="title" style="color: var(--accent-primary); text-align: left; font-size: 18px;">📝 ลงทะเบียนแทนประชาชน</h2>
             <div class="card neumorphic" id="proxy-household-form">
                 <h3 class="section-title">1. ข้อมูลครัวเรือน</h3>
+                <input type="hidden" id="px-owner-uid">
                 <div class="input-group"><label>ชื่อ-นามสกุล เจ้าของ</label><input type="text" id="px-name" class="neumorphic-input"></div>
                 <div class="input-group"><label>เบอร์โทรศัพท์</label><input type="tel" id="px-phone" class="neumorphic-input" placeholder="08X-XXX-XXXX"></div>
                 <div class="row">
@@ -154,11 +155,30 @@
                         </select>
                     </div>
                 </div>
+
+                <!-- ส่วนประวัติเดิม (เพิ่มเข้ามาใหม่) -->
+                <h4 style="font-size: 14px; color: var(--accent-secondary); margin-top: 15px; margin-bottom: 10px;">ประวัติทางปศุสัตว์เดิม</h4>
+                <div class="row">
+                    <div class="input-group half">
+                        <label>วัคซีนพิษสุนัขบ้า</label>
+                        <select id="px-vac-status" class="neumorphic-input">
+                            <option value="ไม่เคยฉีด" selected>ไม่เคยฉีด</option>
+                            <option value="เคยฉีด">เคยฉีด</option>
+                        </select>
+                    </div>
+                    <div class="input-group half">
+                        <label>สถานะการทำหมัน</label>
+                        <select id="px-neuter-status" class="neumorphic-input">
+                            <option value="ยังไม่ทำหมัน" selected>ยังไม่ทำหมัน</option>
+                            <option value="ทำหมันแล้ว">ทำหมันแล้ว</option>
+                        </select>
+                    </div>
+                </div>
                 
-                <div class="input-group" style="margin-top: 15px;"><label style="color:var(--accent-success);">สถานะบริการที่จะทำ</label>
+                <div class="input-group" style="margin-top: 15px; background: var(--bg-overlay); padding: 10px; border-radius: 8px;"><label style="color:var(--accent-success);">สถานะบริการที่จะทำ (ในโครงการนี้)</label>
                     <select id="px-service" class="neumorphic-input">
                         <option value="none">แค่บันทึกประวัติ (ไม่จองคิว)</option>
-                        <option value="ทำหมันและวัคซีน">จองคิว "ทำหมัน"</option>
+                        <option value="ทำหมันและวัคซีน">จองคิว "ทำหมันและวัคซีน"</option>
                     </select>
                 </div>
                 <button type="button" id="btn-add-proxy-pet" class="neumorphic-btn outline-btn" style="color: var(--accent-primary); border-color: var(--accent-primary); margin-top: 10px;">+ เพิ่มสัตว์ตัวนี้ลงตะกร้า</button>
@@ -167,6 +187,7 @@
             <div class="card neumorphic">
                 <h3 class="section-title">ตะกร้าสัตว์เลี้ยงที่จะบันทึก</h3>
                 <div id="proxy-pet-list"></div>
+                <p style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 10px;">(เมื่อเพิ่มลงตะกร้าครบแล้ว ต้องกดปุ่มสีทองด้านล่างเพื่อบันทึกเข้าฐานข้อมูล)</p>
                 <button type="button" id="btn-submit-proxy-batch" class="neumorphic-btn gold-btn" style="margin-top: 15px; width: 100%; display: none;">💾 บันทึกข้อมูลครัวเรือน + สัตว์เลี้ยงทั้งหมด</button>
             </div>
         </div>
@@ -367,82 +388,6 @@
     </div>
 
     <!-- Modals ต่างๆ -->
-    <div id="cert-modal" class="modal-overlay" style="display: none; z-index: 2000;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%;">
-            <div class="flip-card" id="pet-cert-card" onclick="this.classList.toggle('flipped')">
-                <div class="flip-card-inner">
-                    <div class="flip-card-front">
-                        <h3 style="color: var(--accent-primary); border-bottom: 1px solid var(--border-light); padding-bottom: 10px; margin-bottom: 15px;">สมุดประจำตัวสัตว์เลี้ยง</h3>
-                        <img id="cert-img" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-primary); margin: 0 auto 15px; background: var(--bg-card);">
-                        <h2 id="cert-pet-name" style="margin-bottom: 5px; color: var(--accent-success);">-</h2>
-                        <p id="cert-pet-detail" style="font-size: 14px; margin-bottom: 20px; color: var(--text-muted);">-</p>
-                        <div style="background: var(--bg-overlay); padding: 12px; border-radius: 8px; text-align: left; font-size: 13px; line-height: 1.6;">
-                            <div><b style="color: var(--accent-primary);">เจ้าของ:</b> <span id="cert-owner"></span></div>
-                            <div><b style="color: var(--accent-primary);">ที่อยู่:</b> <span id="cert-address"></span></div>
-                            <hr style="border-color: var(--border-muted); margin: 10px 0;">
-                            <div><b style="color: var(--accent-success);">สถานะวัคซีน:</b> <span id="cert-vac-status"></span></div>
-                            <div style="color: var(--text-muted); font-size: 11px; margin-top: 3px;" id="cert-vac-detail">รออัปเดตจากหน้างาน</div>
-                        </div>
-                        <p style="font-size: 12px; color: var(--text-muted); margin-top: auto;">👉 แตะที่บัตรเพื่อพลิกดูด้านหลัง</p>
-                    </div>
-                    <div class="flip-card-back">
-                        <h4 style="text-align: center; margin-bottom: 15px; color: var(--text-main); border-bottom: 2px solid var(--accent-primary); padding-bottom: 10px;">ข้อกำหนดและเงื่อนไข</h4>
-                        <ul style="font-size: 12px; padding-left: 18px; line-height: 1.6; text-align: left; margin-bottom: 15px; color: var(--text-main);">
-                            <li>ใบรับรองนี้ออกโดย <span id="cert-back-agency">หน่วยงาน</span> เพื่อยืนยันประวัติปศุสัตว์</li>
-                            <li>เจ้าของสัตว์มีหน้าที่ต้องนำสัตว์เลี้ยงมารับวัคซีนพิษสุนัขบ้าเป็นประจำทุกปี</li>
-                            <li>หากสัตว์เสียชีวิต สูญหาย หรือย้าย กรุณาแจ้งเพื่อปรับปรุงฐานข้อมูล</li>
-                        </ul>
-                        <div style="margin-top: auto; text-align: center; background: var(--bg-overlay); padding: 15px 10px; border-radius: 8px;">
-                            <p style="font-size: 11px; color: var(--text-muted);">เจ้าหน้าที่ผู้บันทึกข้อมูล/ฉีดวัคซีน</p>
-                            <img id="cert-admin-sig" src="" style="height: 40px; margin: 5px auto; display: none;">
-                            <p id="cert-admin-name" style="font-weight: bold; font-size: 14px; color: var(--text-main);">-</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <button onclick="document.getElementById('cert-modal').style.display='none'" class="neumorphic-btn outline-btn" style="width: 200px; color: var(--text-main);">✖ ปิดหน้าต่าง</button>
-        </div>
-    </div>
-
-    <div id="stray-action-modal" class="modal-overlay" style="display: none; z-index: 3000;">
-        <div class="card neumorphic" style="width: 90%; max-width: 400px;">
-            <h3 class="section-title" style="color: var(--accent-success);">✅ บันทึกผลการลงพื้นที่ (ROD)</h3>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">ยอดที่ชาวบ้านแจ้ง: สุนัข <span id="stray-modal-rep-dog" style="color:var(--text-bright);">0</span> ตัว | แมว <span id="stray-modal-rep-cat" style="color:var(--text-bright);">0</span> ตัว</p>
-            
-            <div class="row">
-                <div class="input-group half"><label style="color:var(--accent-primary);">สุนัขทำหมัน (ตัว)</label><input type="number" id="stray-act-dog-neu" class="neumorphic-input" value="0" min="0"></div>
-                <div class="input-group half"><label style="color:var(--accent-primary);">สุนัขวัคซีน (ตัว)</label><input type="number" id="stray-act-dog-vac" class="neumorphic-input" value="0" min="0"></div>
-            </div>
-            <div class="row">
-                <div class="input-group half"><label style="color:var(--accent-success);">แมวทำหมัน (ตัว)</label><input type="number" id="stray-act-cat-neu" class="neumorphic-input" value="0" min="0"></div>
-                <div class="input-group half"><label style="color:var(--accent-success);">แมววัคซีน (ตัว)</label><input type="number" id="stray-act-cat-vac" class="neumorphic-input" value="0" min="0"></div>
-            </div>
-            
-            <input type="hidden" id="stray-modal-docid">
-            
-            <div class="row" style="margin-top: 15px;">
-                <button type="button" class="neumorphic-btn half outline-btn" onclick="document.getElementById('stray-action-modal').style.display='none'">ยกเลิก</button>
-                <button type="button" id="btn-confirm-stray-action" class="neumorphic-btn gold-btn half" style="background:var(--accent-success); border-color:var(--accent-success); color:var(--bg-main);">บันทึกผล</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="print-options-modal" class="modal-overlay" style="display: none; z-index: 3000;">
-        <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
-            <h3 class="section-title" style="color: var(--accent-secondary);">🖨️ ตัวเลือกการพิมพ์ใบยินยอม</h3>
-            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">ระบบจะดึงข้อมูลเฉพาะรอบ <strong id="print-camp-name" style="color:var(--accent-primary);">ปัจจุบัน</strong> เท่านั้น</p>
-            
-            <button type="button" id="btn-print-checked-in" class="neumorphic-btn gold-btn" style="margin-bottom: 10px; background: var(--bg-overlay-light); border-color: var(--accent-success); color: var(--accent-success);">
-                ✅ พิมพ์เฉพาะคนที่มารับบริการแล้ว
-            </button>
-            <button type="button" id="btn-print-all-booked" class="neumorphic-btn outline-btn" style="margin-bottom: 20px; color: var(--accent-primary); border-color: var(--accent-primary);">
-                ⏳ พิมพ์ผู้ที่จองคิวทั้งหมด (รวมที่ยังไม่มา)
-            </button>
-            
-            <button type="button" onclick="document.getElementById('print-options-modal').style.display='none'" class="neumorphic-btn outline-btn" style="color: var(--accent-danger); border-color: transparent;">ยกเลิก</button>
-        </div>
-    </div>
-
     <div id="edit-data-modal" class="modal-overlay" style="display: none; z-index: 3000;">
         <div class="card neumorphic" style="width: 95%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
             <h3 class="section-title" style="color: var(--accent-primary);">✏️ แก้ไขข้อมูล (บ้านและสัตว์เลี้ยง)</h3>
@@ -496,7 +441,7 @@
         </div>
     </div>
 
-    <!-- ================== Modal อัปเดตประวัติวัคซีนและรับความยินยอม ================== -->
+    <!-- Modal อัปเดตวัคซีน -->
     <div id="vaccine-update-modal" class="modal-overlay" style="display: none; z-index: 3500;">
         <div class="card neumorphic" style="width: 90%; max-width: 450px; max-height: 90vh; overflow-y: auto;">
             <h3 class="section-title" style="color: var(--accent-success);">💉 บันทึกการจ่าย/ฉีดวัคซีน</h3>
@@ -545,6 +490,17 @@
         </div>
     </div>
 
+    <!-- Modal พิมพ์ใบยินยอมและใบรับรอง -->
+    <div id="print-options-modal" class="modal-overlay" style="display: none; z-index: 3000;">
+        <div class="card neumorphic" style="width: 90%; max-width: 400px; text-align: center;">
+            <h3 class="section-title" style="color: var(--accent-secondary);">🖨️ ตัวเลือกการพิมพ์ใบยินยอม</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">ระบบจะดึงข้อมูลเฉพาะรอบ <strong id="print-camp-name" style="color:var(--accent-primary);">ปัจจุบัน</strong> เท่านั้น</p>
+            <button type="button" id="btn-print-checked-in" class="neumorphic-btn gold-btn" style="margin-bottom: 10px; background: var(--bg-overlay-light); border-color: var(--accent-success); color: var(--accent-success);">✅ พิมพ์เฉพาะคนที่มารับบริการแล้ว</button>
+            <button type="button" id="btn-print-all-booked" class="neumorphic-btn outline-btn" style="margin-bottom: 20px; color: var(--accent-primary); border-color: var(--accent-primary);">⏳ พิมพ์ผู้ที่จองคิวทั้งหมด (รวมที่ยังไม่มา)</button>
+            <button type="button" onclick="document.getElementById('print-options-modal').style.display='none'" class="neumorphic-btn outline-btn" style="color: var(--accent-danger); border-color: transparent;">ยกเลิก</button>
+        </div>
+    </div>
+    
     <!-- ฟอร์ม A4 สำหรับพิมพ์ (ซ่อนไว้) -->
     <div id="print-all-consents-container" style="display: none;"></div>
 
