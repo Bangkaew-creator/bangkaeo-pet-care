@@ -37,9 +37,9 @@ function formatThaiDate(dateStr) {
 }
 
 // ==========================================
-// 2. เริ่มทำงานเมื่อเปิดหน้าเว็บ
+// 2. เริ่มทำงานเมื่อเปิดหน้าเว็บ (แก้บั๊ก Await)
 // ==========================================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     window.switchPublicTab = function(viewId, element) {
         document.querySelectorAll('.public-view').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.grid-menu-btn').forEach(el => el.classList.remove('active'));
@@ -51,8 +51,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    loadSystemConfig();
-    loadPublicStats();
+    // ต้องใช้ await เพื่อรอโหลด Config ให้เสร็จก่อน แล้วค่อยดึงสถิติ
+    await loadSystemConfig();
+    await loadPublicStats();
+    
     loadLostPets();
     setupStrayForm();
     initLeafletMapAndData(); 
