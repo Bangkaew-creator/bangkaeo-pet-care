@@ -21,6 +21,21 @@ let map = null;
 
 const defaultPlaceholder = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23A0B0C0'%3E%3Cpath d='M226.5 92.9c14.3 73-39.9 130-77.2 130-36.5 0-71.4-56.1-57.1-129.1C106.6 20.3 145.4-.1 184.8 0c36.7.1 27.2 19.8 41.7 92.9zm151.7-8.1c-14.3-73-53.1-93.5-89.8-93.5-39.4-.1-78.2 20.3-63.9 93.8 14.3 73 49.2 129.1 85.7 129.1 37.2.1 82.2-56.3 68-129.4zM448 176c-38.6 0-77.8 45.4-93.4 104.9-15.6 59.5-2.5 97.4 36.1 97.4 39.5 0 79-46.7 94.6-106.2C500.9 212.6 486.6 176 448 176zM157.4 280.9c-15.6-59.5-54.8-104.9-93.4-104.9-38.6 0-52.9 36.6-37.3 96.1 15.6 59.5 55.1 106.2 94.6 106.2 38.6.1 51.7-37.9 36.1-97.4zm168.1 48.7c-29.3-10.6-66.9-42.5-139.1-42.5-73.4 0-111 32.3-139.1 42.5-55.5 20.1-133.5 129-87.6 200.7C107.5 515.6 171.3 472 256 472c83.5 0 148.8 43.8 196.4 41.6 46.9-2.1 11.2-126-126.9-184z'/%3E%3C/svg%3E";
 
+// ฟังก์ชันแปลงวันที่ให้อ่านง่าย
+function formatThaiDate(dateStr) {
+    if (!dateStr) return "-";
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (regex.test(dateStr)) {
+        const parts = dateStr.split("-");
+        const year = parseInt(parts[0]) + 543;
+        const month = parseInt(parts[1]);
+        const day = parseInt(parts[2]);
+        const thaiMonths = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        return `วันที่ ${day} ${thaiMonths[month]} พ.ศ. ${year}`;
+    }
+    return dateStr;
+}
+
 // ==========================================
 // 2. เริ่มทำงานเมื่อเปิดหน้าเว็บ
 // ==========================================
@@ -54,10 +69,8 @@ async function loadSystemConfig() {
                 if(logoImg) { logoImg.src = sysConfig.agency_logo_base64; logoImg.style.display = "block"; }
             }
 
-            // [เพิ่มใหม่] อ่านค่า Theme และเปลี่ยนสีพื้นหลังให้ตรงกับที่แอดมินตั้ง
             document.body.classList.remove('theme-mourning', 'theme-gov', 'theme-rabies', 'theme-luxury');
             if (sysConfig.theme === "custom" && sysConfig.custom_colors) {
-                // ดึงค่า Custom Colors มาใส่ในตัวแปร CSS ของทั้งเว็บ
                 const root = document.documentElement;
                 root.style.setProperty('--bg-main', sysConfig.custom_colors.bg_main || '#141E30');
                 root.style.setProperty('--bg-card', sysConfig.custom_colors.bg_card || '#1b2941');
@@ -92,7 +105,6 @@ async function loadPublicStats() {
         let currentYear = sysConfig ? (sysConfig.current_vaccine_year || new Date().getFullYear() + 543) : 2569;
         const currentCamp = sysConfig ? (sysConfig.campaign_id || "") : "";
         
-        let curN_booking = 0, curV_booking = 0; 
         let totalPets = 0;
         let totalNeutered = 0;
         let totalVaccinatedThisYear = 0;
@@ -121,16 +133,6 @@ async function loadPublicStats() {
         const vacSnap = await getCountFromServer(vacQ);
         totalVaccinatedThisYear = vacSnap.data().count;
 
-        // 🚀 อุดรูรั่ว: ใช้ getCountFromServer นับยอดคนจองคิว แทนการดาวน์โหลดทั้งก้อน
-        const qN = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "ทำหมันและวัคซีน"));
-        const snapN = await getCountFromServer(qN);
-        curN_booking = snapN.data().count;
-
-        const qV = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "วัคซีนอย่างเดียว"));
-        const snapV = await getCountFromServer(qV);
-        curV_booking = snapV.data().count;
-      
-
         document.getElementById("stat-total-pets").textContent = totalPets;
         
         let neuterPercent = totalPets > 0 ? Math.round((totalNeutered / totalPets) * 100) : 0;
@@ -141,11 +143,41 @@ async function loadPublicStats() {
         document.getElementById("stat-vac-percent").textContent = `${vacPercent}%`;
         document.getElementById("stat-vac-text").textContent = `(${totalVaccinatedThisYear} ตัว)`;
 
-        document.getElementById("pb-neuter-text").textContent = `${curN_booking} / ${maxN} คิว`;
-        document.getElementById("pb-neuter-bar").style.width = `${Math.min((curN_booking/maxN)*100, 100)}%`;
+        // ==========================================
+        // อัปเดตกล่องสถานะโควตาโครงการ (Progress Bar)
+        // ==========================================
+        const banner = document.getElementById("campaign-banner-container");
+        const activeContent = document.getElementById("campaign-active-content");
+        const emptyContent = document.getElementById("campaign-empty-content");
         
-        document.getElementById("pb-vaccine-text").textContent = `${curV_booking} / ${maxV} คิว`;
-        document.getElementById("pb-vaccine-bar").style.width = `${Math.min((curV_booking/maxV)*100, 100)}%`;
+        if(banner) banner.style.display = "block";
+
+        if (!currentCamp || currentCamp.trim() === "") {
+            if(activeContent) activeContent.style.display = "none";
+            if(emptyContent) emptyContent.style.display = "block";
+            document.getElementById("txt-campaign-name").textContent = "";
+        } else {
+            if(activeContent) activeContent.style.display = "block";
+            if(emptyContent) emptyContent.style.display = "none";
+
+            document.getElementById("txt-campaign-name").textContent = `(${currentCamp})`;
+            document.getElementById("txt-service-date").textContent = formatThaiDate(sysConfig.nt_date || sysConfig.service_date);
+            document.getElementById("txt-service-location").textContent = sysConfig.nt_location || sysConfig.service_location || "-";
+
+            const qN = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "ทำหมันและวัคซีน"));
+            const snapN = await getCountFromServer(qN);
+            let curN_booking = snapN.data().count;
+
+            const qV = query(petsRef, where("campaign_id", "==", currentCamp), where("service_type", "==", "วัคซีนอย่างเดียว"));
+            const snapV = await getCountFromServer(qV);
+            let curV_booking = snapV.data().count;
+
+            document.getElementById("txt-neuter-quota").textContent = `${curN_booking} / ${maxN} คิว`;
+            document.getElementById("bar-neuter").style.width = `${Math.min((curN_booking / maxN) * 100, 100)}%`;
+
+            document.getElementById("txt-vaccine-quota").textContent = `${curV_booking} / ${maxV} คิว`;
+            document.getElementById("bar-vaccine").style.width = `${Math.min((curV_booking / maxV) * 100, 100)}%`;
+        }
         
     } catch(e) { console.error("Stats Error:", e); }
 }
