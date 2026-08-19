@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupLoginLogic();
     setupEditModalLogic();
     
-    // ตั้งค่ากระดานลายเซ็น แอดมิน (ตั้งค่า)
+    // ตั้งค่ากระดานลายเซ็น แอดมิน
     const canvasSig = document.getElementById('admin-signature-pad');
     if(canvasSig && typeof SignaturePad !== 'undefined') {
         adminSignaturePad = new SignaturePad(canvasSig, { backgroundColor: 'rgb(224, 229, 236)' });
@@ -73,40 +73,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         try {
             await updateDoc(doc(db, "stray_reports", docId), { 
-                status: 'completed',
-                dog_neu_done: dNeu,
-                dog_vac_done: dVac,
-                cat_neu_done: cNeu,
-                cat_vac_done: cVac,
-                updated_at: serverTimestamp()
+                status: 'completed', dog_neu_done: dNeu, dog_vac_done: dVac, cat_neu_done: cNeu, cat_vac_done: cVac, updated_at: serverTimestamp()
             });
             document.getElementById('stray-action-modal').style.display = 'none';
             window.loadStrayReports();
         } catch(e) {
-            console.error(e);
-            alert("บันทึกไม่สำเร็จ");
-        } finally {
-            btn.disabled = false; btn.textContent = "บันทึกผล";
-        }
+            console.error(e); alert("บันทึกไม่สำเร็จ");
+        } finally { btn.disabled = false; btn.textContent = "บันทึกผล"; }
     });
 
     document.getElementById("btn-auto-cancel")?.addEventListener("click", async () => {
         const currentCamp = sysConfig?.campaign_id || "";
         const serviceDateStr = sysConfig?.nt_date || ""; 
         
-        if (!currentCamp || !serviceDateStr) {
-            return alert("กรุณาตั้งชื่อรอบโครงการ และ 'วันให้บริการ (เช่น 2026-08-05)' ในหน้าตั้งค่าก่อนครับ");
-        }
+        if (!currentCamp || !serviceDateStr) return alert("กรุณาตั้งชื่อรอบโครงการ และ 'วันให้บริการ' ในหน้าตั้งค่าก่อนครับ");
 
         const serviceDate = new Date(serviceDateStr);
         const today = new Date();
         const diffDays = Math.floor((today - serviceDate) / (1000 * 60 * 60 * 24));
 
-        if (diffDays <= 3) {
-            return alert(`ยังไม่พ้นกำหนด 3 วันครับ (เพิ่งผ่านมา ${diffDays >= 0 ? diffDays : 0} วัน)`);
-        }
+        if (diffDays <= 3) return alert(`ยังไม่พ้นกำหนด 3 วันครับ (เพิ่งผ่านมา ${diffDays >= 0 ? diffDays : 0} วัน)`);
 
-        if(confirm(`พ้นกำหนดวันให้บริการมาแล้ว ${diffDays} วัน\n\nต้องการเคลียร์คิวที่ 'จองคิวแต่ไม่ได้มารับบริการ' ในรอบ "${currentCamp}" ให้กลับไปเป็นสถานะปกติหรือไม่?\n(ยอดจองและโควตาของคนเหล่านั้นจะถูกรีเซต)`)) {
+        if(confirm(`พ้นกำหนดวันให้บริการมาแล้ว ${diffDays} วัน\n\nต้องการเคลียร์คิวที่ 'จองคิวแต่ไม่ได้มารับบริการ' ในรอบ "${currentCamp}" ให้กลับไปเป็นสถานะปกติหรือไม่?`)) {
             const btn = document.getElementById("btn-auto-cancel");
             btn.disabled = true; btn.textContent = "กำลังเคลียร์ข้อมูล...";
             try {
@@ -115,40 +103,27 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const snapCamp = await getDocs(qCamp);
                 
                 for (const d of snapCamp.docs) {
-                    await updateDoc(doc(db, "pets", d.id), { 
-                        status: "registered", 
-                        service_type: null, 
-                        queue_no: null, 
-                        consent_agreed: false, 
-                        campaign_id: null 
-                    });
+                    await updateDoc(doc(db, "pets", d.id), { status: "registered", service_type: null, queue_no: null, consent_agreed: false, campaign_id: null });
                     clearCount++;
                 }
                 alert(`✅ เคลียร์คิวตกหล่นสำเร็จทั้งหมด ${clearCount} รายการ!`);
                 location.reload();
-            } catch(e) { 
-                console.error(e);
-                alert("เกิดข้อผิดพลาดในการเคลียร์คิว"); 
-            } finally {
-                btn.disabled = false; btn.textContent = "🗑️ เคลียร์คิวตกหล่น (เลยกำหนด)";
-            }
+            } catch(e) { console.error(e); alert("เกิดข้อผิดพลาดในการเคลียร์คิว"); } 
+            finally { btn.disabled = false; btn.textContent = "🗑️ เคลียร์คิวตกหล่น (เลยกำหนด)"; }
         }
     });
     
     try {
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) {
-            liff.login();
-        } else {
+        if (!liff.isLoggedIn()) { liff.login(); } 
+        else {
             currentUser = await liff.getProfile();
             adminName = currentUser.displayName;
             adminRealName = adminName; 
 
             try {
                 const uSnap = await getDoc(doc(db, "users", currentUser.userId));
-                if(uSnap.exists() && uSnap.data().owner_name) {
-                    adminRealName = uSnap.data().owner_name; 
-                }
+                if(uSnap.exists() && uSnap.data().owner_name) { adminRealName = uSnap.data().owner_name; }
             } catch(e) { console.error("Error fetching real name:", e); }
 
             await loadSystemConfig();
@@ -258,9 +233,7 @@ window.switchView = function(viewId) {
                 canvasSig.height = canvasSig.offsetHeight * ratio;
                 canvasSig.getContext("2d").scale(ratio, ratio);
                 adminSignaturePad.clear();
-                if(sysConfig && sysConfig.admin_sig_base64) {
-                    adminSignaturePad.fromDataURL(sysConfig.admin_sig_base64);
-                }
+                if(sysConfig && sysConfig.admin_sig_base64) { adminSignaturePad.fromDataURL(sysConfig.admin_sig_base64); }
             } catch(e) { console.error("Canvas resize error:", e); }
         }, 300);
     }
@@ -312,20 +285,13 @@ function setupSearchLogic() {
             const petsRef = collection(db, "pets");
             const queries = [];
             
-            if (houseKey) {
-                queries.push(query(petsRef, ...qConstraints, where("house_village_search", ">=", houseKey), where("house_village_search", "<=", houseKey + '\uf8ff')));
-            }
+            if (houseKey) { queries.push(query(petsRef, ...qConstraints, where("house_village_search", ">=", houseKey), where("house_village_search", "<=", houseKey + '\uf8ff'))); }
             queries.push(query(petsRef, ...qConstraints, where("phone_number", "==", rawInput)));
             queries.push(query(petsRef, ...qConstraints, where("owner_name", ">=", rawInput), where("owner_name", "<=", rawInput + '\uf8ff')));
 
             const snapshots = await Promise.all(queries.map(q => getDocs(q)));
-
             const mergedResults = new Map();
-            snapshots.forEach(snap => {
-                snap.forEach(d => {
-                    if (!mergedResults.has(d.id)) mergedResults.set(d.id, d.data());
-                });
-            });
+            snapshots.forEach(snap => { snap.forEach(d => { if (!mergedResults.has(d.id)) mergedResults.set(d.id, d.data()); }); });
 
             resContainer.innerHTML = "";
 
@@ -344,7 +310,6 @@ function setupSearchLogic() {
                 return;
             }
 
-            // จัดกลุ่มสัตว์เลี้ยงตามบ้านเลขที่
             const groupedPets = {};
             window.currentSearchPets = {};
             
@@ -355,13 +320,8 @@ function setupSearchLogic() {
                 const key = pet.house_village_search || `${pet.house_no}-${pet.village_no}`;
                 if (!groupedPets[key]) {
                     groupedPets[key] = {
-                        house_no: pet.house_no,
-                        village_no: pet.village_no,
-                        room_no: pet.room_no,
-                        owner_name: pet.owner_name,
-                        phone_number: pet.phone_number,
-                        owner_uid: pet.owner_uid,
-                        pets: {}
+                        house_no: pet.house_no, village_no: pet.village_no, room_no: pet.room_no,
+                        owner_name: pet.owner_name, phone_number: pet.phone_number, owner_uid: pet.owner_uid, pets: {}
                     };
                 }
                 groupedPets[key].pets[docId] = pet;
@@ -372,7 +332,6 @@ function setupSearchLogic() {
                 return;
             }
 
-            // วาดกล่องรายบ้าน
             let groupIndex = 0;
             Object.keys(groupedPets).forEach(key => {
                 groupIndex++;
@@ -393,9 +352,7 @@ function setupSearchLogic() {
                 resContainer.insertAdjacentHTML('beforeend', groupHtml);
                 
                 const petContainer = document.getElementById(`group-pets-${groupIndex}`);
-                Object.keys(group.pets).forEach(docId => {
-                    renderAdminCard(docId, group.pets[docId], petContainer);
-                });
+                Object.keys(group.pets).forEach(docId => { renderAdminCard(docId, group.pets[docId], petContainer); });
             });
 
         } catch(e) { console.error(e); resContainer.innerHTML = `<p style='color:var(--accent-danger);'>เกิดข้อผิดพลาด</p>`; }
@@ -404,9 +361,9 @@ function setupSearchLogic() {
     searchInput.addEventListener("keypress", (e) => { if (e.key === "Enter") searchBtn.click(); });
 }
 
-// ฟังก์ชันสำหรับปุ่ม "เพิ่มสัตว์เลี้ยงในบ้าน"
 window.createPetForExistingHouse = function(uid, house, moo, room, name, phone) {
     switchView('view-proxy');
+    document.getElementById("px-owner-uid").value = uid || "";
     document.getElementById("px-name").value = name || "";
     document.getElementById("px-phone").value = phone || "";
     document.getElementById("px-house").value = house || "";
@@ -422,12 +379,8 @@ window.createPetForExistingHouse = function(uid, house, moo, room, name, phone) 
         document.getElementById("px-room").value = "";
     }
     
-    window.proxyPetsBatch = [];
-    window.renderProxyBatchList();
-    
-    setTimeout(() => {
-        document.getElementById("proxy-pet-form").scrollIntoView({ behavior: 'smooth' });
-    }, 300);
+    window.proxyPetsBatch = []; window.renderProxyBatchList();
+    setTimeout(() => { document.getElementById("proxy-pet-form").scrollIntoView({ behavior: 'smooth' }); }, 300);
 }
 
 function renderAdminCard(docId, pet, container) {
@@ -444,23 +397,20 @@ function renderAdminCard(docId, pet, container) {
     let isCurrentCamp = sysConfig && pet.campaign_id === sysConfig.campaign_id;
 
     if (pet.status === "booked") {
-        actionBtn = `<button class="btn-action-small btn-checkin" onclick="window.toggleCheckin('${docId}', '${pet.service_type}', true)">✔️ รับบริการ (โครงการ)</button>`;
+        actionBtn += `<button class="btn-action-small btn-checkin" onclick="window.toggleCheckin('${docId}', '${pet.service_type}', true)">✔️ รับบริการ (โครงการ)</button>`;
     } else if (pet.status === "checked_in") {
         let showCancel = true;
-        
         if (!isCurrentCamp) {
             showCancel = false; 
         } else if (pet.updated_at) {
             const updatedDate = pet.updated_at.toDate();
             const diffDays = Math.ceil(Math.abs(new Date() - updatedDate) / (1000 * 60 * 60 * 24));
-            if (diffDays > 14) showCancel = false; 
+            if (diffDays > 14) showCancel = false; // เกิน 14 วัน ลบปุ่มทิ้งเลยครับ
         }
-
         if (showCancel) {
-            actionBtn = `<button class="btn-action-small btn-uncheckin" onclick="window.toggleCheckin('${docId}', '${pet.service_type}', false)">ยกเลิกติ๊กถูก</button>`;
+            actionBtn += `<button class="btn-action-small btn-uncheckin" onclick="window.toggleCheckin('${docId}', '${pet.service_type}', false)">ยกเลิกติ๊กถูก</button>`;
         }
     }
-    
     actionBtn += `<button class="btn-action-small" style="color: var(--bg-main); background: var(--accent-success); border-color: var(--accent-success); margin-top: 5px;" onclick="window.openVaccineUpdateModal('${docId}')">💉 จ่าย/ฉีดวัคซีน</button>`;
 
     container.insertAdjacentHTML('beforeend', `
@@ -569,11 +519,7 @@ function setupEditModalLogic() {
 
             if (ownerUid && ownerUid.length > 5) {
                 const uSnap = await getDoc(doc(db, "users", ownerUid));
-                if(uSnap.exists()) {
-                    await updateDoc(doc(db, "users", ownerUid), {
-                        owner_name: oName, phone_number: oPhone, house_no: hNo, village_no: vNo, house_village_search: newSearchKey, updated_at: serverTimestamp()
-                    });
-                }
+                if(uSnap.exists()) { await updateDoc(doc(db, "users", ownerUid), { owner_name: oName, phone_number: oPhone, house_no: hNo, village_no: vNo, house_village_search: newSearchKey, updated_at: serverTimestamp() }); }
             }
             
             if (oldSearchKey !== newSearchKey || pet.owner_name !== oName || pet.phone_number !== oPhone) {
@@ -593,11 +539,8 @@ function setupEditModalLogic() {
             alert("อัปเดตข้อมูลบ้านและสัตว์เลี้ยงสำเร็จ!");
             document.getElementById('edit-data-modal').style.display = 'none';
             document.getElementById('btn-search').click(); 
-        } catch(e) {
-            console.error(e); alert("บันทึกไม่สำเร็จ: " + e.message);
-        } finally {
-            btn.disabled = false; btn.textContent = '💾 บันทึก';
-        }
+        } catch(e) { console.error(e); alert("บันทึกไม่สำเร็จ: " + e.message); } 
+        finally { btn.disabled = false; btn.textContent = '💾 บันทึก'; }
     });
 }
 
@@ -662,16 +605,14 @@ function setupProxyBatchLogic() {
             pet_name: pName, pet_type: document.getElementById("px-type").value, pet_gender: document.getElementById("px-gender").value,
             breed: document.getElementById("px-breed").value.trim() || "ไม่ระบุ", color: document.getElementById("px-color").value.trim() || "ไม่ระบุ",
             age_year: parseInt(document.getElementById("px-age-y").value) || 0, age_month: parseInt(document.getElementById("px-age-m").value) || 0,
-            rearing_style: document.getElementById("px-rearing").value, 
-            location: document.getElementById("px-location").value,
-            service: document.getElementById("px-service").value,
-            photo: currentProxyBase64 || defaultPlaceholder
+            rearing_style: document.getElementById("px-rearing").value, location: document.getElementById("px-location").value,
+            vaccine_status: document.getElementById("px-vac-status").value, neuter_status: document.getElementById("px-neuter-status").value,
+            service: document.getElementById("px-service").value, photo: currentProxyBase64 || defaultPlaceholder
         });
         
         document.getElementById("px-pet-name").value = ""; document.getElementById("px-breed").value = ""; document.getElementById("px-color").value = "";
         document.getElementById("px-img-preview").src = defaultPlaceholder;
-        currentProxyBase64 = "";
-        window.renderProxyBatchList();
+        currentProxyBase64 = ""; window.renderProxyBatchList();
     });
 
     document.getElementById("btn-submit-proxy-batch").addEventListener("click", async () => {
@@ -688,18 +629,20 @@ function setupProxyBatchLogic() {
         btn.disabled = true; btn.textContent = "กำลังบันทึก...";
 
         try {
+            const existingUid = document.getElementById("px-owner-uid") ? document.getElementById("px-owner-uid").value : "";
             let searchKey = room ? `${house}-${moo}-${room}` : `${house}-${moo}`;
-            
-            const userQ = query(collection(db, "users"), where("house_village_search", "==", searchKey));
-            const userSnap = await getDocs(userQ);
-            let ownerUid = "proxy_" + new Date().getTime();
-            if(!userSnap.empty) { ownerUid = userSnap.docs[0].id; } 
-            else {
-                await setDoc(doc(db, "users", ownerUid), {
-                    owner_name: owner, phone_number: phone, house_no: house, village_no: moo, room_no: room, is_rental: !!room,
-                    house_village_search: searchKey, updated_at: serverTimestamp(),
-                    household_role: "head", head_uid: ownerUid
-                });
+            let ownerUid = existingUid || "proxy_" + new Date().getTime();
+
+            if(!existingUid) {
+                const userQ = query(collection(db, "users"), where("house_village_search", "==", searchKey));
+                const userSnap = await getDocs(userQ);
+                if(!userSnap.empty) { ownerUid = userSnap.docs[0].id; } 
+                else {
+                    await setDoc(doc(db, "users", ownerUid), {
+                        owner_name: owner, phone_number: phone, house_no: house, village_no: moo, room_no: room, is_rental: !!room,
+                        house_village_search: searchKey, updated_at: serverTimestamp(), household_role: "head", head_uid: ownerUid
+                    });
+                }
             }
 
             for(let p of window.proxyPetsBatch) {
@@ -707,20 +650,24 @@ function setupProxyBatchLogic() {
                     owner_uid: ownerUid, proxy_by: adminRealName, owner_name: owner, phone_number: phone, house_no: house, village_no: moo, room_no: room,
                     house_village_search: searchKey, pet_name: p.pet_name, pet_type: p.pet_type, pet_gender: p.pet_gender,
                     breed: p.breed, color: p.color, age_year: p.age_year, age_month: p.age_month, 
-                    rearing_style: p.rearing_style, location: p.location,
-                    campaign_id: sysConfig ? sysConfig.campaign_id : "",
+                    rearing_style: p.rearing_style, location: p.location, campaign_id: sysConfig ? sysConfig.campaign_id : "",
                     pet_photo_base64: p.photo === defaultPlaceholder ? "" : p.photo, registered_timestamp: serverTimestamp(), updated_at: serverTimestamp()
                 };
 
                 if (p.service === "none") {
-                    petData.status = "registered"; petData.neuter_status = "ยังไม่ทำหมัน"; petData.vaccine_status = "ไม่เคยฉีด";
+                    petData.status = "registered"; petData.neuter_status = p.neuter_status; petData.vaccine_status = p.vaccine_status;
                 } else if (p.service === "ทำหมันและวัคซีน") {
-                    petData.status = "booked"; petData.service_type = p.service; petData.neuter_status = "ยังไม่ทำหมัน"; petData.vaccine_status = "ไม่เคยฉีด"; petData.consent_agreed = false;
+                    petData.status = "booked"; petData.service_type = p.service; petData.neuter_status = p.neuter_status; petData.vaccine_status = p.vaccine_status; petData.consent_agreed = false;
                 }
                 await addDoc(collection(db, "pets"), petData);
             }
             alert(`🎉 บันทึกบ้าน ${house} ม.${moo} และสัตว์เลี้ยง ${window.proxyPetsBatch.length} ตัว สำเร็จ!`);
             window.proxyPetsBatch = []; window.renderProxyBatchList();
+
+            switchView('view-checkin');
+            document.getElementById("search-house").value = house;
+            document.getElementById("search-moo").value = moo;
+            document.getElementById("btn-search").click();
         } catch(e) { alert("Error: " + e.message); }
         finally { btn.disabled = false; btn.textContent = "💾 บันทึกข้อมูลครัวเรือน + สัตว์เลี้ยงทั้งหมด"; }
     });
@@ -847,33 +794,16 @@ window.switchRawTab = async function(tabName) {
             snap.forEach(d => {
                 const r = d.data();
                 window.rawTableData.push({
-                    amphoe: sysConfig?.amphoe || "-",
-                    tambon: sysConfig?.tambon || "-",
-                    moo: r.moo || "-",
-                    loc: r.location_category || "สถานที่สาธารณะ/ที่จรจัด",
-                    landmark: r.landmark || "-",
-                    feeder_name: r.reporter_name || "-",
-                    card: r.reporter_id_card || "-",
-                    feeder_phone: r.reporter_phone || "-",
-                    dog_count: r.dog_count || 0,
-                    cat_count: r.cat_count || 0,
-                    dog_vac_done: r.dog_vac_done || 0,
-                    dog_neu_done: r.dog_neu_done || 0,
-                    cat_vac_done: r.cat_vac_done || 0,
-                    cat_neu_done: r.cat_neu_done || 0,
-                    status: r.status
+                    amphoe: sysConfig?.amphoe || "-", tambon: sysConfig?.tambon || "-", moo: r.moo || "-", loc: r.location_category || "สถานที่สาธารณะ/ที่จรจัด", landmark: r.landmark || "-",
+                    feeder_name: r.reporter_name || "-", card: r.reporter_id_card || "-", feeder_phone: r.reporter_phone || "-", dog_count: r.dog_count || 0, cat_count: r.cat_count || 0,
+                    dog_vac_done: r.dog_vac_done || 0, dog_neu_done: r.dog_neu_done || 0, cat_vac_done: r.cat_vac_done || 0, cat_neu_done: r.cat_neu_done || 0, status: r.status
                 });
             });
             
-            let html = "";
-            let count = 0;
+            let html = ""; let count = 0;
             window.rawTableData.forEach(r => {
                 count++;
-                let dVac = r.dog_vac_done || 0;
-                let dNeu = r.dog_neu_done || 0;
-                let cVac = r.cat_vac_done || 0;
-                let cNeu = r.cat_neu_done || 0;
-
+                let dVac = r.dog_vac_done || 0; let dNeu = r.dog_neu_done || 0; let cVac = r.cat_vac_done || 0; let cNeu = r.cat_neu_done || 0;
                 html += `<tr><td>${r.amphoe}</td><td>${r.tambon}</td><td>${r.moo}</td><td>${r.loc}</td><td>${r.landmark}</td><td>${r.feeder_name}</td><td>${r.card}</td><td>${r.feeder_phone}</td><td>${r.dog_count}</td><td>${dVac}</td><td>${dNeu}</td><td>${r.cat_count}</td><td>${cVac}</td><td>${cNeu}</td></tr>`;
             });
             if(count === 0) html = `<tr><td colspan="14" style="text-align:center;">ยังไม่มีข้อมูลเบาะแสสัตว์จรจัด</td></tr>`;
@@ -892,8 +822,7 @@ window.renderRawTable = function() {
     const fVac = document.getElementById("raw-filter-vac").value;
     const fNeu = document.getElementById("raw-filter-neu").value;
 
-    let html = "";
-    let count = 0;
+    let html = ""; let count = 0;
 
     if (window.currentRawTab === 'household') {
         window.rawTableData.forEach(s => {
@@ -962,62 +891,39 @@ document.getElementById("st-logo-upload")?.addEventListener("change", (e) => {
     };
     reader.readAsDataURL(file);
 });
-document.getElementById("btn-clear-logo")?.addEventListener("click", () => {
-    currentAgencyLogoBase64 = ""; document.getElementById("st-logo-preview").src = defaultLogoIcon;
-});
+document.getElementById("btn-clear-logo")?.addEventListener("click", () => { currentAgencyLogoBase64 = ""; document.getElementById("st-logo-preview").src = defaultLogoIcon; });
 
 document.getElementById("st-theme-selector")?.addEventListener("change", (e) => {
     const customBox = document.getElementById("custom-color-settings");
-    if(customBox) {
-        customBox.style.display = e.target.value === "custom" ? "block" : "none";
-    }
+    if(customBox) { customBox.style.display = e.target.value === "custom" ? "block" : "none"; }
 });
 
 function loadSettingsToForm() {
     if(sysConfig) {
         if(document.getElementById("st-theme-selector")) {
             document.getElementById("st-theme-selector").value = sysConfig.theme || "default";
-            
             if (sysConfig.theme === "custom") {
                 document.getElementById("custom-color-settings").style.display = "block";
                 if(sysConfig.custom_colors) {
-                    document.getElementById("c-bg-main").value = sysConfig.custom_colors.bg_main || "#141E30";
-                    document.getElementById("c-bg-card").value = sysConfig.custom_colors.bg_card || "#1b2941";
-                    document.getElementById("c-text-main").value = sysConfig.custom_colors.text_main || "#E0E5EC";
-                    document.getElementById("c-text-muted").value = sysConfig.custom_colors.text_muted || "#A0B0C0";
-                    document.getElementById("c-accent-primary").value = sysConfig.custom_colors.accent_primary || "#D4AF37";
-                    document.getElementById("c-accent-success").value = sysConfig.custom_colors.accent_success || "#50E3C2";
+                    document.getElementById("c-bg-main").value = sysConfig.custom_colors.bg_main || "#141E30"; document.getElementById("c-bg-card").value = sysConfig.custom_colors.bg_card || "#1b2941"; document.getElementById("c-text-main").value = sysConfig.custom_colors.text_main || "#E0E5EC"; document.getElementById("c-text-muted").value = sysConfig.custom_colors.text_muted || "#A0B0C0"; document.getElementById("c-accent-primary").value = sysConfig.custom_colors.accent_primary || "#D4AF37"; document.getElementById("c-accent-success").value = sysConfig.custom_colors.accent_success || "#50E3C2";
                 }
-            } else {
-                document.getElementById("custom-color-settings").style.display = "none";
-            }
+            } else { document.getElementById("custom-color-settings").style.display = "none"; }
         }
 
         document.getElementById("st-moo-count").value = sysConfig.moo_count || 16;
         document.getElementById("st-agency").value = sysConfig.agency_name || "";
-        
         currentAgencyLogoBase64 = sysConfig.agency_logo_base64 || "";
-        if(document.getElementById("st-logo-preview")) {
-            document.getElementById("st-logo-preview").src = currentAgencyLogoBase64 || defaultLogoIcon;
-        }
-
-        if(document.getElementById("st-campaign-id")) {
-            document.getElementById("st-campaign-id").value = sysConfig.campaign_id || "";
-        }
+        if(document.getElementById("st-logo-preview")) { document.getElementById("st-logo-preview").src = currentAgencyLogoBase64 || defaultLogoIcon; }
+        if(document.getElementById("st-campaign-id")) { document.getElementById("st-campaign-id").value = sysConfig.campaign_id || ""; }
 
         document.getElementById("st-tambon").value = sysConfig.tambon || ""; document.getElementById("st-amphoe").value = sysConfig.amphoe || ""; document.getElementById("st-province").value = sysConfig.province || ""; document.getElementById("st-phone").value = sysConfig.phone || "";
         document.getElementById("st-max-neuter").value = sysConfig.max_neuter_per_house || 2;
         document.getElementById("st-start").value = sysConfig.nt_start_reg || ""; document.getElementById("st-end").value = sysConfig.nt_end_reg || ""; document.getElementById("st-nt-date").value = sysConfig.nt_date || ""; document.getElementById("st-nt-loc").value = sysConfig.nt_location || "";
         document.getElementById("st-q-neuter").value = sysConfig.quota_neuter || 100;
-        
         document.getElementById("st-vac-year").value = sysConfig.current_vaccine_year || 2569; document.getElementById("st-vac-brand").value = sysConfig.vaccine_brand || ""; document.getElementById("st-vac-lot").value = sysConfig.vaccine_lot || ""; document.getElementById("st-vac-exp").value = sysConfig.vaccine_exp || "";
-        
         document.getElementById("st-rep-name").value = sysConfig.rep_name || ""; document.getElementById("st-rep-pos").value = sysConfig.rep_pos || ""; document.getElementById("st-rev-name").value = sysConfig.rev_name || ""; document.getElementById("st-rev-pos").value = sysConfig.rev_pos || ""; document.getElementById("st-app-name").value = sysConfig.app_name || ""; document.getElementById("st-app-pos").value = sysConfig.app_pos || "";
     }
-    if(secretsConfig) {
-        document.getElementById("st-admin-secret").value = secretsConfig.admin_secret || "";
-        renderVolunteerSecretInputs();
-    }
+    if(secretsConfig) { document.getElementById("st-admin-secret").value = secretsConfig.admin_secret || ""; renderVolunteerSecretInputs(); }
 }
 
 function renderVolunteerSecretInputs() {
@@ -1038,36 +944,24 @@ function setupSettingsForm() {
         try {
             const themeSelected = document.getElementById("st-theme-selector") ? document.getElementById("st-theme-selector").value : "default";
             const updates = {
-                theme: themeSelected,
-                campaign_id: document.getElementById("st-campaign-id") ? document.getElementById("st-campaign-id").value.trim() : "",
+                theme: themeSelected, campaign_id: document.getElementById("st-campaign-id") ? document.getElementById("st-campaign-id").value.trim() : "",
                 moo_count: parseInt(document.getElementById("st-moo-count").value) || 16, max_neuter_per_house: parseInt(document.getElementById("st-max-neuter").value) || 2,
                 agency_name: document.getElementById("st-agency").value, tambon: document.getElementById("st-tambon").value, amphoe: document.getElementById("st-amphoe").value, province: document.getElementById("st-province").value, phone: document.getElementById("st-phone").value,
                 nt_start_reg: document.getElementById("st-start").value, nt_end_reg: document.getElementById("st-end").value, nt_date: document.getElementById("st-nt-date").value, nt_location: document.getElementById("st-nt-loc").value,
-                quota_neuter: parseInt(document.getElementById("st-q-neuter").value) || 100,
-                current_vaccine_year: parseInt(document.getElementById("st-vac-year").value) || 2569, vaccine_brand: document.getElementById("st-vac-brand").value, vaccine_lot: document.getElementById("st-vac-lot").value, vaccine_exp: document.getElementById("st-vac-exp").value,
+                quota_neuter: parseInt(document.getElementById("st-q-neuter").value) || 100, current_vaccine_year: parseInt(document.getElementById("st-vac-year").value) || 2569, vaccine_brand: document.getElementById("st-vac-brand").value, vaccine_lot: document.getElementById("st-vac-lot").value, vaccine_exp: document.getElementById("st-vac-exp").value,
                 rep_name: document.getElementById("st-rep-name").value, rep_pos: document.getElementById("st-rep-pos").value, rev_name: document.getElementById("st-rev-name").value, rev_pos: document.getElementById("st-rev-pos").value, app_name: document.getElementById("st-app-name").value, app_pos: document.getElementById("st-app-pos").value,
                 agency_logo_base64: currentAgencyLogoBase64
             };
             
             if (themeSelected === "custom") {
-                updates.custom_colors = {
-                    bg_main: document.getElementById("c-bg-main").value,
-                    bg_card: document.getElementById("c-bg-card").value,
-                    text_main: document.getElementById("c-text-main").value,
-                    text_muted: document.getElementById("c-text-muted").value,
-                    accent_primary: document.getElementById("c-accent-primary").value,
-                    accent_success: document.getElementById("c-accent-success").value
-                };
+                updates.custom_colors = { bg_main: document.getElementById("c-bg-main").value, bg_card: document.getElementById("c-bg-card").value, text_main: document.getElementById("c-text-main").value, text_muted: document.getElementById("c-text-muted").value, accent_primary: document.getElementById("c-accent-primary").value, accent_success: document.getElementById("c-accent-success").value };
             }
 
-            if(adminSignaturePad && !adminSignaturePad.isEmpty()) {
-                updates.admin_sig_base64 = adminSignaturePad.toDataURL("image/png");
-            }
+            if(adminSignaturePad && !adminSignaturePad.isEmpty()) { updates.admin_sig_base64 = adminSignaturePad.toDataURL("image/png"); }
 
             await updateDoc(doc(db, "system_config", "main_config"), updates);
             
-            let volSecrets = {};
-            let mCount = updates.moo_count;
+            let volSecrets = {}; let mCount = updates.moo_count;
             for(let i=1; i<=mCount; i++) { volSecrets[i] = document.getElementById(`st-vol-${i}`).value; }
             await setDoc(doc(db, "system_config", "secrets"), { admin_secret: document.getElementById("st-admin-secret").value, volunteer_secrets: volSecrets });
             
@@ -1086,16 +980,10 @@ window.printConsentA4 = async function(docId) {
         const userSnap = await getDoc(doc(db, "users", pet.owner_uid));
         const user = userSnap.exists() ? userSnap.data() : {};
 
-        const printName = pet.owner_name || user.owner_name || "-";
-        const printPhone = pet.phone_number || user.phone_number || "-";
-        const printHouse = pet.house_no || user.house_no || "-";
-        const printVillage = pet.village_no || user.village_no || "-";
-
+        const printName = pet.owner_name || user.owner_name || "-"; const printPhone = pet.phone_number || user.phone_number || "-"; const printHouse = pet.house_no || user.house_no || "-"; const printVillage = pet.village_no || user.village_no || "-";
         document.body.classList.add('print-consent-mode');
         
-        const container = document.getElementById("print-all-consents-container"); 
-        container.innerHTML = "";
-        const agency = sysConfig ? sysConfig.agency_name : "เทศบาล...";
+        const container = document.getElementById("print-all-consents-container"); container.innerHTML = ""; const agency = sysConfig ? sysConfig.agency_name : "เทศบาล...";
         
         container.insertAdjacentHTML('beforeend', `
             <div class="consent-page" style="display:block;">
@@ -1118,30 +1006,18 @@ window.printConsentA4 = async function(docId) {
             </div>
         `);
         
-        const pageStyle = document.createElement('style');
-        pageStyle.innerHTML = '@page { size: portrait; }';
-        document.head.appendChild(pageStyle);
-
-        document.body.classList.add('print-all-consents-mode'); 
-        window.print(); 
-        document.body.classList.remove('print-all-consents-mode');
-        document.body.classList.remove('print-consent-mode');
-        
+        const pageStyle = document.createElement('style'); pageStyle.innerHTML = '@page { size: portrait; }'; document.head.appendChild(pageStyle);
+        document.body.classList.add('print-all-consents-mode'); window.print(); document.body.classList.remove('print-all-consents-mode'); document.body.classList.remove('print-consent-mode');
         document.head.removeChild(pageStyle);
     } catch (e) { console.error(e); alert("เกิดข้อผิดพลาดในการดึงข้อมูล"); }
 }
 
 const execBatchPrint = async (printType) => {
-    const btnAll = document.getElementById("btn-print-all-booked");
-    const btnCheck = document.getElementById("btn-print-checked-in");
+    const btnAll = document.getElementById("btn-print-all-booked"); const btnCheck = document.getElementById("btn-print-checked-in");
     btnAll.disabled = true; btnCheck.disabled = true;
     
     const currentCamp = sysConfig?.campaign_id || "";
-    if(!currentCamp) {
-        alert("กรุณาตั้งชื่อ 'รอบโครงการ (Campaign ID)' ในหน้าตั้งค่าก่อนพิมพ์ครับ");
-        btnAll.disabled = false; btnCheck.disabled = false;
-        return;
-    }
+    if(!currentCamp) { alert("กรุณาตั้งชื่อ 'รอบโครงการ (Campaign ID)' ในหน้าตั้งค่าก่อนพิมพ์ครับ"); btnAll.disabled = false; btnCheck.disabled = false; return; }
 
     try {
         const qCamp = query(collection(db, "pets"), where("campaign_id", "==", currentCamp));
@@ -1151,23 +1027,15 @@ const execBatchPrint = async (printType) => {
         snap.forEach(d => { 
             const p = d.data(); 
             if(p.status === "cancelled" || p.status === "deceased" || p.status === "moved" || !p.signature_base64 || !p.consent_agreed) return;
-            
             if (printType === 'checked_in' && p.status !== 'checked_in') return;
             if (printType === 'all' && (p.status !== 'booked' && p.status !== 'checked_in')) return;
-
             validPets.push({ id: d.id, ...p }); 
         });
 
         validPets.sort((a, b) => (a.queue_no || 0) - (b.queue_no || 0));
-        
-        if(validPets.length === 0) {
-            alert(`ไม่พบข้อมูลในรอบ "${currentCamp}" ตามเงื่อนไขที่เลือกครับ`);
-            return;
-        }
+        if(validPets.length === 0) { alert(`ไม่พบข้อมูลในรอบ "${currentCamp}" ตามเงื่อนไขที่เลือกครับ`); return; }
 
-        const container = document.getElementById("print-all-consents-container"); 
-        container.innerHTML = "";
-        const agency = sysConfig ? sysConfig.agency_name : "เทศบาล...";
+        const container = document.getElementById("print-all-consents-container"); container.innerHTML = ""; const agency = sysConfig ? sysConfig.agency_name : "เทศบาล...";
         
         validPets.forEach((pet) => {
             container.insertAdjacentHTML('beforeend', `
@@ -1192,18 +1060,10 @@ const execBatchPrint = async (printType) => {
             `);
         });
         
-        const pageStyle = document.createElement('style');
-        pageStyle.innerHTML = '@page { size: portrait; }';
-        document.head.appendChild(pageStyle);
-
-        document.getElementById('print-options-modal').style.display = 'none';
-        document.body.classList.add('print-all-consents-mode'); 
-        window.print(); 
-        document.body.classList.remove('print-all-consents-mode');
-        
+        const pageStyle = document.createElement('style'); pageStyle.innerHTML = '@page { size: portrait; }'; document.head.appendChild(pageStyle);
+        document.getElementById('print-options-modal').style.display = 'none'; document.body.classList.add('print-all-consents-mode'); window.print(); document.body.classList.remove('print-all-consents-mode');
         document.head.removeChild(pageStyle);
-    } catch(e) { alert("เกิดข้อผิดพลาดในการโหลดข้อมูลพิมพ์"); } 
-    finally { btnAll.disabled = false; btnCheck.disabled = false; }
+    } catch(e) { alert("เกิดข้อผิดพลาดในการโหลดข้อมูลพิมพ์"); } finally { btnAll.disabled = false; btnCheck.disabled = false; }
 };
 
 document.getElementById("btn-print-all-booked")?.addEventListener("click", () => execBatchPrint('all'));
@@ -1211,75 +1071,43 @@ document.getElementById("btn-print-checked-in")?.addEventListener("click", () =>
 
 function setupReportAndPrint() {
     document.getElementById("btn-print-report").addEventListener("click", () => { 
-        const pageStyle = document.createElement('style');
-        pageStyle.innerHTML = '@page { size: landscape; }';
-        document.head.appendChild(pageStyle);
-
-        document.body.classList.add('print-report-mode'); 
-        window.print(); 
-        document.body.classList.remove('print-report-mode'); 
-        
-        document.head.removeChild(pageStyle);
+        const pageStyle = document.createElement('style'); pageStyle.innerHTML = '@page { size: landscape; }'; document.head.appendChild(pageStyle);
+        document.body.classList.add('print-report-mode'); window.print(); document.body.classList.remove('print-report-mode'); document.head.removeChild(pageStyle);
     });
 
     window.generateReport = async function() {
         if(sysConfig) {
-            let agencyText = sysConfig.agency_name || "";
-            if(sysConfig.tambon) agencyText += ` ต.${sysConfig.tambon}`;
-            if(sysConfig.amphoe) agencyText += ` อ.${sysConfig.amphoe}`;
-            if(sysConfig.province) agencyText += ` จ.${sysConfig.province}`;
-            if(sysConfig.phone) agencyText += ` โทร. ${sysConfig.phone}`;
-            
+            let agencyText = sysConfig.agency_name || ""; if(sysConfig.tambon) agencyText += ` ต.${sysConfig.tambon}`; if(sysConfig.amphoe) agencyText += ` อ.${sysConfig.amphoe}`; if(sysConfig.province) agencyText += ` จ.${sysConfig.province}`; if(sysConfig.phone) agencyText += ` โทร. ${sysConfig.phone}`;
             document.getElementById("pdf-agency-name").textContent = agencyText;
-            
-            document.getElementById("sig-rep-name").textContent = `(${sysConfig.rep_name || '...'})`; 
-            document.getElementById("sig-rep-pos").textContent = sysConfig.rep_pos || '-';
-            document.getElementById("sig-rev-name").textContent = `(${sysConfig.rev_name || '...'})`; 
-            document.getElementById("sig-rev-pos").textContent = sysConfig.rev_pos || '-';
-            document.getElementById("sig-app-name").textContent = `(${sysConfig.app_name || '...'})`; 
-            document.getElementById("sig-app-pos").textContent = sysConfig.app_pos || '-';
+            document.getElementById("sig-rep-name").textContent = `(${sysConfig.rep_name || '...'})`; document.getElementById("sig-rep-pos").textContent = sysConfig.rep_pos || '-';
+            document.getElementById("sig-rev-name").textContent = `(${sysConfig.rev_name || '...'})`; document.getElementById("sig-rev-pos").textContent = sysConfig.rev_pos || '-';
+            document.getElementById("sig-app-name").textContent = `(${sysConfig.app_name || '...'})`; document.getElementById("sig-app-pos").textContent = sysConfig.app_pos || '-';
         }
         try {
             const currentCamp = sysConfig?.campaign_id || "";
             let snap;
+            if (currentCamp) { const qCamp = query(collection(db, "pets"), where("campaign_id", "==", currentCamp)); snap = await getDocs(qCamp); } 
+            else { snap = await getDocs(collection(db, "pets")); }
             
-            if (currentCamp) {
-                const qCamp = query(collection(db, "pets"), where("campaign_id", "==", currentCamp));
-                snap = await getDocs(qCamp);
-            } else {
-                snap = await getDocs(collection(db, "pets"));
-            }
-            
-            const stats = {
-                r: { n: { d: { m:0, f:0 }, c: { m:0, f:0 } }, v: { d: { m:0, f:0 }, c: { m:0, f:0 } } },
-                c: { n: { d: { m:0, f:0 }, c: { m:0, f:0 } }, v: { d: { m:0, f:0 }, c: { m:0, f:0 } } }
-            };
+            const stats = { r: { n: { d: { m:0, f:0 }, c: { m:0, f:0 } }, v: { d: { m:0, f:0 }, c: { m:0, f:0 } } }, c: { n: { d: { m:0, f:0 }, c: { m:0, f:0 } }, v: { d: { m:0, f:0 }, c: { m:0, f:0 } } } };
 
             snap.forEach((d) => {
                 const p = d.data();
                 if (p.status === "cancelled" || p.status === "deceased" || p.status === "moved") return;
                 if (!p.service_type || p.service_type === "none" || p.status === "registered") return;
 
-                const s = (p.service_type === "ทำหมันและวัคซีน") ? "n" : "v";
-                const t = (p.pet_type === "สุนัข") ? "d" : "c";
-                const g = (p.pet_gender === "ตัวผู้") ? "m" : "f";
-
-                stats.r[s][t][g]++;
-                if (p.status === "checked_in") stats.c[s][t][g]++;
+                const s = (p.service_type === "ทำหมันและวัคซีน") ? "n" : "v"; const t = (p.pet_type === "สุนัข") ? "d" : "c"; const g = (p.pet_gender === "ตัวผู้") ? "m" : "f";
+                stats.r[s][t][g]++; if (p.status === "checked_in") stats.c[s][t][g]++;
             });
 
-            renderTable("table-registered", stats.r);
-            renderTable("table-checked-in", stats.c);
+            renderTable("table-registered", stats.r); renderTable("table-checked-in", stats.c);
         } catch (e) { alert("ดึงข้อมูลรายงานไม่สำเร็จ: " + e.message); }
     }
 }
 
 function renderTable(tableId, data) {
-    const tbody = document.querySelector(`#${tableId} tbody`);
-    const tot = (o) => o.d.m + o.d.f + o.c.m + o.c.f;
-    const n = data.n, v = data.v;
-    const tn = tot(n), tv = tot(v);
-
+    const tbody = document.querySelector(`#${tableId} tbody`); const tot = (o) => o.d.m + o.d.f + o.c.m + o.c.f;
+    const n = data.n, v = data.v; const tn = tot(n), tv = tot(v);
     tbody.innerHTML = `
         <tr><td style="text-align: left;">ทำหมัน + วัคซีน</td><td>${n.d.m}</td><td>${n.d.f}</td><td>${n.c.m}</td><td>${n.c.f}</td><td style="font-weight: bold;">${tn}</td></tr>
         <tr><td style="text-align: left;">วัคซีนอย่างเดียว</td><td>${v.d.m}</td><td>${v.d.f}</td><td>${v.c.m}</td><td>${v.c.f}</td><td style="font-weight: bold;">${tv}</td></tr>
@@ -1291,53 +1119,28 @@ function renderTable(tableId, data) {
 // [เฟส 3] ระบบจัดการสัตว์จรจัด (Admin Stray Management)
 // ==========================================
 window.loadStrayReports = async function() {
-    const container = document.getElementById("stray-reports-container");
-    const filter = document.getElementById("stray-filter-status").value; 
+    const container = document.getElementById("stray-reports-container"); const filter = document.getElementById("stray-filter-status").value; 
     container.innerHTML = "<p style='color:var(--accent-primary); text-align:center;'>กำลังดึงข้อมูลเบาะแส...</p>";
-
     try {
-        let qConstraints = [];
-        if (filter !== "all") {
-            qConstraints.push(where("status", "==", filter));
-        }
-        
-        const q = query(collection(db, "stray_reports"), ...qConstraints);
-        const snap = await getDocs(q);
-        
-        let reports = [];
-        snap.forEach(d => { reports.push({ id: d.id, ...d.data() }); });
-        
+        let qConstraints = []; if (filter !== "all") { qConstraints.push(where("status", "==", filter)); }
+        const q = query(collection(db, "stray_reports"), ...qConstraints); const snap = await getDocs(q);
+        let reports = []; snap.forEach(d => { reports.push({ id: d.id, ...d.data() }); });
         reports.sort((a,b) => (b.reported_at?.toMillis() || 0) - (a.reported_at?.toMillis() || 0));
 
-        container.innerHTML = "";
-        let count = 0;
-        let pendingCount = 0;
-
+        container.innerHTML = ""; let count = 0; let pendingCount = 0;
         reports.forEach(r => {
-            if (r.status === "pending") pendingCount++;
-            count++;
-
-            const isPending = r.status === "pending";
-            const cardStyle = isPending ? "border-left: 5px solid var(--accent-danger);" : "border-left: 5px solid var(--accent-success); background: var(--bg-overlay-light);";
+            if (r.status === "pending") pendingCount++; count++;
+            const isPending = r.status === "pending"; const cardStyle = isPending ? "border-left: 5px solid var(--accent-danger);" : "border-left: 5px solid var(--accent-success); background: var(--bg-overlay-light);";
             const badge = isPending ? `<span style="background: var(--bg-danger-light); color: var(--accent-danger); padding: 2px 6px; border-radius: 4px; font-size: 11px;">🔴 รอดำเนินการ</span>` : `<span style="background: var(--bg-success-light); color: var(--accent-success); padding: 2px 6px; border-radius: 4px; font-size: 11px;">✅ ดำเนินการแล้ว</span>`;
-            
-            let photoHtml = r.photo_base64 && r.photo_base64 !== "" 
-                ? `<img src="${r.photo_base64}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid var(--accent-secondary); flex-shrink:0;">` 
-                : `<div style="width: 100px; height: 100px; background: var(--bg-overlay); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:var(--text-placeholder); font-size:10px; text-align:center;">ไม่มีรูปภาพ</div>`;
-
-            let actionBtn = isPending 
-                ? `<button class="btn-action-small" style="background: var(--accent-success); color: var(--bg-main); border-color: var(--accent-success); font-weight:bold;" onclick="window.openStrayActionModal('${r.id}', ${r.dog_count}, ${r.cat_count})">✔️ มาร์คว่าจัดการแล้ว</button>`
-                : `<button class="btn-action-small" style="background: transparent; color: var(--text-muted); border-color: var(--border-light);" onclick="window.updateStrayStatus('${r.id}', 'pending')">↩️ ย้อนกลับสถานะ</button>`;
+            let photoHtml = r.photo_base64 && r.photo_base64 !== "" ? `<img src="${r.photo_base64}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid var(--accent-secondary); flex-shrink:0;">` : `<div style="width: 100px; height: 100px; background: var(--bg-overlay); border-radius: 8px; display:flex; align-items:center; justify-content:center; color:var(--text-placeholder); font-size:10px; text-align:center;">ไม่มีรูปภาพ</div>`;
+            let actionBtn = isPending ? `<button class="btn-action-small" style="background: var(--accent-success); color: var(--bg-main); border-color: var(--accent-success); font-weight:bold;" onclick="window.openStrayActionModal('${r.id}', ${r.dog_count}, ${r.cat_count})">✔️ มาร์คว่าจัดการแล้ว</button>` : `<button class="btn-action-small" style="background: transparent; color: var(--text-muted); border-color: var(--border-light);" onclick="window.updateStrayStatus('${r.id}', 'pending')">↩️ ย้อนกลับสถานะ</button>`;
 
             container.insertAdjacentHTML('beforeend', `
                 <div class="card neumorphic" style="padding: 15px; margin-bottom: 15px; ${cardStyle}">
                     <div style="display: flex; gap: 15px;">
                         ${photoHtml}
                         <div style="flex-grow: 1; font-size: 13px; line-height: 1.6; color: var(--text-main);">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                <b style="color: var(--accent-primary); font-size: 15px;">แจ้งพบที่: หมู่ ${r.moo}</b>
-                                ${badge}
-                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><b style="color: var(--accent-primary); font-size: 15px;">แจ้งพบที่: หมู่ ${r.moo}</b>${badge}</div>
                             <div style="color: var(--text-muted);">📍 ${r.landmark}</div>
                             <div style="margin-top: 5px;">🐕 สุนัขแจ้ง: <b style="color:var(--text-bright);">${r.dog_count}</b> | 🐈 แมวแจ้ง: <b style="color:var(--text-bright);">${r.cat_count}</b></div>
                             ${!isPending ? `<div style="margin-top: 5px; color: var(--accent-success);">✅ ผลงานทำจริง: (หมาหมัน ${r.dog_neu_done}, หมาวัคซีน ${r.dog_vac_done}) (แมวหมัน ${r.cat_neu_done}, แมววัคซีน ${r.cat_vac_done})</div>` : ''}
@@ -1353,52 +1156,23 @@ window.loadStrayReports = async function() {
         });
 
         if (count === 0) container.innerHTML = `<p style="text-align:center; color:var(--text-muted);">ไม่พบข้อมูลเบาะแสในหมวดหมู่นี้</p>`;
-
         const badgeEl = document.getElementById("stray-badge");
-        if (badgeEl) {
-            if (filter === "completed") {
-                badgeEl.style.display = "none";
-            } else if (pendingCount > 0) { 
-                badgeEl.textContent = pendingCount; badgeEl.style.display = "inline-block"; 
-            } else { 
-                badgeEl.style.display = "none"; 
-            }
-        }
-
-    } catch (e) {
-        console.error(e);
-        container.innerHTML = `<p style="color:var(--accent-danger); text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
-    }
+        if (badgeEl) { if (filter === "completed") { badgeEl.style.display = "none"; } else if (pendingCount > 0) { badgeEl.textContent = pendingCount; badgeEl.style.display = "inline-block"; } else { badgeEl.style.display = "none"; } }
+    } catch (e) { console.error(e); container.innerHTML = `<p style="color:var(--accent-danger); text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`; }
 }
 
-window.openGoogleMaps = function(lat, lng) {
-    if(!lat || !lng) return alert("ไม่มีข้อมูลพิกัด GPS ที่ชัดเจน");
-    window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
-}
+window.openGoogleMaps = function(lat, lng) { if(!lat || !lng) return alert("ไม่มีข้อมูลพิกัด GPS ที่ชัดเจน"); window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank'); }
 
 window.openStrayActionModal = function(docId, repDog, repCat) {
-    document.getElementById('stray-modal-docid').value = docId;
-    document.getElementById('stray-modal-rep-dog').textContent = repDog;
-    document.getElementById('stray-modal-rep-cat').textContent = repCat;
-    
-    document.getElementById('stray-act-dog-neu').value = repDog;
-    document.getElementById('stray-act-dog-vac').value = repDog;
-    document.getElementById('stray-act-cat-neu').value = repCat;
-    document.getElementById('stray-act-cat-vac').value = repCat;
-
+    document.getElementById('stray-modal-docid').value = docId; document.getElementById('stray-modal-rep-dog').textContent = repDog; document.getElementById('stray-modal-rep-cat').textContent = repCat;
+    document.getElementById('stray-act-dog-neu').value = repDog; document.getElementById('stray-act-dog-vac').value = repDog; document.getElementById('stray-act-cat-neu').value = repCat; document.getElementById('stray-act-cat-vac').value = repCat;
     document.getElementById('stray-action-modal').style.display = 'flex';
 }
 
 window.updateStrayStatus = async function(docId, newStatus) {
     if (newStatus === 'pending') {
         if(confirm('ย้อนกลับสถานะเป็น "รอดำเนินการ"?\n(สถิติผลงานที่กรอกไว้สำหรับเคสนี้จะถูกล้างค่าเป็น 0)')) {
-            try {
-                await updateDoc(doc(db, "stray_reports", docId), { 
-                    status: newStatus,
-                    dog_neu_done: 0, dog_vac_done: 0, cat_neu_done: 0, cat_vac_done: 0 
-                });
-                window.loadStrayReports();
-            } catch(e) { alert("อัปเดตสถานะไม่สำเร็จ"); }
+            try { await updateDoc(doc(db, "stray_reports", docId), { status: newStatus, dog_neu_done: 0, dog_vac_done: 0, cat_neu_done: 0, cat_vac_done: 0 }); window.loadStrayReports(); } catch(e) { alert("อัปเดตสถานะไม่สำเร็จ"); }
         }
     }
 }
@@ -1421,25 +1195,20 @@ window.openVaccineUpdateModal = function(docId) {
     document.getElementById("vac-modal-exp-txt").textContent = sysConfig?.vaccine_exp || "-";
     
     document.getElementById("vac-modal-injector").value = "admin";
-    
     document.getElementById("vaccine-update-modal").style.display = "flex";
 
     setTimeout(() => {
         if(window.vacSignaturePad) {
             const canvas = document.getElementById('vac-signature-pad');
             const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            canvas.width = canvas.offsetWidth * ratio;
-            canvas.height = canvas.offsetHeight * ratio;
-            canvas.getContext("2d").scale(ratio, ratio);
+            canvas.width = canvas.offsetWidth * ratio; canvas.height = canvas.offsetHeight * ratio; canvas.getContext("2d").scale(ratio, ratio);
             window.vacSignaturePad.clear();
         }
     }, 200);
 }
 
 document.getElementById("btn-save-vaccine-update")?.addEventListener("click", async () => {
-    if (window.vacSignaturePad && window.vacSignaturePad.isEmpty()) {
-        return alert("กรุณาให้ประชาชนเซ็นชื่อรับรองด้วยครับ");
-    }
+    if (window.vacSignaturePad && window.vacSignaturePad.isEmpty()) { return alert("กรุณาให้ประชาชนเซ็นชื่อรับรองด้วยครับ"); }
 
     const docId = document.getElementById("vac-modal-docid").value;
     const dateVal = document.getElementById("vac-modal-date").value;
@@ -1460,26 +1229,15 @@ document.getElementById("btn-save-vaccine-update")?.addEventListener("click", as
         if (injector === "owner") { injectorName = "เจ้าของรับวัคซีนไปฉีดเอง"; }
         
         await updateDoc(doc(db, "pets", docId), {
-            vaccine_status: "เคยฉีด",
-            vaccine_year: yearTH,
-            vaccine_date: formattedDate,
-            vaccine_brand: sysConfig?.vaccine_brand || "",
-            vaccine_lot: sysConfig?.vaccine_lot || "",
-            vaccine_exp: sysConfig?.vaccine_exp || "",
-            vaccinated_by_admin: injectorName,
-            vaccine_consent_signature: signatureData,
-            vaccine_consent_timestamp: serverTimestamp(),
-            updated_at: serverTimestamp()
+            vaccine_status: "เคยฉีด", vaccine_year: yearTH, vaccine_date: formattedDate,
+            vaccine_brand: sysConfig?.vaccine_brand || "", vaccine_lot: sysConfig?.vaccine_lot || "", vaccine_exp: sysConfig?.vaccine_exp || "",
+            vaccinated_by_admin: injectorName, vaccine_consent_signature: signatureData, vaccine_consent_timestamp: serverTimestamp(), updated_at: serverTimestamp()
         });
         
         alert("🎉 บันทึกการยินยอมและอัปเดตประวัติวัคซีนเรียบร้อยแล้ว!");
         document.getElementById("vaccine-update-modal").style.display = "none";
         document.getElementById("btn-search").click(); 
         
-    } catch(e) {
-        console.error(e);
-        alert("เกิดข้อผิดพลาด: " + e.message);
-    } finally {
-        btn.disabled = false; btn.textContent = "💾 บันทึกและยอมรับ";
-    }
+    } catch(e) { console.error(e); alert("เกิดข้อผิดพลาด: " + e.message); } 
+    finally { btn.disabled = false; btn.textContent = "💾 บันทึกและยอมรับ"; }
 });
