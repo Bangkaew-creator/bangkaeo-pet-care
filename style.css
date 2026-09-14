@@ -230,7 +230,7 @@ canvas.signature-pad { width: 100%; height: 150px; border-radius: 10px; backgrou
 .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; cursor: pointer; }
 .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
 .flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 15px; padding: 25px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; box-sizing: border-box; }
-.flip-card-front { background: var(--gradient-card); border: 2px solid var(--accent-primary); color: #FFF; }
+.flip-card-front { background: var(--bg-card); border: 2px solid var(--accent-primary); color: var(--text-main); }
 .flip-card-back { background: var(--bg-card); color: var(--text-main); transform: rotateY(180deg); border: 2px solid var(--accent-primary); text-align: left; }
 
 .admin-view { display: none; }
