@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ศูนย์รายงาน (Export) - อสม.สามารถ (Orsomo Smart)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="config.js"></script>
+    
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f4f7fa; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .bg-navy { background-color: #0f172a; } .text-navy { color: #0f172a; }
+        .loader-small { border: 2px solid #f3f3f3; border-bottom-color: #00694a; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .check-row { accent-color: #00694a; width: 20px; height: 20px; cursor: pointer; }
+        .tab-btn { padding: 14px 10px; font-weight: bold; font-size: 14px; border-bottom: 3px solid transparent; color: #64748b; transition: all 0.2s; cursor: pointer; }
+        .tab-btn.active { color: #00694a; border-bottom-color: #00694a; }
+    </style>
+</head>
+<body class="flex h-[100dvh] overflow-hidden text-slate-800 relative">
+
+    <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-navy text-white flex flex-col z-50 transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-300 ease-in-out">
+        <div class="p-6 flex items-center justify-between border-b border-slate-700/40">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center border border-amber-400/30"><span class="material-symbols-outlined text-amber-400 text-[26px]">local_hospital</span></div>
+                <div><h1 id="sidebar-hospital-name" class="font-bold text-[15px] tracking-wide text-white">กำลังโหลด...</h1><p id="sidebar-system-name" class="text-[10px] text-amber-400 font-medium">ระบบบริหารจัดการ</p></div>
+            </div>
+            <button onclick="toggleSidebar()" class="lg:hidden text-slate-400 p-1"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <a href="admin_dashboard.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">dashboard</span> ภาพรวมระบบ</a>
+            <a href="admin_resources.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">inventory_2</span> บริหารทรัพยากร</a>
+            <a href="admin_inventory.html" id="nav-inventory" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">warehouse</span> ระบบคลังพัสดุ กปท.</a>
+            <a href="admin_datacenter.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">folder_shared</span> ศูนย์ข้อมูลผู้ป่วย</a>
+            <a href="admin_map.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">map</span> แผนที่พิกัดผู้ป่วย</a>
+            <a href="admin_delegation.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">assignment_ind</span> มอบหมายงาน อสม.</a>
+            <a href="admin_analytics.html" class="flex items-center justify-between px-4 py-3.5 bg-white/10 text-amber-400 rounded-xl font-bold transition-all">
+                <span class="flex items-center gap-3"><span class="material-symbols-outlined">analytics</span> ศูนย์รายงาน (Export)</span><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+            </a>
+            <a href="admin_reports.html" id="nav-reports" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all">
+                <span class="material-symbols-outlined">gavel</span> บันทึกมติผ้าอ้อม
+            </a>
+            <a href="admin_settings.html" id="nav-settings" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">settings</span> ตั้งค่าระบบ</a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-h-0 bg-slate-50 overflow-y-auto">
+        <header class="h-20 min-h-[80px] bg-white shadow-sm flex items-center justify-between px-6 lg:px-8 z-10 flex-shrink-0 border-b border-slate-100">
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="lg:hidden p-2.5 -ml-2 mr-3 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"><span class="material-symbols-outlined text-[26px]">menu</span></button>
+                <div>
+                    <h2 class="text-base lg:text-lg font-bold text-slate-900 leading-tight">ศูนย์รายงานและการส่งออกข้อมูล</h2>
+                    <p id="header-hospital-name" class="text-[11px] lg:text-xs text-slate-400 font-medium mt-0.5">Export Center</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 pb-20">
+            <div class="bg-white border-b border-slate-200 grid grid-cols-3 shadow-sm z-10 sticky top-0 flex-shrink-0">
+                <button class="tab-btn active border-r border-slate-100 flex flex-col items-center justify-center py-3 px-1 leading-tight" id="tab-kpt" onclick="switchTab('adl-assess')">
+                    <span class="text-[18px] mb-1">📦</span>
+                    <span class="text-[11px] sm:text-[13px] text-center">เบิกจ่าย กปท.</span>
+                </button>
+                <button class="tab-btn border-r border-slate-100 flex flex-col items-center justify-center py-3 px-1 leading-tight" id="tab-registry" onclick="switchTab('registry')">
+                    <span class="text-[18px] mb-1">🏥</span>
+                    <span class="text-[11px] sm:text-[13px] text-center">ทะเบียนสุขภาพ</span>
+                </button>
+                <button class="tab-btn flex flex-col items-center justify-center py-3 px-1 leading-tight" id="tab-vhv" onclick="switchTab('vhv')">
+                    <span class="text-[18px] mb-1">👥</span>
+                    <span class="text-[11px] sm:text-[13px] text-center">สถิติ อสม.</span>
+                </button>
+            </div>
+
+            <div id="loading-state" class="flex flex-col items-center justify-center py-24 space-y-3">
+                <div class="loader-small"></div><p class="text-sm text-slate-400 animate-pulse">กำลังโหลดข้อมูลจาก Firebase...</p>
+            </div>
+
+            <!-- TAB 2: ทะเบียนสุขภาพ -->
+            <div id="content-registry" class="hidden p-4 lg:p-6">
+                <div class="bg-white rounded-[24px] p-8 lg:p-12 shadow-sm border border-slate-200 text-center max-w-3xl mx-auto mt-6">
+                    <span class="material-symbols-outlined text-[70px] text-[#00694a] mb-4 bg-emerald-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto">health_metrics</span>
+                    <h2 class="text-2xl font-bold text-slate-800">ทะเบียนประวัติและการคัดกรองสุขภาพ</h2>
+                    <p class="text-sm text-slate-500 mt-3 mb-8 leading-relaxed max-w-xl mx-auto">ส่งออกข้อมูล Master Data ผู้ป่วยทั้งหมด (Active) ออกมาเป็นไฟล์ Excel ที่พร้อมนำไปใช้งานต่อ</p>
+                    <button onclick="exportRegistryExcel()" class="w-full sm:w-auto bg-[#00694a] hover:bg-[#005239] text-white px-8 py-3.5 rounded-[16px] font-bold text-base inline-flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95">
+                        <span class="material-symbols-outlined text-[22px]">download</span> ดาวน์โหลด Excel ทะเบียนสุขภาพ
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 3: สถิติ อสม. -->
+            <div id="content-vhv" class="hidden p-4 lg:p-6">
+                <div class="bg-white rounded-[24px] p-8 lg:p-12 shadow-sm border border-slate-200 text-center max-w-3xl mx-auto mt-6">
+                    <span class="material-symbols-outlined text-[70px] text-blue-600 mb-4 bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto">analytics</span>
+                    <h2 class="text-2xl font-bold text-slate-800">รายงานสถิติและผลการปฏิบัติงาน อสม.</h2>
+                    <p class="text-sm text-slate-500 mt-3 mb-6 leading-relaxed max-w-xl mx-auto">ส่งออกสรุปภาระงาน (Workload) ของ อสม. แต่ละท่าน วัดผล KPI การลงพื้นที่เยี่ยมบ้าน (ยอดลงพื้นที่สำเร็จในรอบเดือน) และเช็คยอดผู้ป่วยตกหล่นค้างประเมิน</p>
+                    <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
+                        <label class="text-sm font-bold text-slate-700">เลือกเขตรับผิดชอบ:</label>
+                        <div class="relative w-full sm:w-64 text-left">
+                            <select id="vhv-village-filter" class="w-full pl-4 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 appearance-none font-medium text-navy"><option value="">ดูทุกหมู่ (ทั้งหมด)</option></select>
+                            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                        </div>
+                    </div>
+                    <button onclick="exportVHVExcel()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-[16px] font-bold text-base inline-flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95">
+                        <span class="material-symbols-outlined text-[22px]">download</span> ดาวน์โหลด Excel ผลงาน อสม.
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🌟 Modal บันทึกมติ กปท. (แก้ไข Input เป็นแบบ Text และ วัน) 🌟 -->
+        <div id="committee-modal" class="fixed inset-0 bg-[#111c2d]/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-[24px] w-full max-w-sm overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="committee-modal-content">
+                <div class="p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2"><span class="material-symbols-outlined text-amber-500">gavel</span> บันทึกมติจัดสรร กปท.</h3>
+                    <p class="text-[12px] text-gray-500 mb-5 leading-relaxed">กำลังจัดสรรให้ผู้ป่วยจำนวน <strong id="modal-selected-count" class="text-navy">0</strong> ราย</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-600 mb-1 block">ปีงบประมาณ (พ.ศ.)</label>
+                            <input type="text" id="input-fy" value="2569" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500" placeholder="เช่น 2569 หรือ 2569-6">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-600 mb-1 block">ครั้งที่ / รอบที่พิจารณา</label>
+                            <input type="text" id="input-round" value="1" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500" placeholder="เช่น 1 หรือ 1/พิเศษ">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-600 mb-1 block">จำนวนวันที่อนุมัติ (วัน)</label>
+                            <input type="number" id="input-days" value="180" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500" placeholder="เช่น 75, 180">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex border-t border-gray-100 bg-gray-50">
+                    <button onclick="closeCommitteeModal()" class="flex-1 py-4 text-[14px] font-bold text-gray-500 hover:bg-gray-100 transition-colors">ยกเลิก</button>
+                    <button onclick="saveCommitteeDecision()" id="btn-save-committee" class="flex-1 py-4 text-[14px] font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors">บันทึกมติ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal นำเข้าประวัติจัดสรร (Excel) -->
+        <div id="import-alloc-modal" class="fixed inset-0 bg-[#111c2d]/40 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-[24px] w-full max-w-md overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="import-alloc-modal-content">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-blue-600">upload_file</span> นำเข้าประวัติจัดสรร (Excel)
+                    </h3>
+                    <button onclick="closeImportAllocModal()" class="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-full"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 text-sm text-blue-800">
+                        <p class="font-bold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">info</span> ข้อแนะนำก่อนนำเข้า</p>
+                        <p class="text-xs leading-relaxed">
+                            - ใช้ <b>เลขประจำตัวประชาชน</b> เป็นตัวอ้างอิงเพื่อดึงข้อมูล<br>
+                            - หัวคอลัมน์ที่รองรับ: เลขประจำตัวประชาชน, ผ้าอ้อมผู้ใหญ่ (ขนาด), รอบจัดสรร<br>
+                            - ข้อมูลจะถูกอัปเดตเข้าไปรวมกับประวัติเดิมของคนไข้
+                        </p>
+                    </div>
+                    <div class="relative border-2 border-dashed border-blue-300 rounded-xl p-6 text-center hover:bg-blue-50 transition-colors cursor-pointer" onclick="document.getElementById('alloc-excel-file').click()">
+                        <span class="material-symbols-outlined text-blue-500 text-[40px] mb-2">note_add</span>
+                        <p class="text-sm font-bold text-blue-700">คลิกเพื่อเลือกไฟล์ Excel (.xlsx)</p>
+                        <p class="text-xs text-slate-400 mt-1" id="alloc-file-name-display">หรือลากไฟล์มาวางที่นี่</p>
+                        <input type="file" id="alloc-excel-file" accept=".xlsx, .xls" class="hidden" onchange="handleAllocFileSelect(this)">
+                    </div>
+                    <button onclick="processAllocImport()" id="btn-process-alloc" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2" disabled>
+                        เริ่มนำเข้าข้อมูล
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        firebase.initializeApp(firebaseConfig);
+        firebase.firestore().enablePersistence({ synchronizeTabs: true }).catch(err => console.warn('Offline persistence error:', err.code));
+        const db = firebase.firestore();
+        
+        let allPatients = [];
+        let allVHVs = [];
+        let currentUserRole = "ADMIN";
+        let assignedVillages = [];
+        let selectedAllocFile = null;
+
+        let configDiaperPrice = DEFAULT_CONFIGS.DIAPER_PRICE || 9.50;
+        let configUnderpadPrice = DEFAULT_CONFIGS.UNDERPAD_PRICE || 6.00;
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+
+        function cleanJSON(rawStr) {
+            if (!rawStr || String(rawStr).trim() === '') return null;
+            let cleanStr = String(rawStr).trim();
+            // Removed dangerous replace
+            if (cleanStr.startsWith('"') && cleanStr.endsWith('"')) cleanStr = cleanStr.substring(1, cleanStr.length - 1);
+            try { return JSON.parse(cleanStr); } catch(e) { return null; }
+        }
+
+        function getTodayDateStr() { return new Date().toISOString().split('T')[0]; }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById('sidebar-hospital-name').innerText = DEFAULT_CONFIGS.HOSPITAL_NAME;
+            document.getElementById('sidebar-system-name').innerText = DEFAULT_CONFIGS.SYSTEM_NAME;
+            
+            liff.init({ liffId: LIFF_ID }).then(() => {
+                const mockUid = localStorage.getItem('dev_mock_uid');
+                const savedUid = localStorage.getItem('orsomo_uid');
+                if (mockUid) {
+                    verifyAdminAccess(mockUid);
+                } else if (liff.isLoggedIn()) { 
+                    liff.getProfile().then(p => { localStorage.setItem('orsomo_uid', p.userId); verifyAdminAccess(p.userId); }).catch(() => bounceToLogin());
+                } else if (savedUid) {
+                    verifyAdminAccess(savedUid);
+                } else bounceToLogin();
+            }).catch(() => bounceToLogin());
+        });
+
+        function bounceToLogin() { window.location.href = 'index.html'; }
+
+        async function verifyAdminAccess(uid) {
+            try {
+                const userDoc = await db.collection('VHVs').doc(String(uid)).get();
+                let hasAccess = false; 
+                let vCount = DEFAULT_CONFIGS.VILLAGE_COUNT; 
+                let hospital = DEFAULT_CONFIGS.HOSPITAL_NAME;
+
+                try {
+                    const sysSnap = await db.collection('SystemConfig').doc('HOSPITAL_NAME').get();
+                    if(sysSnap.exists) hospital = sysSnap.data().value || hospital;
+                    const sysCountSnap = await db.collection('SystemConfig').doc('VILLAGE_COUNT').get();
+                    if(sysCountSnap.exists) vCount = parseInt(sysCountSnap.data().value) || vCount;
+                    
+                    const sysSnapDiaper = await db.collection('SystemConfig').doc('DIAPER_PRICE').get();
+                    if(sysSnapDiaper.exists) configDiaperPrice = parseFloat(sysSnapDiaper.data().value) || configDiaperPrice;
+                    const sysSnapUnderpad = await db.collection('SystemConfig').doc('UNDERPAD_PRICE').get();
+                    if(sysSnapUnderpad.exists) configUnderpadPrice = parseFloat(sysSnapUnderpad.data().value) || configUnderpadPrice;
+
+                } catch(e) {}
+
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    const role = String(userData.role || '').toUpperCase();
+                    if (role === 'ADMIN') {
+                        hasAccess = true; currentUserRole = 'ADMIN'; hospital = userData.hospital_name || hospital;
+                    } else if (role === 'SUB_ADMIN') {
+                        hasAccess = true; currentUserRole = 'SUB_ADMIN'; hospital = userData.hospital_name || hospital;
+                        assignedVillages = userData.assigned_villages || [];
+                    }
+                }
+
+                if (hasAccess) {
+                    document.getElementById('sidebar-hospital-name').innerText = hospital;
+                    
+                    const vhvFilter = document.getElementById('vhv-village-filter');
+                    vhvFilter.innerHTML = '<option value="">ดูทุกหมู่ (ทั้งหมด)</option>';
+                    
+                    if (currentUserRole === 'SUB_ADMIN') {
+                        const navSettings = document.getElementById('nav-settings');
+                        if (navSettings) navSettings.style.display = 'none';
+                        const navInventory = document.getElementById('nav-inventory');
+                        if (navInventory) navInventory.style.display = 'none';
+                        const navReports = document.getElementById('nav-reports');
+                        if (navReports) navReports.style.display = 'none';
+                        
+                        assignedVillages.forEach(v => { vhvFilter.insertAdjacentHTML('beforeend', `<option value="${v}">หมู่ที่ ${v}</option>`); });
+                    } else {
+                        for(let i=1; i<=vCount; i++){ vhvFilter.insertAdjacentHTML('beforeend', `<option value="${i}">หมู่ที่ ${i}</option>`); }
+                    }
+
+                    loadReportData();
+                } else { window.location.href = 'dashboard.html'; }
+            } catch (error) { window.location.href = 'index.html'; }
+        }
+
+        
+        let allAssessments = [];
+        let allInactive = [];
+
+        // Parse date string DD/MM/YYYY (Thai Year) to JS Date
+        function parseThaiDate(dateStr) {
+            if(!dateStr) return null;
+            const parts = dateStr.split('/');
+            if(parts.length !== 3) return null;
+            return new Date(parseInt(parts[2]) - 543, parseInt(parts[1]) - 1, parseInt(parts[0]));
+        }
+
+        // Format JS Date to DD/MM/YYYY (Thai)
+        function formatThaiDate(d) {
+            if(!d) return '-';
+            return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()+543}`;
+        }
+
+        async function loadReportData() {
+            try {
+                // Load Patients
+                const pSnap = await db.collection('Patients').get();
+                allPatients = [];
+                allInactive = [];
+                pSnap.forEach(doc => {
+                    const data = doc.data();
+                    let hasPermissionToView = true;
+                    if (currentUserRole === 'SUB_ADMIN') hasPermissionToView = assignedVillages.includes(String(data.village_no).trim());
+                    if (hasPermissionToView) {
+                        data.docId = doc.id; 
+                        allPatients.push(data);
+                        if (['เสียชีวิต', 'ย้ายที่อยู่'].includes(data.status)) {
+                            allInactive.push(data);
+                        }
+                    }
+                });
+
+                // Load Assessments
+                const aSnap = await db.collection('Assessments').where('type', '==', 'ADL').get();
+                allAssessments = [];
+                aSnap.forEach(doc => {
+                    const data = doc.data();
+                    // Link to patient data
+                    const pData = allPatients.find(p => p.id === String(data.patient_id));
+                    if (pData) {
+                        data.pData = pData;
+                        data.parsedDate = parseThaiDate(data.date);
+                        allAssessments.push(data);
+                    }
+                });
+
+                // Set default dates to current month
+                const now = new Date();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                
+                // Keep local timezone offset by formatting manually
+                const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                
+                const fDateStr = fmtDate(firstDay);
+                const lDateStr = fmtDate(lastDay);
+                
+                document.getElementById('adl-start-date').value = fDateStr;
+                document.getElementById('adl-end-date').value = lDateStr;
+                document.getElementById('dev-start-date').value = fDateStr;
+                document.getElementById('dev-end-date').value = lDateStr;
+                document.getElementById('in-start-date').value = fDateStr;
+                document.getElementById('in-end-date').value = lDateStr;
+
+                renderADLReport();
+                renderADLDevReport();
+                renderInactiveReport();
+                renderRegistryTable();
+                renderVHVTable();
+
+                document.getElementById('loading-state').classList.add('hidden');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function isBetween(targetDate, startStr, endStr) {
+            if(!targetDate) return false;
+            if(startStr) { const s = new Date(startStr); s.setHours(0,0,0,0); if(targetDate < s) return false; }
+            if(endStr) { const e = new Date(endStr); e.setHours(23,59,59,999); if(targetDate > e) return false; }
+            return true;
+        }
+
+        function renderADLReport() {
+            const startStr = document.getElementById('adl-start-date').value;
+            const endStr = document.getElementById('adl-end-date').value;
+            
+            const tbody = document.getElementById('tbody-adl-assess');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            
+            const filtered = allAssessments.filter(a => isBetween(a.parsedDate, startStr, endStr));
+            filtered.sort((a,b) => b.parsedDate - a.parsedDate);
+            
+            if(filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 font-medium">ไม่พบข้อมูลในช่วงเวลาที่เลือก</td></tr>';
+                return;
+            }
+
+            filtered.forEach(a => {
+                const p = a.pData;
+                let groupColor = 'bg-slate-100 text-slate-600';
+                if(a.result === 'ติดสังคม') groupColor = 'bg-emerald-50 text-emerald-600 border border-emerald-100';
+                if(a.result === 'ติดบ้าน') groupColor = 'bg-amber-50 text-amber-600 border border-amber-100';
+                if(a.result === 'ติดเตียง') groupColor = 'bg-red-50 text-red-600 border border-red-100';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-4 whitespace-nowrap">${a.date}</td>
+                    <td class="p-4 whitespace-nowrap font-medium text-navy">${p.prefix||""}${p.name||""}</td>
+                    <td class="p-4 whitespace-nowrap">${p.id_card||'-'}</td>
+                    <td class="p-4 whitespace-nowrap">บ้านเลขที่ ${p.house_no||'-'} หมู่ ${p.village_no||'-'}</td>
+                    <td class="p-4 whitespace-nowrap">${p.caregiver_phone||'-'}</td>
+                    <td class="p-4 whitespace-nowrap text-center font-bold">${a.score1||'-'}</td>
+                    <td class="p-4 whitespace-nowrap text-center"><span class="${groupColor} px-2 py-1 rounded-lg text-[11px] font-bold inline-block">${a.result||'-'}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderADLDevReport() {
+            const startStr = document.getElementById('dev-start-date').value;
+            const endStr = document.getElementById('dev-end-date').value;
+            
+            const tbody = document.getElementById('tbody-adl-dev');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            
+            const filtered = allAssessments.filter(a => isBetween(a.parsedDate, startStr, endStr));
+            
+            // Group by patient
+            const grouped = {};
+            filtered.forEach(a => {
+                if(!grouped[a.patient_id]) grouped[a.patient_id] = [];
+                grouped[a.patient_id].push(a);
+            });
+
+            const rows = Object.values(grouped).map(arr => {
+                arr.sort((a,b) => a.parsedDate - b.parsedDate); // oldest first
+                const oldest = arr[0];
+                const newest = arr[arr.length - 1];
+                return { oldest, newest, p: oldest.pData, assessCount: arr.length };
+            });
+
+            if(rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 font-medium">ไม่พบข้อมูลในช่วงเวลาที่เลือก</td></tr>';
+                return;
+            }
+
+            rows.forEach(r => {
+                const diff = parseInt(r.newest.score1) - parseInt(r.oldest.score1);
+                let devHtml = '<span class="bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold text-xs">คงที่ (ไม่มีประวัติเทียบ)</span>';
+                if (r.assessCount > 1) {
+                    if (diff > 0) devHtml = `<span class="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-1 rounded font-bold text-xs flex items-center justify-center gap-1 w-max mx-auto"><span class="material-symbols-outlined text-[14px]">trending_up</span> ดีขึ้น (+${diff})</span>`;
+                    else if (diff < 0) devHtml = `<span class="bg-red-50 text-red-600 border border-red-100 px-2 py-1 rounded font-bold text-xs flex items-center justify-center gap-1 w-max mx-auto"><span class="material-symbols-outlined text-[14px]">trending_down</span> แย่ลง (${diff})</span>`;
+                    else devHtml = '<span class="bg-amber-50 text-amber-600 border border-amber-100 px-2 py-1 rounded font-bold text-xs flex items-center justify-center gap-1 w-max mx-auto"><span class="material-symbols-outlined text-[14px]">horizontal_rule</span> คงที่ (0)</span>';
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-4 whitespace-nowrap font-medium text-navy">${r.p.prefix||""}${r.p.name||""}</td>
+                    <td class="p-4 whitespace-nowrap">${r.p.id_card||'-'}</td>
+                    <td class="p-4 whitespace-nowrap text-center">${r.oldest.score1||'-'} <span class="text-[10px] text-slate-400 block">${r.oldest.date}</span></td>
+                    <td class="p-4 whitespace-nowrap text-center font-bold text-blue-600">${r.newest.score1||'-'} <span class="text-[10px] text-blue-400 block">${r.newest.date}</span></td>
+                    <td class="p-4 whitespace-nowrap text-center">${devHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderInactiveReport() {
+            const startStr = document.getElementById('in-start-date').value;
+            const endStr = document.getElementById('in-end-date').value;
+            
+            const tbody = document.getElementById('tbody-inactive');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            
+            const filtered = allInactive.filter(p => {
+                let pDate = null;
+                if(p.updated_at && p.updated_at.toDate) pDate = p.updated_at.toDate();
+                else pDate = new Date(); // fallback
+                return isBetween(pDate, startStr, endStr);
+            });
+            
+            if(filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 font-medium">ไม่พบข้อมูลในช่วงเวลาที่เลือก</td></tr>';
+                return;
+            }
+
+            filtered.forEach(p => {
+                let pDateStr = '-';
+                if(p.updated_at && p.updated_at.toDate) pDateStr = formatThaiDate(p.updated_at.toDate());
+
+                let stHtml = `<span class="bg-red-50 text-red-600 border border-red-100 px-2 py-1 rounded font-bold text-xs">เสียชีวิต</span>`;
+                if(p.status === 'ย้ายที่อยู่') stHtml = `<span class="bg-orange-50 text-orange-600 border border-orange-100 px-2 py-1 rounded font-bold text-xs">ย้ายที่อยู่</span>`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-4 whitespace-nowrap">${pDateStr}</td>
+                    <td class="p-4 whitespace-nowrap font-medium text-navy">${p.prefix||""}${p.name||""}</td>
+                    <td class="p-4 whitespace-nowrap">${p.id_card||'-'}</td>
+                    <td class="p-4 whitespace-nowrap text-center">${stHtml}</td>
+                    <td class="p-4 whitespace-nowrap">บ้านเลขที่ ${p.house_no||'-'} หมู่ ${p.village_no||'-'}</td>
+                    <td class="p-4 whitespace-nowrap">${p.caregiver_phone||'-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportADLReport() {
+            const table = document.querySelector('#content-adl-assess table').cloneNode(true);
+            const wb = XLSX.utils.table_to_book(table, {sheet:"ADL"});
+            XLSX.writeFile(wb, "รายงานประเมินADL.xlsx");
+        }
+        function exportADLDevReport() {
+            const table = document.querySelector('#content-adl-dev table').cloneNode(true);
+            const wb = XLSX.utils.table_to_book(table, {sheet:"พัฒนาการADL"});
+            XLSX.writeFile(wb, "รายงานพัฒนาการADL.xlsx");
+        }
+        function exportInactiveReport() {
+            const table = document.querySelector('#content-inactive table').cloneNode(true);
+            const wb = XLSX.utils.table_to_book(table, {sheet:"ยุติการดูแล"});
+            XLSX.writeFile(wb, "รายงานผู้ป่วยเสียชีวิต_ย้ายที่อยู่.xlsx");
+        }
+
+
+        function switchTab(tab) {
+            ['kpt', 'registry', 'vhv'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.remove('active');
+                document.getElementById(`content-${t}`).classList.add('hidden');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            updateSelectCount(); 
+        }
+
+        
+
+        function toggleAll(source) {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = source.checked);
+            updateSelectCount();
+        }
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        // ==========================================
+        function openImportAllocModal() {
+            const m = document.getElementById('import-alloc-modal');
+            const c = document.getElementById('import-alloc-modal-content');
+            m.classList.remove('hidden'); setTimeout(() => { m.classList.remove('opacity-0'); c.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeImportAllocModal() {
+            const m = document.getElementById('import-alloc-modal');
+            const c = document.getElementById('import-alloc-modal-content');
+            m.classList.add('opacity-0'); c.classList.add('scale-95');
+            setTimeout(() => { m.classList.add('hidden'); }, 300);
+            document.getElementById('alloc-excel-file').value = "";
+            document.getElementById('alloc-file-name-display').innerText = "หรือลากไฟล์มาวางที่นี่";
+            document.getElementById('btn-process-alloc').disabled = true;
+        }
+
+        function handleAllocFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                selectedAllocFile = file;
+                document.getElementById('alloc-file-name-display').innerHTML = `<span class="text-blue-600 font-bold">${file.name}</span>`;
+                document.getElementById('btn-process-alloc').disabled = false;
+            }
+        }
+
+        function getNormalizedValue(row, possibleKeys) {
+            const cleanObj = {};
+            for (let k in row) {
+                let cleanK = String(k).replace(/[^a-zA-Z0-9ก-๙]/g, '').toLowerCase();
+                cleanObj[cleanK] = row[k];
+            }
+            for (let pk of possibleKeys) {
+                let cleanPK = String(pk).replace(/[^a-zA-Z0-9ก-๙]/g, '').toLowerCase();
+                if (cleanObj[cleanPK] !== undefined && cleanObj[cleanPK] !== null && cleanObj[cleanPK] !== "") {
+                    return cleanObj[cleanPK];
+                }
+                if (cleanObj[cleanPK] === 0 || cleanObj[cleanPK] === "0") return 0;
+            }
+            for (let cleanK in cleanObj) {
+                for (let pk of possibleKeys) {
+                    let cleanPK = String(pk).replace(/[^a-zA-Z0-9ก-๙]/g, '').toLowerCase();
+                    if (cleanPK.length > 0 && cleanK.includes(cleanPK)) {
+                        let val = cleanObj[cleanK];
+                        if (val !== undefined && val !== null && val !== "") return val;
+                        if (val === 0 || val === "0") return 0;
+                    }
+                }
+            }
+            return '';
+        }
+
+        async function processAllocImport() {
+            if (!selectedAllocFile) return showToast('กรุณาเลือกไฟล์ก่อนครับ', 'error');
+
+            const btn = document.getElementById('btn-process-alloc');
+            btn.innerHTML = '<div class="loader-small mr-2" style="border-color:white;border-bottom-color:transparent"></div> กำลังประมวลผล...';
+            btn.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array', cellDates: true, cellText: false});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, {defval: "", raw: true}); 
+
+                    if (jsonRows.length === 0) throw new Error("ไม่พบข้อมูลในไฟล์ Excel");
+
+                    const batch = db.batch();
+                    let batchCount = 0;
+                    let updateCount = 0;
+
+                    for (let row of jsonRows) {
+                        let rawIdCard = String(getNormalizedValue(row, ['เลขประจำตัวประชาชน', 'เลขบัตรประชาชน', 'idcard', 'cid'])).trim().replace(/[^0-9]/g, ''); 
+                        if (rawIdCard.length === 12) rawIdCard = '0' + rawIdCard; 
+
+                        let size = String(getNormalizedValue(row, ['ผ้าอ้อมผู้ใหญ่', 'ขนาด', 'size'])).trim().toUpperCase();
+                        let alloc = String(getNormalizedValue(row, ['รอบจัดสรร', 'รอบ', 'รอบประวัติ'])).trim();
+
+                        if (rawIdCard.length === 13) {
+                            const p = allPatients.find(x => x.id_card === rawIdCard || x.id === rawIdCard);
+                            if (p) {
+                                let d = cleanJSON(p.diaper) || {};
+                                let isModified = false;
+
+                                if (size && size !== '-') {
+                                    if(size.includes('รองซับ') || size === 'แผ่นรองซับ') {
+                                        d.req_underpad = true;
+                                    } else {
+                                        d.req_diaper = true;
+                                        d.size = size;
+                                    }
+                                    isModified = true;
+                                }
+
+                                if (alloc && alloc !== '-') {
+                                    if (!d.allocations) d.allocations = [];
+                                    if (!d.allocations.includes(alloc)) d.allocations.push(alloc);
+                                    d.committee_status = 'จัดสรรแล้ว';
+                                    isModified = true;
+                                }
+
+                                if (isModified) {
+                                    const ref = db.collection('Patients').doc(String(p.docId || p.id));
+                                    batch.update(ref, { diaper: JSON.stringify(d) });
+                                    batchCount++;
+                                    updateCount++;
+
+                                    if (batchCount === 450) {
+                                        await batch.commit();
+                                        batchCount = 0;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (batchCount > 0) { await batch.commit(); }
+
+                    showToast(`นำเข้าประวัติจัดสรรสำเร็จ! อัปเดต ${updateCount} รายการ`);
+                    closeImportAllocModal();
+                    await loadReportData(); 
+
+                } catch (err) {
+                    showToast("เกิดข้อผิดพลาด: " + err.message, 'error');
+                } finally {
+                    btn.innerHTML = 'เริ่มนำเข้าข้อมูล';
+                    btn.disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(selectedAllocFile);
+        }
+
+        // ==========================================
+
+        function exportRegistryExcel() {
+            const exportData = [];
+            allPatients.forEach(p => {
+                if(String(p.status).trim().toLowerCase() !== 'active') return;
+
+                let diaperSize = '-';
+                if(p.diaper) {
+                    try {
+                        let dpStr = typeof p.diaper === 'string' ? p.diaper.replace(/""/g, '"') : JSON.stringify(p.diaper);
+                        if(dpStr.startsWith('"') && dpStr.endsWith('"')) dpStr = dpStr.substring(1, dpStr.length-1);
+                        const dp = typeof p.diaper === 'object' ? p.diaper : JSON.parse(dpStr);
+                        
+                        if(dp.req_diaper && dp.size && dp.size !== '-') diaperSize = dp.size;
+                        else if(dp.req_underpad) diaperSize = 'แผ่นรองซับ';
+                    } catch(e){}
+                }
+
+                exportData.push({
+                    "ชื่อ-สกุลผู้ป่วย": (p.prefix || '') + (p.name || '-'),
+                    "เลขประจำตัวประชาชน": p.id_card || '-',
+                    "บ้านเลขที่": p.house_no || '-',
+                    "หมู่": p.village_no || '-',
+                    "ADL": p.adl || '-',
+                    "เบอร์โทรศัพท์ญาติ": p.caregiver_phone || p.phone || '-',
+                    "ขนาดผ้าอ้อม": diaperSize
+                });
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "ทะเบียนสุขภาพ");
+            worksheet['!cols'] = [{wch:25},{wch:20},{wch:15},{wch:8},{wch:10},{wch:15},{wch:15}];
+            XLSX.writeFile(workbook, `ทะเบียนประวัติสุขภาพผู้ป่วย_${getTodayDateStr()}.xlsx`);
+        }
+
+        function exportVHVExcel() {
+            const vFilter = document.getElementById('vhv-village-filter').value;
+            const exportData = []; 
+            let runningNum = 1;
+
+            const filteredVHVs = allVHVs.filter(v => vFilter === '' || String(v.village_no) === vFilter);
+
+            if (filteredVHVs.length === 0) {
+                return showToast('ไม่พบรายชื่อ อสม. ในเขตรับผิดชอบที่เลือกครับ', 'error');
+            }
+
+            filteredVHVs.forEach(v => {
+                let totalAssigned = 0; let visited = 0; let overdue = 0; let pendingNew = 0;
+
+                function calculateDaysSince(dateStr) {
+                    if (!dateStr || dateStr.trim() === '' || dateStr === '-') return -1;
+                    let targetDate;
+                    if (dateStr.includes('/')) {
+                        const parts = dateStr.split(' ')[0].split('/');
+                        let year = parseInt(parts[2]);
+                        if (year > 2400) { year -= 543; }
+                        targetDate = new Date(year, parseInt(parts[1]) - 1, parseInt(parts[0]));
+                    } else { targetDate = new Date(dateStr); }
+                    if (isNaN(targetDate)) return -1;
+                    return Math.floor(Math.abs(new Date() - targetDate) / (1000 * 60 * 60 * 24));
+                }
+
+                allPatients.forEach(p => {
+                    if(String(p.status).trim().toLowerCase() === 'active' && p.assigned_vhv_id === v.uid) {
+                        totalAssigned++;
+                        const lastAssess = String(p.last_assess || '').trim();
+                        if(lastAssess === '' || lastAssess === '-') {
+                            pendingNew++;
+                        } else {
+                            const days = calculateDaysSince(lastAssess);
+                            if(days > 30) overdue++; else visited++;
+                        }
+                    }
+                });
+
+                exportData.push({
+                    "ลำดับ": runningNum++,
+                    "ชื่อ-สกุล อสม.": v.name,
+                    "หมู่ที่รับผิดชอบ": v.village_no,
+                    "เบอร์โทรศัพท์": v.phone,
+                    "ผู้ป่วยในความดูแล (ราย)": totalAssigned,
+                    "ลงเยี่ยมแล้วในรอบ 30 วัน": visited,
+                    "ค้างประเมินซ้ำ (>30 วัน)": overdue,
+                    "เคสใหม่รอประเมินแรกเข้า": pendingNew
+                });
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            
+            const sheetName = vFilter === '' ? "สถิติรวม" : `สถิติ อสม. หมู่ ${vFilter}`;
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+            worksheet['!cols'] = [{wch:8},{wch:30},{wch:15},{wch:15},{wch:20},{wch:22},{wch:20},{wch:20}];
+            
+            const fileNameSuffix = vFilter === '' ? 'รวมทุกหมู่' : `หมู่_${vFilter}`;
+            XLSX.writeFile(workbook, `รายงานผลงานอสม_${fileNameSuffix}_${getTodayDateStr()}.xlsx`);
+        }
+    </script>
+</body>
+</html>

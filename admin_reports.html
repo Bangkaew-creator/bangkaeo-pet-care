@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>บันทึกมติผ้าอ้อม - อสม.สามารถ (Orsomo Smart)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="config.js"></script>
+    
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f4f7fa; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .bg-navy { background-color: #0f172a; } .text-navy { color: #0f172a; }
+        .loader-small { border: 2px solid #f3f3f3; border-bottom-color: #00694a; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .check-row { accent-color: #00694a; width: 20px; height: 20px; cursor: pointer; }
+        .tab-btn { padding: 14px 10px; font-weight: bold; font-size: 14px; border-bottom: 3px solid transparent; color: #64748b; transition: all 0.2s; cursor: pointer; }
+        .tab-btn.active { color: #00694a; border-bottom-color: #00694a; }
+    </style>
+</head>
+<body class="flex h-[100dvh] overflow-hidden text-slate-800 relative">
+
+    <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-navy text-white flex flex-col z-50 transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-300 ease-in-out">
+        <div class="p-6 flex items-center justify-between border-b border-slate-700/40">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center border border-amber-400/30"><span class="material-symbols-outlined text-amber-400 text-[26px]">local_hospital</span></div>
+                <div><h1 id="sidebar-hospital-name" class="font-bold text-[15px] tracking-wide text-white">กำลังโหลด...</h1><p id="sidebar-system-name" class="text-[10px] text-amber-400 font-medium">ระบบบริหารจัดการ</p></div>
+            </div>
+            <button onclick="toggleSidebar()" class="lg:hidden text-slate-400 p-1"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <a href="admin_dashboard.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">dashboard</span> ภาพรวมระบบ</a>
+            <a href="admin_resources.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">inventory_2</span> บริหารทรัพยากร</a>
+            <a href="admin_inventory.html" id="nav-inventory" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">warehouse</span> ระบบคลังพัสดุ กปท.</a>
+            <a href="admin_datacenter.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">folder_shared</span> ศูนย์ข้อมูลผู้ป่วย</a>
+            <a href="admin_map.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">map</span> แผนที่พิกัดผู้ป่วย</a>
+            <a href="admin_delegation.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">assignment_ind</span> มอบหมายงาน อสม.</a>
+            <a href="admin_analytics.html" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all">
+                <span class="material-symbols-outlined">analytics</span> ศูนย์รายงาน (Export)
+            </a>
+            <a href="admin_reports.html" id="nav-reports" class="flex items-center justify-between px-4 py-3.5 bg-white/10 text-amber-400 rounded-xl font-bold transition-all"><span class="flex items-center gap-3">
+                <span class="material-symbols-outlined">gavel</span> บันทึกมติผ้าอ้อม
+            </a>
+            <a href="admin_settings.html" id="nav-settings" class="flex items-center gap-3 px-4 py-3.5 text-slate-400 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-all"><span class="material-symbols-outlined">settings</span> ตั้งค่าระบบ</a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-h-0 bg-slate-50 overflow-y-auto">
+        <header class="h-20 min-h-[80px] bg-white shadow-sm flex items-center justify-between px-6 lg:px-8 z-10 flex-shrink-0 border-b border-slate-100">
+            <div class="flex items-center">
+                <button onclick="toggleSidebar()" class="lg:hidden p-2.5 -ml-2 mr-3 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"><span class="material-symbols-outlined text-[26px]">menu</span></button>
+                <div>
+                    <h2 class="text-base lg:text-lg font-bold text-slate-900 leading-tight">ศูนย์รายงานและการส่งออกข้อมูล</h2>
+                    <p id="header-hospital-name" class="text-[11px] lg:text-xs text-slate-400 font-medium mt-0.5">Export Center</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 pb-20">
+            <div class="bg-white border-b border-slate-200 grid grid-cols-3 shadow-sm z-10 sticky top-0 flex-shrink-0">
+                <button class="tab-btn active border-r border-slate-100 flex flex-col items-center justify-center py-3 px-1 leading-tight" id="tab-kpt" onclick="switchTab('kpt')">
+                    <span class="text-[18px] mb-1">📦</span>
+                    <span class="text-[11px] sm:text-[13px] text-center">เบิกจ่าย กปท.</span>
+                </button>
+                <button class="tab-btn border-r border-slate-100 flex flex-col items-center justify-center py-3 px-1 leading-tight" id="tab-registry" onclick="switchTab('registry')">
+                    <span class="text-[18px] mb-1">🏥</span>
+                    <span class="text-[11px] sm:text-[13px] text-center">ทะเบียนสุขภาพ</span>
+                </button>
+                <button class="tab-btn flex flex-col items-center justify-center py-3 px-1 leading-tight" id="tab-vhv" onclick="switchTab('vhv')">
+                    <span class="text-[18px] mb-1">👥</span>
+                    <span class="text-[11px] sm:text-[13px] text-center">สถิติ อสม.</span>
+                </button>
+            </div>
+
+            <div id="loading-state" class="flex flex-col items-center justify-center py-24 space-y-3">
+                <div class="loader-small"></div><p class="text-sm text-slate-400 animate-pulse">กำลังโหลดข้อมูลจาก Firebase...</p>
+            </div>
+
+            <!-- TAB 1: กปท. -->
+            <div id="content-kpt" class="hidden p-4 lg:p-6">
+                <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">จัดเตรียมข้อมูล กปท.</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">ติ๊กเลือกผู้ป่วยเพื่อคาดการณ์งบประมาณ บันทึกมติ หรือโหลดตาราง Excel</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 w-full xl:w-auto">
+                        <button onclick="openImportAllocModal()" class="flex-1 xl:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95"><span class="material-symbols-outlined text-[16px]">upload_file</span> อัปโหลด Excel (ประวัติ)</button>
+                        <button onclick="openCommitteeModal()" class="flex-1 xl:flex-none bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95"><span class="material-symbols-outlined text-[16px]">gavel</span> บันทึกมติ (<span id="select-count-1">0</span>)</button>
+                        <button onclick="exportToExcel()" class="flex-1 xl:flex-none bg-[#00694a] hover:bg-[#005239] text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95"><span class="material-symbols-outlined text-[16px]">download</span> โหลด Excel (<span id="select-count-2">0</span>)</button>
+                    </div>
+                </div>
+
+                <!-- งบประมาณ Real-time -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-navy mb-5">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4 border-b border-slate-100 pb-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-navy flex items-center gap-2"><span class="material-symbols-outlined text-amber-500 text-[20px]">account_balance_wallet</span> คาดการณ์งบประมาณสำหรับผู้ป่วยที่เลือก</h3>
+                            <p class="text-[11px] text-slate-500 mt-1">ยอดจะเปลี่ยนไปตามจำนวนคนที่คุณติ๊ก <strong class="text-blue-600">✓ เลือก</strong> ในตารางด้านล่าง</p>
+                        </div>
+                        <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                            <label class="text-xs font-bold text-slate-700 pl-2 whitespace-nowrap">ระยะเวลาคำนวณ</label>
+                            <input type="number" id="kpt-forecast-days" value="30" oninput="updateSelectCount()" class="w-16 px-2 py-1 border border-slate-300 rounded-lg text-center font-bold text-navy text-sm">
+                            <span class="text-xs text-slate-500 pr-2">วัน</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                        <div class="lg:col-span-3 bg-blue-50/50 p-3 lg:p-4 rounded-xl border border-blue-100 flex flex-col justify-center">
+                            <div class="flex justify-between items-center mb-3">
+                                <p class="text-[11px] font-bold text-blue-800 uppercase tracking-wider">จำนวนชิ้นรวมที่ต้องใช้</p>
+                                <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">เลือกไว้ <span id="summary-selected-count">0</span> คน</span>
+                            </div>
+                            <div class="grid grid-cols-3 lg:grid-cols-5 gap-2 text-center">
+                                <div class="bg-white p-2 rounded-lg border border-slate-100"><span class="text-[10px] text-slate-400 block">ไซส์ S</span><span class="font-bold text-navy text-sm lg:text-base" id="sum-s">0</span></div>
+                                <div class="bg-white p-2 rounded-lg border border-slate-100"><span class="text-[10px] text-slate-400 block">ไซส์ M</span><span class="font-bold text-navy text-sm lg:text-base" id="sum-m">0</span></div>
+                                <div class="bg-white p-2 rounded-lg border border-slate-100"><span class="text-[10px] text-slate-400 block">ไซส์ L</span><span class="font-bold text-navy text-sm lg:text-base" id="sum-l">0</span></div>
+                                <div class="bg-white p-2 rounded-lg border border-slate-100"><span class="text-[10px] text-slate-400 block">ไซส์ XL</span><span class="font-bold text-navy text-sm lg:text-base" id="sum-xl">0</span></div>
+                                <div class="bg-white p-2 rounded-lg border border-emerald-100"><span class="text-[10px] text-emerald-600 font-bold block">แผ่นรอง</span><span class="font-bold text-emerald-700 text-sm lg:text-base" id="sum-pad">0</span></div>
+                            </div>
+                        </div>
+                        <div class="bg-gradient-to-br from-amber-50 to-orange-50 p-3 lg:p-4 rounded-xl border border-amber-200 flex flex-col justify-center items-center text-center shadow-sm">
+                            <p class="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-1">งบประมาณรวม (THB)</p>
+                            <h3 class="text-xl lg:text-2xl font-black text-amber-600 tracking-tight mt-1" id="sum-cost">0.00 <span class="text-sm text-amber-500 font-bold">฿</span></h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                        <input type="text" id="kpt-search" oninput="renderKPTTable()" class="w-full pl-12 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 shadow-sm outline-none" placeholder="ค้นหาชื่อ, เลขบัตร, บ้านเลขที่...">
+                    </div>
+                    <select id="kpt-alloc-filter" onchange="renderKPTTable()" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 focus:ring-2 focus:ring-amber-500 shadow-sm outline-none">
+                        <option value="all">แสดงผู้ป่วยทั้งหมด</option>
+                        <option value="never">ยังไม่เคยได้รับการจัดสรรผ้าอ้อม</option>
+                        <option value="ever">ผู้ที่เคยได้รับการจัดสรรผ้าอ้อมแล้ว</option>
+                        <optgroup label="ดูเฉพาะรอบ" id="kpt-alloc-options"></optgroup>
+                    </select>
+                </div>
+
+                <div id="table-container" class="bg-white border border-slate-200 rounded-[20px] shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[1000px]">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 text-[12px] uppercase tracking-wider">
+                                    <th class="p-4 w-12 text-center border-b border-slate-200"><input type="checkbox" id="check-all" onchange="toggleAll(this)" class="check-row"></th>
+                                    <th class="p-4 font-bold border-b border-slate-200">ชื่อ-นามสกุล / ที่อยู่</th>
+                                    <th class="p-4 font-bold border-b border-slate-200 text-center">คะแนน ADL</th>
+                                    <th class="p-4 font-bold border-b border-slate-200 text-center">ประเมินฟอร์ม</th>
+                                    <th class="p-4 font-bold border-b border-slate-200 text-center">ประวัติได้รับจัดสรร (รอบล่าสุด)</th>
+                                    <th class="p-4 font-bold border-b border-slate-200">ความต้องการ (ต่อเดือน)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-list" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal นำเข้าประวัติจัดสรร (Excel) -->
+        <div id="import-alloc-modal" class="fixed inset-0 bg-[#111c2d]/40 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-[24px] w-full max-w-md overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="import-alloc-modal-content">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-blue-600">upload_file</span> นำเข้าประวัติจัดสรร (Excel)
+                    </h3>
+                    <button onclick="closeImportAllocModal()" class="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-full"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 text-sm text-blue-800">
+                        <p class="font-bold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">info</span> ข้อแนะนำก่อนนำเข้า</p>
+                        <p class="text-xs leading-relaxed">
+                            - ใช้ <b>เลขประจำตัวประชาชน</b> เป็นตัวอ้างอิงเพื่อดึงข้อมูล<br>
+                            - หัวคอลัมน์ที่รองรับ: เลขประจำตัวประชาชน, ผ้าอ้อมผู้ใหญ่ (ขนาด), รอบจัดสรร<br>
+                            - ข้อมูลจะถูกอัปเดตเข้าไปรวมกับประวัติเดิมของคนไข้
+                        </p>
+                    </div>
+                    <div class="relative border-2 border-dashed border-blue-300 rounded-xl p-6 text-center hover:bg-blue-50 transition-colors cursor-pointer" onclick="document.getElementById('alloc-excel-file').click()">
+                        <span class="material-symbols-outlined text-blue-500 text-[40px] mb-2">note_add</span>
+                        <p class="text-sm font-bold text-blue-700">คลิกเพื่อเลือกไฟล์ Excel (.xlsx)</p>
+                        <p class="text-xs text-slate-400 mt-1" id="alloc-file-name-display">หรือลากไฟล์มาวางที่นี่</p>
+                        <input type="file" id="alloc-excel-file" accept=".xlsx, .xls" class="hidden" onchange="handleAllocFileSelect(this)">
+                    </div>
+                    <button onclick="processAllocImport()" id="btn-process-alloc" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2" disabled>
+                        เริ่มนำเข้าข้อมูล
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        firebase.initializeApp(firebaseConfig);
+        firebase.firestore().enablePersistence({ synchronizeTabs: true }).catch(err => console.warn('Offline persistence error:', err.code));
+        const db = firebase.firestore();
+        
+        let allPatients = [];
+        let allVHVs = [];
+        let currentUserRole = "ADMIN";
+        let assignedVillages = [];
+        let selectedAllocFile = null;
+
+        let configDiaperPrice = DEFAULT_CONFIGS.DIAPER_PRICE || 9.50;
+        let configUnderpadPrice = DEFAULT_CONFIGS.UNDERPAD_PRICE || 6.00;
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+
+        function cleanJSON(rawStr) {
+            if (!rawStr || String(rawStr).trim() === '') return null;
+            let cleanStr = String(rawStr).trim();
+            // Removed dangerous replace
+            if (cleanStr.startsWith('"') && cleanStr.endsWith('"')) cleanStr = cleanStr.substring(1, cleanStr.length - 1);
+            try { return JSON.parse(cleanStr); } catch(e) { return null; }
+        }
+
+        function getTodayDateStr() { return new Date().toISOString().split('T')[0]; }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById('sidebar-hospital-name').innerText = DEFAULT_CONFIGS.HOSPITAL_NAME;
+            document.getElementById('sidebar-system-name').innerText = DEFAULT_CONFIGS.SYSTEM_NAME;
+            
+            liff.init({ liffId: LIFF_ID }).then(() => {
+                const mockUid = localStorage.getItem('dev_mock_uid');
+                const savedUid = localStorage.getItem('orsomo_uid');
+                if (mockUid) {
+                    verifyAdminAccess(mockUid);
+                } else if (liff.isLoggedIn()) { 
+                    liff.getProfile().then(p => { localStorage.setItem('orsomo_uid', p.userId); verifyAdminAccess(p.userId); }).catch(() => bounceToLogin());
+                } else if (savedUid) {
+                    verifyAdminAccess(savedUid);
+                } else bounceToLogin();
+            }).catch(() => bounceToLogin());
+        });
+
+        function bounceToLogin() { window.location.href = 'index.html'; }
+
+        async function verifyAdminAccess(uid) {
+            try {
+                const userDoc = await db.collection('VHVs').doc(String(uid)).get();
+                let hasAccess = false; 
+                let vCount = DEFAULT_CONFIGS.VILLAGE_COUNT; 
+                let hospital = DEFAULT_CONFIGS.HOSPITAL_NAME;
+
+                try {
+                    const sysSnap = await db.collection('SystemConfig').doc('HOSPITAL_NAME').get();
+                    if(sysSnap.exists) hospital = sysSnap.data().value || hospital;
+                    const sysCountSnap = await db.collection('SystemConfig').doc('VILLAGE_COUNT').get();
+                    if(sysCountSnap.exists) vCount = parseInt(sysCountSnap.data().value) || vCount;
+                    
+                    const sysSnapDiaper = await db.collection('SystemConfig').doc('DIAPER_PRICE').get();
+                    if(sysSnapDiaper.exists) configDiaperPrice = parseFloat(sysSnapDiaper.data().value) || configDiaperPrice;
+                    const sysSnapUnderpad = await db.collection('SystemConfig').doc('UNDERPAD_PRICE').get();
+                    if(sysSnapUnderpad.exists) configUnderpadPrice = parseFloat(sysSnapUnderpad.data().value) || configUnderpadPrice;
+
+                } catch(e) {}
+
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    const role = String(userData.role || '').toUpperCase();
+                    if (role === 'ADMIN') {
+                        hasAccess = true; currentUserRole = 'ADMIN'; hospital = userData.hospital_name || hospital;
+                    } else if (role === 'SUB_ADMIN') {
+                        hasAccess = true; currentUserRole = 'SUB_ADMIN'; hospital = userData.hospital_name || hospital;
+                        assignedVillages = userData.assigned_villages || [];
+                    }
+                }
+
+                if (hasAccess) {
+                    document.getElementById('sidebar-hospital-name').innerText = hospital;
+                    
+                    const vhvFilter = document.getElementById('vhv-village-filter');
+                    vhvFilter.innerHTML = '<option value="">ดูทุกหมู่ (ทั้งหมด)</option>';
+                    
+                    if (currentUserRole === 'SUB_ADMIN') {
+                        const navSettings = document.getElementById('nav-settings');
+                        if (navSettings) navSettings.style.display = 'none';
+                        const navInventory = document.getElementById('nav-inventory');
+                        if (navInventory) navInventory.style.display = 'none';
+                        const navReports = document.getElementById('nav-reports');
+                        if (navReports) navReports.style.display = 'none';
+                        
+                        assignedVillages.forEach(v => { vhvFilter.insertAdjacentHTML('beforeend', `<option value="${v}">หมู่ที่ ${v}</option>`); });
+                    } else {
+                        for(let i=1; i<=vCount; i++){ vhvFilter.insertAdjacentHTML('beforeend', `<option value="${i}">หมู่ที่ ${i}</option>`); }
+                    }
+
+                    loadReportData();
+                } else { window.location.href = 'dashboard.html'; }
+            } catch (error) { window.location.href = 'index.html'; }
+        }
+
+        async function loadReportData() {
+            try {
+                const [patientsSnap, vhvsSnap] = await Promise.all([
+                    db.collection('Patients').get(),
+                    db.collection('VHVs').get()
+                ]);
+                
+                allPatients = [];
+                let uniqueAllocations = new Set();
+
+                patientsSnap.forEach(doc => {
+                    const data = doc.data();
+                    let hasPermissionToView = true;
+                    if (currentUserRole === 'SUB_ADMIN') hasPermissionToView = assignedVillages.includes(String(data.village_no).trim());
+                    
+                    if (hasPermissionToView) {
+                        data.docId = doc.id; 
+                        allPatients.push(data);
+                        const d = cleanJSON(data.diaper);
+                        if(d && Array.isArray(d.allocations)) {
+                            d.allocations.forEach(alloc => uniqueAllocations.add(alloc));
+                        }
+                    }
+                });
+
+                const allocGroup = document.getElementById('kpt-alloc-options');
+                allocGroup.innerHTML = '';
+                Array.from(uniqueAllocations).sort().reverse().forEach(alloc => {
+                    allocGroup.insertAdjacentHTML('beforeend', `<option value="${alloc}">เฉพาะรอบ ${alloc}</option>`);
+                });
+                
+                allVHVs = [];
+                vhvsSnap.forEach(doc => {
+                    const v = doc.data();
+                    const vRole = String(v.role || '').toUpperCase();
+                    let hasPermissionToView = true;
+                    if (currentUserRole === 'SUB_ADMIN') hasPermissionToView = assignedVillages.includes(String(v.village_no).trim());
+                    if (vRole !== 'ADMIN' && vRole !== 'SUB_ADMIN' && hasPermissionToView) allVHVs.push(v);
+                });
+                
+                renderKPTTable();
+                document.getElementById('loading-state').classList.add('hidden');
+                 
+            } catch (error) { showToast("ดึงข้อมูลล้มเหลว กรุณารีเฟรชหน้าเว็บ", "error"); }
+        }
+
+        
+
+        function renderKPTTable() {
+            const tbody = document.getElementById('report-list');
+            tbody.innerHTML = '';
+            
+            const searchKeyword = document.getElementById('kpt-search').value.trim().toLowerCase();
+            const allocFilter = document.getElementById('kpt-alloc-filter').value;
+
+            allPatients.forEach(p => {
+                if (String(p.status || 'Active').trim().toLowerCase() !== 'active') return;
+
+                const nameMatch = p.name ? String(p.name).toLowerCase().includes(searchKeyword) : false;
+                const idMatch = p.id_card ? String(p.id_card).toLowerCase().includes(searchKeyword) : false;
+                const houseMatch = p.house_no ? String(p.house_no).toLowerCase().includes(searchKeyword) : false;
+                if (searchKeyword && !nameMatch && !idMatch && !houseMatch) return;
+
+                const d = cleanJSON(p.diaper);
+                
+                const hasAllocations = (d && Array.isArray(d.allocations) && d.allocations.length > 0);
+                if (allocFilter === 'never' && hasAllocations) return;
+                if (allocFilter === 'ever' && !hasAllocations) return;
+                if (allocFilter !== 'all' && allocFilter !== 'never' && allocFilter !== 'ever') {
+                    if (!hasAllocations || !d.allocations.includes(allocFilter)) return;
+                }
+
+                const adlScore = (p.adl && p.adl !== '-') ? parseInt(p.adl) : null;
+                let adlBadge = `<span class="bg-red-50 text-red-600 font-bold px-2 py-1 rounded text-xs border border-red-100 flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[14px]">warning</span> ยังไม่ประเมิน</span>`;
+                if (adlScore !== null) adlBadge = `<span class="bg-blue-50 text-blue-700 font-bold px-3 py-1 rounded-full text-sm">${adlScore}</span>`;
+
+                let diaperFormBadge = `<span class="bg-red-50 text-red-600 font-bold px-2 py-1 rounded text-xs border border-red-100">ไม่มีข้อมูล</span>`;
+                let needText = '-';
+
+                if (d && (d.req_diaper || d.req_underpad)) {
+                    diaperFormBadge = `<span class="bg-emerald-50 text-emerald-600 font-bold px-2 py-1 rounded text-xs border border-emerald-100 flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span> ประเมินแล้ว</span>`;
+                    let needs = [];
+                    if (d.req_diaper) needs.push(`ผ้าอ้อม ${d.size} (${d.approved_diaper||0} ชิ้น/ด.)`);
+                    if (d.req_underpad) needs.push(`แผ่นรองซับ (${d.approved_underpad||0} ชิ้น/ด.)`);
+                    needText = needs.length > 0 ? needs.join('<br>') : 'ไม่ต้องการ';
+                }
+
+                let historyBadge = `<span class="text-slate-400 text-[11px] font-medium">รอเข้าคณะกรรมการ</span>`;
+                if (hasAllocations) {
+                    const latestAlloc = d.allocations[d.allocations.length - 1];
+                    historyBadge = `<span class="bg-amber-100 text-amber-700 font-bold px-2 py-1 rounded text-[10px] border border-amber-200" title="รอบทั้งหมด: ${d.allocations.join(', ')}">ได้รับรอบ ${latestAlloc}</span>`;
+                }
+
+                const rawData = { id: p.id, name: p.name, id_card: p.id_card, house_no: p.house_no, village_no: p.village_no, adl: p.adl, phone: p.caregiver_phone || p.phone || '-', detail: d };
+                
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-100 hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4 text-center"><input type="checkbox" class="check-row row-checkbox" value="${p.id}" onchange="updateSelectCount()"></td>
+                    <td class="p-4"><p class="font-bold text-slate-800">${p.prefix||''}${p.name}</p><p class="text-[11px] text-slate-500">ID: ${p.id_card || '-'} | หมู่ ${p.village_no || '-'}</p></td>
+                    <td class="p-4 text-center">${adlBadge}</td>
+                    <td class="p-4 text-center">${diaperFormBadge}</td>
+                    <td class="p-4 text-center">${historyBadge}</td>
+                    <td class="p-4"><p class="text-[11px] font-bold text-navy leading-tight">${needText}</p></td>
+                `;
+                tr.dataset.rawData = JSON.stringify(rawData);
+                tbody.appendChild(tr);
+            });
+            document.getElementById('check-all').checked = false;
+            updateSelectCount();
+        }
+
+        function toggleAll(source) {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = source.checked);
+            updateSelectCount();
+        }
+
+        function updateSelectCount() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const count = checkedBoxes.length;
+            
+            document.getElementById('select-count-1').innerText = count;
+            document.getElementById('select-count-2').innerText = count;
+            document.getElementById('summary-selected-count').innerText = count;
+
+            const days = parseInt(document.getElementById('kpt-forecast-days').value) || 30;
+            let totalS = 0, totalM = 0, totalL = 0, totalXL = 0, totalPad = 0;
+
+            checkedBoxes.forEach(cb => {
+                const tr = cb.closest('tr');
+                const p = JSON.parse(tr.dataset.rawData);
+                const d = p.detail;
+
+                if (d && (d.req_diaper || d.req_underpad)) {
+                    let diaperPerMonth = parseInt(d.approved_diaper) || 0;
+                    let padPerMonth = parseInt(d.approved_underpad) || 0;
+
+                    if (diaperPerMonth === 0 && d.req_diaper) diaperPerMonth = d.req_underpad ? 30 : 90;
+                    if (padPerMonth === 0 && d.req_underpad) padPerMonth = d.req_diaper ? 90 : 150;
+
+                    const calcDiaper = Math.ceil((diaperPerMonth / 30) * days);
+                    const calcPad = Math.ceil((padPerMonth / 30) * days);
+
+                    if (calcDiaper > 0 && d.req_diaper) {
+                        const size = String(d.size || 'L').toUpperCase().trim();
+                        if (size === 'S') totalS += calcDiaper;
+                        else if (size === 'M') totalM += calcDiaper;
+                        else if (size === 'XL') totalXL += calcDiaper;
+                        else totalL += calcDiaper;
+                    }
+                    if (calcPad > 0 && d.req_underpad) {
+                        totalPad += calcPad;
+                    }
+                }
+            });
+
+            document.getElementById('sum-s').innerText = totalS.toLocaleString();
+            document.getElementById('sum-m').innerText = totalM.toLocaleString();
+            document.getElementById('sum-l').innerText = totalL.toLocaleString();
+            document.getElementById('sum-xl').innerText = totalXL.toLocaleString();
+            document.getElementById('sum-pad').innerText = totalPad.toLocaleString();
+
+            const totalCost = ((totalS + totalM + totalL + totalXL) * configDiaperPrice) + (totalPad * configUnderpadPrice);
+            document.getElementById('sum-cost').innerHTML = totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' <span class="text-sm text-amber-500 font-bold">฿</span>';
+        }
+
+        function openCommitteeModal() {
+            const count = document.querySelectorAll('.row-checkbox:checked').length;
+            if (count === 0) return showToast('กรุณาติ๊กเลือกรายชื่ออย่างน้อย 1 รายการก่อน', 'error');
+            document.getElementById('modal-selected-count').innerText = count;
+            const m = document.getElementById('committee-modal');
+            const c = document.getElementById('committee-modal-content');
+            m.classList.remove('hidden'); setTimeout(() => { m.classList.remove('opacity-0'); c.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeCommitteeModal() {
+            const m = document.getElementById('committee-modal');
+            const c = document.getElementById('committee-modal-content');
+            m.classList.add('opacity-0'); c.classList.add('scale-95');
+            setTimeout(() => { m.classList.add('hidden'); }, 300);
+        }
+
+        async function saveCommitteeDecision() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            if(checkedBoxes.length === 0) return;
+
+            const fy = document.getElementById('input-fy').value.trim();
+            const round = document.getElementById('input-round').value.trim();
+            const days = document.getElementById('input-days').value.trim();
+
+            if(!fy || !round || !days) {
+                return showToast('กรุณากรอกข้อมูล ปีงบประมาณ, รอบ และ จำนวนวัน ให้ครบถ้วน', 'error');
+            }
+
+            const btn = document.getElementById('btn-save-committee');
+            btn.disabled = true; btn.innerText = 'กำลังบันทึก...';
+
+            try {
+                const batch = db.batch();
+                const allocStr = `${round}/${fy}`;
+
+                checkedBoxes.forEach(cb => {
+                    const tr = cb.closest('tr');
+                    const rawData = JSON.parse(tr.dataset.rawData);
+                    
+                    let diaperObj = rawData.detail || {}; 
+                    
+                    diaperObj.committee_status = 'จัดสรรแล้ว';
+                    diaperObj.fy = fy;
+                    diaperObj.round = round;
+                    diaperObj.alloc_days = days; 
+                    
+                    if (!diaperObj.allocations) diaperObj.allocations = [];
+                    if (!diaperObj.allocations.includes(allocStr)) diaperObj.allocations.push(allocStr);
+
+                    const ref = db.collection('Patients').doc(String(cb.value));
+                    batch.update(ref, { diaper: JSON.stringify(diaperObj) });
+                });
+                await batch.commit();
+
+                showToast('บันทึกมติคณะกรรมการเรียบร้อยแล้ว');
+                closeCommitteeModal(); 
+                document.getElementById('check-all').checked = false; 
+                updateSelectCount(); 
+                
+                await loadReportData(); 
+            } catch (e) { 
+                console.error(e);
+                showToast("บันทึกล้มเหลว กรุณาลองใหม่", "error"); 
+            }
+            
+            btn.disabled = false; btn.innerText = 'บันทึกมติ';
+        }
+
+        function exportToExcel() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkedBoxes.length === 0) return showToast('กรุณาติ๊กเลือกรายชื่อที่ต้องการออกรายงาน', 'error');
+            const exportData = []; let runningNumber = 1;
+
+            checkedBoxes.forEach(cb => {
+                const tr = cb.closest('tr');
+                const p = JSON.parse(tr.dataset.rawData);
+                const d = p.detail;
+
+                let diaperSize = '-'; let diaperQty = '-';
+                let underpadSize = '-'; let underpadQty = '-';
+                let remarkText = '';
+
+                if (d) {
+                    const allocDays = d.alloc_days ? parseInt(d.alloc_days) : (parseInt(d.alloc_months) ? parseInt(d.alloc_months) * 30 : 30); 
+                    
+                    if (d.req_diaper && parseInt(d.approved_diaper) > 0) { 
+                        diaperSize = d.size || '-'; 
+                        diaperQty = Math.ceil((parseInt(d.approved_diaper) / 30) * allocDays); 
+                    }
+                    if (d.req_underpad && parseInt(d.approved_underpad) > 0) { 
+                        underpadSize = 'แผ่นรองซับ'; 
+                        underpadQty = Math.ceil((parseInt(d.approved_underpad) / 30) * allocDays); 
+                    }
+                    if (d.allocations && d.allocations.length > 0) { remarkText = `ได้รับรอบ ${d.allocations.join(', ')}`; }
+                }
+
+                exportData.push({
+                    "ลำดับ": runningNumber++, 
+                    "ชื่อ-สกุล": p.name || '-', 
+                    "เลขประจำตัวประชาชน": p.id_card || '-', 
+                    "บ้านเลขที่": p.house_no || '-',
+                    "หมู่ที่": p.village_no || '-', 
+                    "ADL": p.adl || '-', 
+                    "เบอร์โทรศัพท์": p.phone || '-', 
+                    "ขนาดผ้าอ้อม": diaperSize, 
+                    "จำนวน": diaperQty,
+                    "ขนาดแผ่นรองซับ": underpadSize, 
+                    "จำนวน ": underpadQty, 
+                    "หมายเหตุ": remarkText
+                });
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "จัดสรรผ้าอ้อม");
+            worksheet['!cols'] = [{wch:6},{wch:25},{wch:20},{wch:12},{wch:8},{wch:6},{wch:15},{wch:15},{wch:8},{wch:18},{wch:8},{wch:30}];
+            XLSX.writeFile(workbook, `รายงานเบิกผ้าอ้อม_กปท_${getTodayDateStr()}.xlsx`);
+        }
+
+        // ==========================================
+        function openImportAllocModal() {
+            const m = document.getElementById('import-alloc-modal');
+            const c = document.getElementById('import-alloc-modal-content');
+            m.classList.remove('hidden'); setTimeout(() => { m.classList.remove('opacity-0'); c.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeImportAllocModal() {
+            const m = document.getElementById('import-alloc-modal');
+            const c = document.getElementById('import-alloc-modal-content');
+            m.classList.add('opacity-0'); c.classList.add('scale-95');
+            setTimeout(() => { m.classList.add('hidden'); }, 300);
+            document.getElementById('alloc-excel-file').value = "";
+            document.getElementById('alloc-file-name-display').innerText = "หรือลากไฟล์มาวางที่นี่";
+            document.getElementById('btn-process-alloc').disabled = true;
+        }
+
+        function handleAllocFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                selectedAllocFile = file;
+                document.getElementById('alloc-file-name-display').innerHTML = `<span class="text-blue-600 font-bold">${file.name}</span>`;
+                document.getElementById('btn-process-alloc').disabled = false;
+            }
+        }
+
+        function getNormalizedValue(row, possibleKeys) {
+            const cleanObj = {};
+            for (let k in row) {
+                let cleanK = String(k).replace(/[^a-zA-Z0-9ก-๙]/g, '').toLowerCase();
+                cleanObj[cleanK] = row[k];
+            }
+            for (let pk of possibleKeys) {
+                let cleanPK = String(pk).replace(/[^a-zA-Z0-9ก-๙]/g, '').toLowerCase();
+                if (cleanObj[cleanPK] !== undefined && cleanObj[cleanPK] !== null && cleanObj[cleanPK] !== "") {
+                    return cleanObj[cleanPK];
+                }
+                if (cleanObj[cleanPK] === 0 || cleanObj[cleanPK] === "0") return 0;
+            }
+            for (let cleanK in cleanObj) {
+                for (let pk of possibleKeys) {
+                    let cleanPK = String(pk).replace(/[^a-zA-Z0-9ก-๙]/g, '').toLowerCase();
+                    if (cleanPK.length > 0 && cleanK.includes(cleanPK)) {
+                        let val = cleanObj[cleanK];
+                        if (val !== undefined && val !== null && val !== "") return val;
+                        if (val === 0 || val === "0") return 0;
+                    }
+                }
+            }
+            return '';
+        }
+
+        async function processAllocImport() {
+            if (!selectedAllocFile) return showToast('กรุณาเลือกไฟล์ก่อนครับ', 'error');
+
+            const btn = document.getElementById('btn-process-alloc');
+            btn.innerHTML = '<div class="loader-small mr-2" style="border-color:white;border-bottom-color:transparent"></div> กำลังประมวลผล...';
+            btn.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array', cellDates: true, cellText: false});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, {defval: "", raw: true}); 
+
+                    if (jsonRows.length === 0) throw new Error("ไม่พบข้อมูลในไฟล์ Excel");
+
+                    const batch = db.batch();
+                    let batchCount = 0;
+                    let updateCount = 0;
+
+                    for (let row of jsonRows) {
+                        let rawIdCard = String(getNormalizedValue(row, ['เลขประจำตัวประชาชน', 'เลขบัตรประชาชน', 'idcard', 'cid'])).trim().replace(/[^0-9]/g, ''); 
+                        if (rawIdCard.length === 12) rawIdCard = '0' + rawIdCard; 
+
+                        let size = String(getNormalizedValue(row, ['ผ้าอ้อมผู้ใหญ่', 'ขนาด', 'size'])).trim().toUpperCase();
+                        let alloc = String(getNormalizedValue(row, ['รอบจัดสรร', 'รอบ', 'รอบประวัติ'])).trim();
+
+                        if (rawIdCard.length === 13) {
+                            const p = allPatients.find(x => x.id_card === rawIdCard || x.id === rawIdCard);
+                            if (p) {
+                                let d = cleanJSON(p.diaper) || {};
+                                let isModified = false;
+
+                                if (size && size !== '-') {
+                                    if(size.includes('รองซับ') || size === 'แผ่นรองซับ') {
+                                        d.req_underpad = true;
+                                    } else {
+                                        d.req_diaper = true;
+                                        d.size = size;
+                                    }
+                                    isModified = true;
+                                }
+
+                                if (alloc && alloc !== '-') {
+                                    if (!d.allocations) d.allocations = [];
+                                    if (!d.allocations.includes(alloc)) d.allocations.push(alloc);
+                                    d.committee_status = 'จัดสรรแล้ว';
+                                    isModified = true;
+                                }
+
+                                if (isModified) {
+                                    const ref = db.collection('Patients').doc(String(p.docId || p.id));
+                                    batch.update(ref, { diaper: JSON.stringify(d) });
+                                    batchCount++;
+                                    updateCount++;
+
+                                    if (batchCount === 450) {
+                                        await batch.commit();
+                                        batchCount = 0;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (batchCount > 0) { await batch.commit(); }
+
+                    showToast(`นำเข้าประวัติจัดสรรสำเร็จ! อัปเดต ${updateCount} รายการ`);
+                    closeImportAllocModal();
+                    await loadReportData(); 
+
+                } catch (err) {
+                    showToast("เกิดข้อผิดพลาด: " + err.message, 'error');
+                } finally {
+                    btn.innerHTML = 'เริ่มนำเข้าข้อมูล';
+                    btn.disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(selectedAllocFile);
+        }
+
+        // ==========================================
+
+        function exportRegistryExcel() {
+            const exportData = [];
+            allPatients.forEach(p => {
+                if(String(p.status).trim().toLowerCase() !== 'active') return;
+
+                let diaperSize = '-';
+                if(p.diaper) {
+                    try {
+                        let dpStr = typeof p.diaper === 'string' ? p.diaper.replace(/""/g, '"') : JSON.stringify(p.diaper);
+                        if(dpStr.startsWith('"') && dpStr.endsWith('"')) dpStr = dpStr.substring(1, dpStr.length-1);
+                        const dp = typeof p.diaper === 'object' ? p.diaper : JSON.parse(dpStr);
+                        
+                        if(dp.req_diaper && dp.size && dp.size !== '-') diaperSize = dp.size;
+                        else if(dp.req_underpad) diaperSize = 'แผ่นรองซับ';
+                    } catch(e){}
+                }
+
+                exportData.push({
+                    "ชื่อ-สกุลผู้ป่วย": (p.prefix || '') + (p.name || '-'),
+                    "เลขประจำตัวประชาชน": p.id_card || '-',
+                    "บ้านเลขที่": p.house_no || '-',
+                    "หมู่": p.village_no || '-',
+                    "ADL": p.adl || '-',
+                    "เบอร์โทรศัพท์ญาติ": p.caregiver_phone || p.phone || '-',
+                    "ขนาดผ้าอ้อม": diaperSize
+                });
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "ทะเบียนสุขภาพ");
+            worksheet['!cols'] = [{wch:25},{wch:20},{wch:15},{wch:8},{wch:10},{wch:15},{wch:15}];
+            XLSX.writeFile(workbook, `ทะเบียนประวัติสุขภาพผู้ป่วย_${getTodayDateStr()}.xlsx`);
+        }
+
+        function exportVHVExcel() {
+            const vFilter = document.getElementById('vhv-village-filter').value;
+            const exportData = []; 
+            let runningNum = 1;
+
+            const filteredVHVs = allVHVs.filter(v => vFilter === '' || String(v.village_no) === vFilter);
+
+            if (filteredVHVs.length === 0) {
+                return showToast('ไม่พบรายชื่อ อสม. ในเขตรับผิดชอบที่เลือกครับ', 'error');
+            }
+
+            filteredVHVs.forEach(v => {
+                let totalAssigned = 0; let visited = 0; let overdue = 0; let pendingNew = 0;
+
+                function calculateDaysSince(dateStr) {
+                    if (!dateStr || dateStr.trim() === '' || dateStr === '-') return -1;
+                    let targetDate;
+                    if (dateStr.includes('/')) {
+                        const parts = dateStr.split(' ')[0].split('/');
+                        let year = parseInt(parts[2]);
+                        if (year > 2400) { year -= 543; }
+                        targetDate = new Date(year, parseInt(parts[1]) - 1, parseInt(parts[0]));
+                    } else { targetDate = new Date(dateStr); }
+                    if (isNaN(targetDate)) return -1;
+                    return Math.floor(Math.abs(new Date() - targetDate) / (1000 * 60 * 60 * 24));
+                }
+
+                allPatients.forEach(p => {
+                    if(String(p.status).trim().toLowerCase() === 'active' && p.assigned_vhv_id === v.uid) {
+                        totalAssigned++;
+                        const lastAssess = String(p.last_assess || '').trim();
+                        if(lastAssess === '' || lastAssess === '-') {
+                            pendingNew++;
+                        } else {
+                            const days = calculateDaysSince(lastAssess);
+                            if(days > 30) overdue++; else visited++;
+                        }
+                    }
+                });
+
+                exportData.push({
+                    "ลำดับ": runningNum++,
+                    "ชื่อ-สกุล อสม.": v.name,
+                    "หมู่ที่รับผิดชอบ": v.village_no,
+                    "เบอร์โทรศัพท์": v.phone,
+                    "ผู้ป่วยในความดูแล (ราย)": totalAssigned,
+                    "ลงเยี่ยมแล้วในรอบ 30 วัน": visited,
+                    "ค้างประเมินซ้ำ (>30 วัน)": overdue,
+                    "เคสใหม่รอประเมินแรกเข้า": pendingNew
+                });
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            
+            const sheetName = vFilter === '' ? "สถิติรวม" : `สถิติ อสม. หมู่ ${vFilter}`;
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+            worksheet['!cols'] = [{wch:8},{wch:30},{wch:15},{wch:15},{wch:20},{wch:22},{wch:20},{wch:20}];
+            
+            const fileNameSuffix = vFilter === '' ? 'รวมทุกหมู่' : `หมู่_${vFilter}`;
+            XLSX.writeFile(workbook, `รายงานผลงานอสม_${fileNameSuffix}_${getTodayDateStr()}.xlsx`);
+        }
+    </script>
+</body>
+</html>
