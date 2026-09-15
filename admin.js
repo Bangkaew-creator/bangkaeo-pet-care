@@ -813,7 +813,7 @@ window.executeBatchSave = async function(neuterSignatureData) {
         let currentQueueNo = 0;
         
         if (currentCamp && window.proxyPetsBatch.some(p => p.service === "ทำหมันและวัคซีน")) {
-            const campQ = query(collection(db, "pets"), where("campaign_id", "==", currentCamp), where("service_type", "ทำหมันและวัคซีน"), orderBy("queue_no", "desc"), limit(1));
+            const campQ = query(collection(db, "pets"), where("campaign_id", "==", currentCamp), where("service_type", "==", "ทำหมันและวัคซีน"), orderBy("queue_no", "desc"), limit(1));
             const snapCamp = await getDocs(campQ);
             if (!snapCamp.empty) currentQueueNo = snapCamp.docs[0].data().queue_no || 0;
         }
